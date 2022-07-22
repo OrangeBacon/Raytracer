@@ -1,13 +1,16 @@
+mod camera;
+mod hit;
 mod ray;
 mod ray_trace;
-mod hit;
 
 use std::path::PathBuf;
 
 use anyhow::Result;
+use camera::Camera;
 use clap::Parser;
-use glam::{vec3, Vec3};
-use hit::{Sphere, Hittable};
+use glam::{dvec3, DVec3};
+use hit::{Hittable, Sphere};
+use rand::Rng;
 use ray::Ray;
 
 #[derive(Debug, Parser)]
@@ -21,50 +24,79 @@ struct Args {
     #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 480)]
     height: u32,
 
+    /// File name to write the image to
     #[clap(short, long, value_parser, default_value = "out.png")]
     output: PathBuf,
+
+    /// How many rays should be fired per pixel
+    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 100)]
+    samples_per_pixel: u32,
+
+    /// Maximum recursive depth of every ray cast
+    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 50)]
+    max_depth: u32,
 }
 
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let aspect_ratio = args.width as f32 / args.height as f32;
-    let viewport_height = 2.0;
-    let viewport_width = viewport_height * aspect_ratio;
-    let focal_length = 1.0;
-
-    let origin = glam::Vec3::ZERO;
-    let horizontal = vec3(viewport_width, 0.0, 0.0);
-    let vertical = vec3(0.0, viewport_height, 0.0);
-    let lower_left = origin - horizontal / 2.0 - vertical / 2.0 - vec3(0.0, 0.0, focal_length);
-
+    let camera = Camera::new(args.width, args.height);
     let world: Vec<Box<dyn Hittable>> = vec![
-        Box::new(Sphere { centre: Vec3::NEG_Z, radius: 0.5 }),
-        Box::new(Sphere { centre: vec3(0.0, -100.5, -1.0), radius: 100.0 }),
+        Box::new(Sphere {
+            centre: DVec3::NEG_Z,
+            radius: 0.5,
+        }),
+        Box::new(Sphere {
+            centre: dvec3(0.0, -100.5, -1.0),
+            radius: 100.0,
+        }),
     ];
 
     ray_trace::ray_trace(args.width, args.height, |x, y| {
-        let u = x as f32 / args.width as f32;
-        let v = y as f32 / args.height as f32;
+        let mut color = DVec3::ZERO;
+        let mut rng = rand::thread_rng();
+        for _ in 0..args.samples_per_pixel {
+            let u = (x as f64 + rng.gen::<f64>()) / args.width as f64;
+            let v = (y as f64 + rng.gen::<f64>()) / args.height as f64;
 
-        let ray = Ray {
-            origin,
-            direction: lower_left + u * horizontal + v * vertical - origin,
-        };
+            let ray = camera.ray(u, v);
+            color += ray_color(ray, &world[..], args.max_depth);
+        }
 
-        ray_color(ray, &world[..])
+        color / args.samples_per_pixel as f64
     })
     .save(&args.output)?;
 
     Ok(())
 }
 
-fn ray_color(ray: Ray, world: &[Box<dyn Hittable>]) -> Vec3 {
-    if let Some(record) = world.hit(ray, 0.0, f32::INFINITY) {
-        return 0.5 * (record.normal + 1.0);
+fn rand_sphere_point() -> DVec3 {
+    let mut rng = rand::thread_rng();
+
+    let point = DVec3::from_array(rng.gen());
+
+    point.length_recip() * point
+}
+
+fn ray_color(ray: Ray, world: &[Box<dyn Hittable>], depth: u32) -> DVec3 {
+    if depth <= 0 {
+        return DVec3::ZERO;
     }
-    
+
+    if let Some(record) = world.hit(ray, 0.0, f64::INFINITY) {
+        let target = record.point + record.normal + rand_sphere_point();
+        return 0.5
+            * ray_color(
+                Ray {
+                    origin: record.point,
+                    direction: target - record.point,
+                },
+                world,
+                depth - 1,
+            );
+    }
+
     let direction = ray.direction.normalize();
     let t = 0.5 * (direction.y + 1.0);
-    (1.0 - t) * Vec3::ONE + t * vec3(0.5, 0.7, 1.0)
+    (1.0 - t) * DVec3::ONE + t * dvec3(0.5, 0.7, 1.0)
 }

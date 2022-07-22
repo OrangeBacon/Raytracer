@@ -1,23 +1,23 @@
-use glam::Vec3;
+use glam::DVec3;
 
 use crate::ray::Ray;
 
 pub struct HitRecord {
-    pub point: Vec3,
-    pub normal: Vec3,
-    pub t: f32,
+    pub point: DVec3,
+    pub normal: DVec3,
+    pub t: f64,
     pub front_face: bool,
 }
 
 pub trait Hittable: Send + Sync {
-    fn hit(&self, ray: Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
 impl HitRecord {
-    pub fn new(ray: Ray, point: Vec3, outward_normal: Vec3, t: f32) -> Self {
+    pub fn new(ray: Ray, point: DVec3, outward_normal: DVec3, t: f64) -> Self {
         let mut record = HitRecord {
             point,
-            normal: Vec3::ZERO,
+            normal: DVec3::ZERO,
             t,
             front_face: false,
         };
@@ -25,7 +25,7 @@ impl HitRecord {
         record
     }
 
-    fn set_face_normal(&mut self, ray: Ray, outward_normal: Vec3) {
+    fn set_face_normal(&mut self, ray: Ray, outward_normal: DVec3) {
         self.front_face = ray.direction.dot(outward_normal) < 0.0;
         self.normal = if self.front_face {
             outward_normal
@@ -37,12 +37,12 @@ impl HitRecord {
 
 #[derive(Clone, Copy)]
 pub struct Sphere {
-    pub centre: Vec3,
-    pub radius: f32,
+    pub centre: DVec3,
+    pub radius: f64,
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin - self.centre;
         let a = ray.direction.length_squared();
         let half_b = oc.dot(ray.direction);
@@ -73,7 +73,7 @@ impl Hittable for Sphere {
 }
 
 impl Hittable for [Box<dyn Hittable>] {
-    fn hit(&self, ray: Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut closest = t_max;
         let mut output = None;
 

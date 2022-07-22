@@ -8,12 +8,10 @@ use rayon::prelude::*;
 pub fn ray_trace(
     width: u32,
     height: u32,
-    f: impl Send + Sync + Fn(u32, u32) -> glam::Vec3,
+    f: impl Send + Sync + Fn(u32, u32) -> glam::DVec3,
 ) -> RgbImage {
-    let progress = ProgressBar::with_draw_target(
-        height.into(),
-        ProgressDrawTarget::stderr_with_hz(5),
-    );
+    let progress =
+        ProgressBar::with_draw_target(height.into(), ProgressDrawTarget::stderr_with_hz(5));
 
     let pixels: Vec<_> = (0..height)
         .into_par_iter()
