@@ -1,20 +1,24 @@
+mod ray;
+mod ray_trace;
+mod hit;
+
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
-use image::{ImageBuffer, Rgb};
-use indicatif::{ParallelProgressIterator, ProgressBar, ProgressDrawTarget};
-use rayon::prelude::*;
+use glam::{vec3, Vec3};
+use hit::{Sphere, Hittable};
+use ray::Ray;
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Width in pixels of the generated image
-    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 256)]
+    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 640)]
     width: u32,
 
     /// Height in pixels of the generated image
-    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 256)]
+    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 480)]
     height: u32,
 
     #[clap(short, long, value_parser, default_value = "out.png")]
@@ -24,31 +28,43 @@ struct Args {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let progress = ProgressBar::with_draw_target(
-        (args.width * args.height).into(),
-        ProgressDrawTarget::stderr_with_hz(5),
-    );
+    let aspect_ratio = args.width as f32 / args.height as f32;
+    let viewport_height = 2.0;
+    let viewport_width = viewport_height * aspect_ratio;
+    let focal_length = 1.0;
 
-    let pixels: Vec<_> = (0..args.height)
-        .into_par_iter()
-        .flat_map(|y| (0..args.width).into_par_iter().map(move |x| (x, y)))
-        .progress_with(progress)
-        .flat_map(|(x, y)| {
-            let color = glam::vec3(
-                x as f32 / args.width as f32,
-                y as f32 / args.height as f32,
-                0.25,
-            );
+    let origin = glam::Vec3::ZERO;
+    let horizontal = vec3(viewport_width, 0.0, 0.0);
+    let vertical = vec3(0.0, viewport_height, 0.0);
+    let lower_left = origin - horizontal / 2.0 - vertical / 2.0 - vec3(0.0, 0.0, focal_length);
 
-            let [r,g,b] = (color * 255.99).to_array();
-            [r as u8, g as u8, b as u8]
-        })
-        .collect();
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Sphere { centre: Vec3::NEG_Z, radius: 0.5 }),
+        Box::new(Sphere { centre: vec3(0.0, -100.5, -1.0), radius: 100.0 }),
+    ];
 
-    let mut image = ImageBuffer::<Rgb<_>, _>::from_raw(args.width, args.height, pixels).unwrap();
+    ray_trace::ray_trace(args.width, args.height, |x, y| {
+        let u = x as f32 / args.width as f32;
+        let v = y as f32 / args.height as f32;
 
-    image::imageops::flip_vertical_in_place(&mut image);
-    image.save(&args.output)?;
+        let ray = Ray {
+            origin,
+            direction: lower_left + u * horizontal + v * vertical - origin,
+        };
+
+        ray_color(ray, &world[..])
+    })
+    .save(&args.output)?;
 
     Ok(())
+}
+
+fn ray_color(ray: Ray, world: &[Box<dyn Hittable>]) -> Vec3 {
+    if let Some(record) = world.hit(ray, 0.0, f32::INFINITY) {
+        return 0.5 * (record.normal + 1.0);
+    }
+    
+    let direction = ray.direction.normalize();
+    let t = 0.5 * (direction.y + 1.0);
+    (1.0 - t) * Vec3::ONE + t * vec3(0.5, 0.7, 1.0)
 }
