@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, fmt::Debug};
 
 use glam::DVec3;
 
@@ -12,7 +12,7 @@ pub struct HitRecord {
     pub material: Arc<dyn Material>,
 }
 
-pub trait Hittable: Send + Sync {
+pub trait Hittable: Send + Sync + Debug {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
@@ -39,7 +39,7 @@ impl HitRecord {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Sphere {
     pub centre: DVec3,
     pub radius: f64,

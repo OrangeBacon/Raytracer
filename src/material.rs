@@ -1,9 +1,11 @@
+use std::fmt::Debug;
+
 use glam::DVec3;
-use serde::Deserialize;
 
 use crate::{
     hit::HitRecord,
     ray::Ray,
+    scene_format::RandomKind,
     utils::{near_zero, rand_hemisphere_point},
 };
 
@@ -11,12 +13,14 @@ pub struct ScatterRecord {
     pub attenuation: DVec3,
     pub scattered: Ray,
 }
-pub trait Material: Send + Sync {
+pub trait Material: Send + Sync + Debug {
     fn scatter(&self, ray: Ray, hit_record: &HitRecord) -> Option<ScatterRecord>;
 }
 
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Lambertian {
     pub albedo: DVec3,
+    pub random_kind: RandomKind,
 }
 
 impl Material for Lambertian {
@@ -44,9 +48,11 @@ fn reflect(vec: DVec3, normal: DVec3) -> DVec3 {
     vec - 2.0 * vec.dot(normal) * normal
 }
 
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Metal {
     pub albedo: DVec3,
     pub fuzz: f64,
+    pub random_kind: RandomKind,
 }
 
 impl Material for Metal {

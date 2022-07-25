@@ -3,21 +3,20 @@ mod hit;
 mod material;
 mod ray;
 mod ray_trace;
-mod utils;
+mod scene;
 mod scene_format;
+mod utils;
 
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use anyhow::Result;
-use camera::Camera;
 use clap::Parser;
 use glam::{dvec3, DVec3};
-use hit::{Hittable, Sphere};
-use material::{Lambertian, Metal};
+use hit::Hittable;
 use rand::Rng;
 use ray::Ray;
 
-use crate::scene_format::Scene;
+use crate::{camera::Camera, scene::Scene};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -35,37 +34,36 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     let scene = std::fs::read_to_string(&args.scene)?;
-    let scene: Scene = toml::from_str(&scene)?;
-    println!("{scene:?}");
-    /*
-    let camera = Camera::new(args.width, args.height);
+    let scene = Scene::from_file(toml::from_str(&scene)?);
 
-    ray_trace::ray_trace(args.width, args.height, |x, y| {
-        let mut color = DVec3::ZERO;
+    let camera = Camera::new(scene.width, scene.height);
+
+    ray_trace::ray_trace(scene.width, scene.height, |x, y| {
+        let mut colour = DVec3::ZERO;
         let mut rng = rand::thread_rng();
-        for _ in 0..args.samples_per_pixel {
-            let u = (x as f64 + rng.gen::<f64>()) / args.width as f64;
-            let v = (y as f64 + rng.gen::<f64>()) / args.height as f64;
+        for _ in 0..scene.samples_per_pixel {
+            let u = (x as f64 + rng.gen::<f64>()) / scene.width as f64;
+            let v = (y as f64 + rng.gen::<f64>()) / scene.height as f64;
 
             let ray = camera.ray(u, v);
-            color += ray_color(ray, &world[..], args.max_depth);
+            colour += ray_colour(ray, &scene.world[..], scene.recursive_depth);
         }
 
-        color / args.samples_per_pixel as f64
+        colour / scene.samples_per_pixel as f64
     })
-    .save(&args.output)?;*/
+    .save(&args.output)?;
 
     Ok(())
 }
 
-fn ray_color(ray: Ray, world: &[Box<dyn Hittable>], depth: u32) -> DVec3 {
+fn ray_colour(ray: Ray, world: &[Box<dyn Hittable>], depth: u32) -> DVec3 {
     if depth <= 0 {
         return DVec3::ZERO;
     }
 
     if let Some(record) = world.hit(ray, 0.001, f64::INFINITY) {
         if let Some(scatter) = record.material.scatter(ray, &record) {
-            return scatter.attenuation * ray_color(scatter.scattered, world, depth - 1);
+            return scatter.attenuation * ray_colour(scatter.scattered, world, depth - 1);
         }
         return DVec3::ZERO;
     }

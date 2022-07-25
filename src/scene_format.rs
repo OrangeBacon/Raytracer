@@ -1,6 +1,8 @@
 //! Serde description of the scene data structure as read by this program.
 //! Should not be used for rendering, should be converted to internal formats
 
+use std::collections::HashMap;
+
 use glam::DVec3;
 use serde::Deserialize;
 
@@ -14,68 +16,93 @@ pub struct Scene {
     #[serde(default)]
     pub defaults: Defaults,
 
-    /// Globally avaliable materials
+    /// Globally available materials
     #[serde(default)]
-    pub materials: Vec<Material>,
+    pub materials: HashMap<String, Material>,
 
     /// All objects present in the world
     #[serde(default)]
     pub world: Vec<Object>,
 }
 
+/// Required settings to render a scene
 #[derive(Deserialize, Debug)]
 pub struct Settings {
+    /// Height in pixels of the output image
     pub height: u32,
+
+    /// Width in pixels of the output image
     pub width: u32,
+
+    /// The number of rays sent for each pixel
     pub samples_per_pixel: u32,
+
+    /// The maximum recursive depth of each ray
     pub recursive_depth: u32,
 }
 
+/// Values to override the defaults of some types
 #[derive(Deserialize, Debug, Default)]
 #[serde(default)]
 pub struct Defaults {
+    /// Default material settings
     pub materials: DefaultMaterials,
 }
 
+/// Default material settings
 #[derive(Deserialize, Debug, Default)]
 #[serde(default)]
 pub struct DefaultMaterials {
+    /// Default lambertian material settings
     pub lambertian: Lambertian,
-    pub metal: Metal,
+
+    /// Default metallic material settings
+    pub metallic: Metal,
 }
 
-#[derive(Deserialize, Debug)]
+/// All possible materials to use for an object
+#[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "kind")]
 pub enum Material {
+    Reference(String),
     Lambertian(Lambertian),
-    Metal(Metal),
+    Metallic(Metal),
 }
 
-#[derive(Deserialize, Debug, Default)]
+/// Lambertian (diffuse) material
+#[derive(Deserialize, Debug, Default, Clone, Copy)]
 #[serde(default)]
 pub struct Lambertian {
+    /// The base colour of the material
     pub albedo: Option<DVec3>,
+
+    /// The random number generation to use during scattering
     pub random_kind: Option<RandomKind>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+/// Metallic materials
+#[derive(Deserialize, Debug, Default, Clone, Copy)]
 #[serde(default)]
 pub struct Metal {
+    /// The base colour of the material
     pub albedo: Option<DVec3>,
+
+    /// How rough the metallic object is
     pub fuzz: Option<f64>,
+
+    /// The random number generation to use during scattering
     pub random_kind: Option<RandomKind>,
 }
 
-#[derive(Deserialize, Debug)]
+/// The random number generation to use during scattering
+#[derive(Deserialize, Debug, Default, Clone, Copy)]
 pub enum RandomKind {
-    Hemisphere,
+    /// Scatter in all directions around a collision
+    #[default]
     Sphere,
-}
 
-impl Default for RandomKind {
-    fn default() -> Self {
-        RandomKind::Sphere
-    }
+    /// Only scatter in the hemisphere facing outwards from a collision
+    Hemisphere,
 }
 
 #[derive(Deserialize, Debug)]
@@ -84,16 +111,15 @@ pub enum Object {
     Sphere(Sphere),
 }
 
+/// A Single sphere
 #[derive(Deserialize, Debug)]
 pub struct Sphere {
+    /// Radius of the sphere
     pub radius: f64,
-    pub centre: DVec3,
-    pub material: MaterialReference,
-}
 
-#[derive(Deserialize, Debug)]
-#[serde(untagged)]
-pub enum MaterialReference {
-    Name(String),
-    Material(Material),
+    /// The centre location
+    pub centre: DVec3,
+
+    /// Material the object is made from
+    pub material: Material,
 }

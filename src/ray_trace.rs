@@ -2,8 +2,8 @@ use image::{ImageBuffer, Rgb, RgbImage};
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressDrawTarget};
 use rayon::prelude::*;
 
-/// Create a raytraced image in parallel and display the progress
-/// to the terminal.  Assumes the shading function returns colors as
+/// Create a ray-traced image in parallel and display the progress
+/// to the terminal.  Assumes the shading function returns colours as
 /// vec3(r, g, b) where all components 0..=1
 pub fn ray_trace(
     width: u32,
