@@ -1,12 +1,15 @@
+use std::sync::Arc;
+
 use glam::DVec3;
 
-use crate::ray::Ray;
+use crate::{material::Material, ray::Ray};
 
 pub struct HitRecord {
     pub point: DVec3,
     pub normal: DVec3,
     pub t: f64,
     pub front_face: bool,
+    pub material: Arc<dyn Material>,
 }
 
 pub trait Hittable: Send + Sync {
@@ -14,9 +17,10 @@ pub trait Hittable: Send + Sync {
 }
 
 impl HitRecord {
-    pub fn new(ray: Ray, point: DVec3, outward_normal: DVec3, t: f64) -> Self {
+    pub fn new(ray: Ray, point: DVec3, outward_normal: DVec3, t: f64, material: Arc<dyn Material>) -> Self {
         let mut record = HitRecord {
             point,
+            material,
             normal: DVec3::ZERO,
             t,
             front_face: false,
@@ -35,10 +39,11 @@ impl HitRecord {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Sphere {
     pub centre: DVec3,
     pub radius: f64,
+    pub material: Arc<dyn Material>,
 }
 
 impl Hittable for Sphere {
@@ -68,6 +73,7 @@ impl Hittable for Sphere {
             point,
             (point - self.centre) / self.radius,
             root,
+            Arc::clone(&self.material),
         ));
     }
 }
