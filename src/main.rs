@@ -4,6 +4,7 @@ mod material;
 mod ray;
 mod ray_trace;
 mod utils;
+mod scene_format;
 
 use std::{path::PathBuf, sync::Arc};
 
@@ -16,72 +17,28 @@ use material::{Lambertian, Metal};
 use rand::Rng;
 use ray::Ray;
 
+use crate::scene_format::Scene;
+
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Width in pixels of the generated image
-    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 400)]
-    width: u32,
-
-    /// Height in pixels of the generated image
-    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 225)]
-    height: u32,
-
     /// File name to write the image to
     #[clap(short, long, value_parser, default_value = "out.png")]
     output: PathBuf,
 
-    /// How many rays should be fired per pixel
-    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 100)]
-    samples_per_pixel: u32,
-
-    /// Maximum recursive depth of every ray cast
-    #[clap(short, long, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 50)]
-    max_depth: u32,
+    /// File containing the scene description
+    #[clap(short, long, value_parser)]
+    scene: PathBuf,
 }
 
 fn main() -> Result<()> {
     let args = Args::parse();
 
+    let scene = std::fs::read_to_string(&args.scene)?;
+    let scene: Scene = toml::from_str(&scene)?;
+    println!("{scene:?}");
+    /*
     let camera = Camera::new(args.width, args.height);
-
-    let ground = Arc::new(Lambertian {
-        albedo: dvec3(0.8, 0.8, 0.0),
-    });
-    let centre = Arc::new(Lambertian {
-        albedo: dvec3(0.7, 0.3, 0.3),
-    });
-    let left = Arc::new(Metal {
-        albedo: dvec3(0.8, 0.8, 0.8),
-        fuzz: 0.3,
-    });
-    let right = Arc::new(Metal {
-        albedo: dvec3(0.8, 0.6, 0.2),
-        fuzz: 1.0,
-    });
-
-    let world: Vec<Box<dyn Hittable>> = vec![
-        Box::new(Sphere {
-            centre: dvec3(0.0, -100.5, -1.0),
-            radius: 100.0,
-            material: ground,
-        }),
-        Box::new(Sphere {
-            centre: dvec3(0.0, 0.0, -1.0),
-            radius: 0.5,
-            material: centre,
-        }),
-        Box::new(Sphere {
-            centre: dvec3(-1.0, 0.0, -1.0),
-            radius: 0.5,
-            material: left,
-        }),
-        Box::new(Sphere {
-            centre: dvec3(1.0, 0.0, -1.0),
-            radius: 0.5,
-            material: right,
-        }),
-    ];
 
     ray_trace::ray_trace(args.width, args.height, |x, y| {
         let mut color = DVec3::ZERO;
@@ -96,7 +53,7 @@ fn main() -> Result<()> {
 
         color / args.samples_per_pixel as f64
     })
-    .save(&args.output)?;
+    .save(&args.output)?;*/
 
     Ok(())
 }

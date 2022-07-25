@@ -1,9 +1,10 @@
 use glam::DVec3;
+use serde::Deserialize;
 
 use crate::{
     hit::HitRecord,
     ray::Ray,
-    utils::{near_zero, rand_hemisphere_point, rand_sphere_point},
+    utils::{near_zero, rand_hemisphere_point},
 };
 
 pub struct ScatterRecord {

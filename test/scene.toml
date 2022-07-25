@@ -1,0 +1,42 @@
+[settings]
+width = 400
+height = 225
+samples_per_pixel = 100
+recursive_depth = 50
+
+[defaults.materials.lambertian]
+random_kind = "Hemisphere"
+
+[[world]] # ground
+shape = "Sphere"
+centre = [ 0.0, -100.5, -1.0 ]
+radius = 100.0
+[world.material]
+kind = "Lambertian"
+albedo = [ 0.8, 0.8, 0.0 ]
+
+[[world]] # centre
+shape = "Sphere"
+centre = [ 0.0, 0.0, -1.0 ]
+radius = 0.5
+[world.material]
+kind = "Lambertian"
+albedo = [ 0.7, 0.3, 0.3 ]
+
+[[world]] # left
+shape = "Sphere"
+centre = [ -1.0, 0.0, -1.0 ]
+radius = 0.5
+[world.material]
+kind = "Metal"
+albedo = [ 0.8, 0.8, 0.8 ]
+fuzz = 0.3
+
+[[world]] # right
+shape = "Sphere"
+centre = [ 1.0, 0.0, -1.0 ]
+radius = 0.5
+[world.material]
+kind = "Metal"
+albedo = [ 0.8, 0.6, 0.2 ]
+fuzz = 1.0
