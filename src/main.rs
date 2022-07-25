@@ -3,6 +3,7 @@ mod hit;
 mod material;
 mod ray;
 mod ray_trace;
+mod utils;
 
 use std::{path::PathBuf, sync::Arc};
 
@@ -52,9 +53,11 @@ fn main() -> Result<()> {
     });
     let left = Arc::new(Metal {
         albedo: dvec3(0.8, 0.8, 0.8),
+        fuzz: 0.3,
     });
     let right = Arc::new(Metal {
         albedo: dvec3(0.8, 0.6, 0.2),
+        fuzz: 1.0,
     });
 
     let world: Vec<Box<dyn Hittable>> = vec![
@@ -96,14 +99,6 @@ fn main() -> Result<()> {
     .save(&args.output)?;
 
     Ok(())
-}
-
-pub fn rand_sphere_point() -> DVec3 {
-    let mut rng = rand::thread_rng();
-
-    let point = DVec3::from_array(rng.gen());
-
-    point.length_recip() * point
 }
 
 fn ray_color(ray: Ray, world: &[Box<dyn Hittable>], depth: u32) -> DVec3 {

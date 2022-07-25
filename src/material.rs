@@ -1,6 +1,10 @@
 use glam::DVec3;
 
-use crate::{hit::HitRecord, rand_sphere_point, ray::Ray};
+use crate::{
+    hit::HitRecord,
+    ray::Ray,
+    utils::{near_zero, rand_hemisphere_point, rand_sphere_point},
+};
 
 pub struct ScatterRecord {
     pub attenuation: DVec3,
@@ -15,11 +19,10 @@ pub struct Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray: Ray, hit_record: &HitRecord) -> Option<ScatterRecord> {
-        let mut direction = hit_record.normal + rand_sphere_point();
+    fn scatter(&self, _ray: Ray, hit_record: &HitRecord) -> Option<ScatterRecord> {
+        let mut direction = hit_record.normal + rand_hemisphere_point(hit_record.normal);
 
-        let e = 1.0e-8;
-        if direction.x.abs() < e && direction.y.abs() < e && direction.x.abs() < e {
+        if near_zero(direction) {
             direction = hit_record.normal;
         }
 
@@ -42,6 +45,7 @@ fn reflect(vec: DVec3, normal: DVec3) -> DVec3 {
 
 pub struct Metal {
     pub albedo: DVec3,
+    pub fuzz: f64,
 }
 
 impl Material for Metal {
@@ -49,7 +53,7 @@ impl Material for Metal {
         let reflected = reflect(ray.direction.normalize(), hit_record.normal);
         let scattered = Ray {
             origin: hit_record.point,
-            direction: reflected,
+            direction: reflected + self.fuzz * rand_hemisphere_point(hit_record.normal),
         };
         let attenuation = self.albedo;
 

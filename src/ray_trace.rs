@@ -18,7 +18,7 @@ pub fn ray_trace(
         .progress_with(progress)
         .flat_map(|y| (0..width).into_par_iter().map(move |x| (x, y)))
         .flat_map(|(x, y)| {
-            let [r, g, b] = (f(x, y) * 255.99).to_array();
+            let [r, g, b] = (f(x, y).powf(1.0 / 2.2) * 255.99).to_array();
             [r as u8, g as u8, b as u8]
         })
         .collect();
