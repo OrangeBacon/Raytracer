@@ -39,6 +39,9 @@ pub struct Settings {
 
     /// The maximum recursive depth of each ray
     pub recursive_depth: u32,
+
+    /// output = pow(output, 1.0 / gamma), gamma correction/tone mapping
+    pub gamma: f64,
 }
 
 /// Values to override the defaults of some types
@@ -58,15 +61,19 @@ pub struct DefaultMaterials {
 
     /// Default metallic material settings
     pub metallic: Metal,
+
+    /// Default dielectric material settings
+    pub dielectric: Dielectric,
 }
 
 /// All possible materials to use for an object
 #[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "kind")]
 pub enum Material {
-    Reference(String),
+    Reference { name: String },
     Lambertian(Lambertian),
     Metallic(Metal),
+    Dielectric(Dielectric),
 }
 
 /// Lambertian (diffuse) material
@@ -92,6 +99,13 @@ pub struct Metal {
 
     /// The random number generation to use during scattering
     pub random_kind: Option<RandomKind>,
+}
+
+/// Dielectric Material
+#[derive(Deserialize, Debug, Default, Clone, Copy)]
+#[serde(default)]
+pub struct Dielectric {
+    pub refractive_index: Option<f64>,
 }
 
 /// The random number generation to use during scattering

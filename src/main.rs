@@ -38,7 +38,7 @@ fn main() -> Result<()> {
 
     let camera = Camera::new(scene.width, scene.height);
 
-    ray_trace::ray_trace(scene.width, scene.height, |x, y| {
+    ray_trace::ray_trace(scene.width, scene.height, scene.gamma, |x, y| {
         let mut colour = DVec3::ZERO;
         let mut rng = rand::thread_rng();
         for _ in 0..scene.samples_per_pixel {

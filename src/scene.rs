@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     hit::{Hittable, Sphere},
-    material::{Lambertian, Material, Metal},
+    material::{Dielectric, Lambertian, Material, Metal},
     scene_format,
 };
 
@@ -23,6 +23,9 @@ pub struct Scene {
     /// The maximum recursive depth of each ray
     pub recursive_depth: u32,
 
+    /// output = pow(output, 1.0 / gamma), gamma correction/tone mapping
+    pub gamma: f64,
+
     /// All the objects in the scene
     pub world: Vec<Box<dyn Hittable>>,
 }
@@ -36,6 +39,7 @@ struct Defaults {
 struct DefaultMaterials {
     lambertian: Lambertian,
     metallic: Metal,
+    dielectric: Dielectric,
 }
 
 impl Scene {
@@ -57,6 +61,7 @@ impl Scene {
             width: scene.settings.width,
             samples_per_pixel: scene.settings.samples_per_pixel,
             recursive_depth: scene.settings.recursive_depth,
+            gamma: scene.settings.gamma,
             world,
         }
     }
@@ -77,6 +82,7 @@ impl Scene {
         set!(scene, defaults.materials.metallic.albedo);
         set!(scene, defaults.materials.metallic.fuzz);
         set!(scene, defaults.materials.metallic.random_kind);
+        set!(scene, defaults.materials.dielectric.refractive_index);
 
         defaults
     }
@@ -88,7 +94,7 @@ impl Scene {
         materials: &HashMap<String, Arc<dyn Material>>,
     ) -> Arc<dyn Material> {
         match material {
-            scene_format::Material::Reference(name) => Arc::clone(&materials[&name]),
+            scene_format::Material::Reference { name } => Arc::clone(&materials[&name]),
             scene_format::Material::Lambertian(mat) => Arc::new(Lambertian {
                 albedo: mat.albedo.unwrap_or(defaults.materials.lambertian.albedo),
                 random_kind: mat
@@ -101,6 +107,11 @@ impl Scene {
                 random_kind: mat
                     .random_kind
                     .unwrap_or(defaults.materials.metallic.random_kind),
+            }),
+            scene_format::Material::Dielectric(mat) => Arc::new(Dielectric {
+                refractive_index: mat
+                    .refractive_index
+                    .unwrap_or(defaults.materials.dielectric.refractive_index),
             }),
         }
     }
