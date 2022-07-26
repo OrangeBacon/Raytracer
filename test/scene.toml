@@ -6,10 +6,12 @@ recursive_depth = 50
 gamma = 2.2
 scattering_mode = "Sphere"
 
-origin = [-2.0, 2.0, 1.0]
+origin = [3.0, 3.0, 2.0]
 look_at = [0.0, 0.0, -1.0]
 up_direction = [0.0, 1.0, 0.0]
 vfov = 20
+aperture = 2.0
+focus_distance = 5.196
 
 [materials.left]
 kind = "Dielectric"

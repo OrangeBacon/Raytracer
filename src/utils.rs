@@ -1,4 +1,4 @@
-use glam::DVec3;
+use glam::{dvec3, DVec3};
 use rand::Rng;
 
 pub fn rand_sphere_point() -> DVec3 {
@@ -19,6 +19,17 @@ pub fn rand_hemisphere_point(normal: DVec3) -> DVec3 {
         rand
     } else {
         -rand
+    }
+}
+
+pub fn rand_unit_disk() -> DVec3 {
+    let mut rng = rand::thread_rng();
+
+    loop {
+        let p = dvec3(rng.gen_range(-1.0..=1.0), rng.gen_range(-1.0..=1.0), 0.0);
+        if p.length_squared() < 1.0 {
+            break p;
+        }
     }
 }
 

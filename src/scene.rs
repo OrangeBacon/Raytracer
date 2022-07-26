@@ -43,6 +43,13 @@ pub struct Scene {
     /// The vertical upwards direction of the camera
     pub up_direction: DVec3,
 
+    /// The size of the aperture
+    pub aperture: f64,
+
+    /// The distance of the focal plane from the origin
+    /// If not specified, no depth of field effect will be used.
+    pub focal_distance: Option<f64>,
+
     /// All the objects in the scene
     pub world: Vec<Box<dyn Hittable>>,
 }
@@ -76,6 +83,8 @@ impl Scene {
             samples_per_pixel: scene.settings.samples_per_pixel.unwrap_or(100),
             recursive_depth: scene.settings.recursive_depth.unwrap_or(50),
             gamma: scene.settings.gamma.unwrap_or(2.2),
+            aperture: scene.settings.aperture.unwrap_or(0.5),
+            focal_distance: scene.settings.focus_distance,
             world,
         }
     }

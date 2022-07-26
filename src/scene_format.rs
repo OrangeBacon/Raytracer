@@ -60,6 +60,13 @@ pub struct Settings {
 
     /// The vertical upwards direction of the camera
     pub up_direction: Option<DVec3>,
+
+    /// The size of the camera's aperture
+    pub aperture: Option<f64>,
+
+    /// The distance of the focal plane from the origin
+    /// If not specified, no depth of field effect will be used.
+    pub focus_distance: Option<f64>,
 }
 
 /// All possible materials to use for an object
