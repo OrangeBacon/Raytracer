@@ -22,8 +22,18 @@ pub struct Scene {
 }
 
 /// Required settings to render a scene
-#[derive(Deserialize, Debug, Clone, Copy)]
+#[derive(Deserialize, Debug, Clone, Copy, Default)]
+#[serde(default)]
 pub struct Settings {
+    /// Vertical field of view in degrees
+    pub vfov: Option<f64>,
+
+    /// Aspect ratio numerator
+    pub aspect_width: Option<f64>,
+
+    /// Aspect ratio denominator
+    pub aspect_height: Option<f64>,
+
     /// Height in pixels of the output image
     pub height: u32,
 
@@ -31,16 +41,25 @@ pub struct Settings {
     pub width: u32,
 
     /// The number of rays sent for each pixel
-    pub samples_per_pixel: u32,
+    pub samples_per_pixel: Option<u32>,
 
     /// The maximum recursive depth of each ray
-    pub recursive_depth: u32,
+    pub recursive_depth: Option<u32>,
 
     /// output = pow(output, 1.0 / gamma), gamma correction/tone mapping
-    pub gamma: f64,
+    pub gamma: Option<f64>,
 
     /// The random number generation to use during scattering
-    pub scattering_mode: RandomKind,
+    pub scattering_mode: Option<RandomKind>,
+
+    /// Where the camera is located
+    pub origin: DVec3,
+
+    /// Direction the camera is looking at
+    pub look_at: Option<DVec3>,
+
+    /// The vertical upwards direction of the camera
+    pub up_direction: Option<DVec3>,
 }
 
 /// All possible materials to use for an object

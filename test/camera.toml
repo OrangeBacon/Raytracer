@@ -1,0 +1,19 @@
+[settings]
+width = 400
+height = 225
+
+[[world]] # left
+shape = "Sphere"
+centre = [ -0.707, 0.0, -1.0 ]
+radius = 0.707
+[world.material]
+kind = "Lambertian"
+albedo = [ 0.0, 0.0, 1.0 ]
+
+[[world]] # right
+shape = "Sphere"
+centre = [ 0.707, 0.0, -1.0 ]
+radius = 0.707
+[world.material]
+kind = "Lambertian"
+albedo = [ 1.0, 0.0, 0.0 ]

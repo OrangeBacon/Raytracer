@@ -36,7 +36,13 @@ fn main() -> Result<()> {
     let scene = std::fs::read_to_string(&args.scene)?;
     let scene = Scene::from_file(toml::from_str(&scene)?);
 
-    let camera = Camera::new(scene.width, scene.height);
+    let camera = Camera::new(
+        scene.origin,
+        scene.look_at,
+        scene.up_direction,
+        scene.vfov,
+        scene.aspect_ratio,
+    );
 
     ray_trace::ray_trace(scene.width, scene.height, scene.gamma, |x, y| {
         let mut colour = DVec3::ZERO;
