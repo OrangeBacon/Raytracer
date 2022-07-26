@@ -2,7 +2,8 @@
 
 use std::{collections::HashMap, sync::Arc};
 
-use glam::DVec3;
+use glam::{dvec3, DVec3};
+use rand::Rng;
 
 use crate::{
     hit::{Hittable, Sphere},
@@ -126,6 +127,68 @@ impl Scene {
                     }
                 },
             }),
+            scene_format::Object::SphereField => gen_sphere_field(),
         }
     }
+}
+
+fn gen_sphere_field() -> Box<dyn Hittable> {
+    let mut rng = rand::thread_rng();
+
+    let mut objects = vec![];
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let radius = 0.2;
+            let centre = dvec3(
+                a as f64 + 0.9 * rng.gen::<f64>(),
+                radius,
+                b as f64 + 0.9 * rng.gen::<f64>(),
+            );
+
+            if (centre - dvec3(4.0, 0.2, 0.0)).length() <= 0.9 {
+                continue;
+            }
+
+            let mat: f64 = rng.gen();
+
+            if mat < 0.8 {
+                let albedo = DVec3::from_array(rng.gen()) * DVec3::from_array(rng.gen());
+                objects.push(Sphere {
+                    centre,
+                    radius,
+                    material: Arc::new(Lambertian {
+                        albedo,
+                        random_kind: scene_format::RandomKind::Hemisphere,
+                    }),
+                });
+            } else if mat < 0.95 {
+                let albedo = dvec3(
+                    rng.gen_range(0.5..1.0),
+                    rng.gen_range(0.5..1.0),
+                    rng.gen_range(0.5..1.0),
+                );
+                let fuzz = rng.gen_range(0.0..0.5);
+                objects.push(Sphere {
+                    centre,
+                    radius,
+                    material: Arc::new(Metal {
+                        albedo,
+                        fuzz,
+                        random_kind: scene_format::RandomKind::Hemisphere,
+                    }),
+                });
+            } else {
+                objects.push(Sphere {
+                    centre,
+                    radius,
+                    material: Arc::new(Dielectric {
+                        refractive_index: 1.5,
+                    }),
+                })
+            }
+        }
+    }
+
+    Box::new(objects)
 }

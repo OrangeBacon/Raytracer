@@ -11,7 +11,6 @@ pub struct Camera {
     pub height: u32,
     u: DVec3,
     v: DVec3,
-    w: DVec3,
     lens_radius: Option<f64>,
 }
 
@@ -47,7 +46,6 @@ impl Camera {
             height: viewport_height.floor() as _,
             u,
             v,
-            w,
             lens_radius,
         }
     }

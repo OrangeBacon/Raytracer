@@ -119,6 +119,7 @@ pub enum RandomKind {
 #[serde(tag = "shape")]
 pub enum Object {
     Sphere(Sphere),
+    SphereField,
 }
 
 /// A Single sphere

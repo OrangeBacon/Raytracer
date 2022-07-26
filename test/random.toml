@@ -1,0 +1,50 @@
+[settings]
+width = 1200
+height = 800
+samples_per_pixel = 500
+recursive_depth = 50
+gamma = 2.2
+scattering_mode = "Sphere"
+
+origin = [ 12.0, 2.0, 3.0 ]
+look_at = [ 0.0, 0.0, 0.0 ]
+up_direction = [ 0.0, 1.0, 0.0 ]
+vfov = 20
+aperture = 0.1
+focus_distance = 10.0
+
+[[world]] # ground
+shape = "Sphere"
+centre = [ 0.0, -1000.0, 0.0 ]
+radius = 1000.0
+[world.material]
+kind = "Lambertian"
+albedo = [ 0.5, 0.5, 0.5 ]
+
+[[world]]
+shape = "Sphere"
+centre = [ 0.0, 1.0, 0.0 ]
+radius = 1.0
+[world.material]
+kind = "Dielectric"
+refractive_index = 1.5
+
+[[world]]
+shape = "Sphere"
+centre = [ -4.0, 1.0, 0.0 ]
+radius = 1.0
+[world.material]
+kind = "Lambertian"
+albedo = [ 0.4, 0.2, 0.1 ]
+
+[[world]]
+shape = "Sphere"
+centre = [ 4.0, 1.0, 0.0 ]
+radius = 1.0
+[world.material]
+kind = "Metallic"
+albedo = [ 0.7, 0.6, 0.5 ]
+fuzz = 0.0
+
+[[world]]
+shape = "SphereField"

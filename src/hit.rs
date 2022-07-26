@@ -1,4 +1,4 @@
-use std::{sync::Arc, fmt::Debug};
+use std::{fmt::Debug, sync::Arc};
 
 use glam::DVec3;
 
@@ -17,7 +17,13 @@ pub trait Hittable: Send + Sync + Debug {
 }
 
 impl HitRecord {
-    pub fn new(ray: Ray, point: DVec3, outward_normal: DVec3, t: f64, material: Arc<dyn Material>) -> Self {
+    pub fn new(
+        ray: Ray,
+        point: DVec3,
+        outward_normal: DVec3,
+        t: f64,
+        material: Arc<dyn Material>,
+    ) -> Self {
         let mut record = HitRecord {
             point,
             material,
@@ -78,12 +84,24 @@ impl Hittable for Sphere {
     }
 }
 
-impl Hittable for [Box<dyn Hittable>] {
+impl Hittable for Box<dyn Hittable> {
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        (**self).hit(ray, t_min, t_max)
+    }
+}
+
+impl<T: Hittable> Hittable for Vec<T> {
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        (&self[..]).hit(ray, t_min, t_max)
+    }
+}
+
+impl<'a, T: Hittable> Hittable for &'a [T] {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut closest = t_max;
         let mut output = None;
 
-        for object in self {
+        for object in *self {
             if let Some(record) = object.hit(ray, t_min, closest) {
                 closest = record.t;
                 output = Some(record);
