@@ -30,30 +30,17 @@ pub struct Scene {
     pub world: Vec<Box<dyn Hittable>>,
 }
 
-#[derive(Default)]
-struct Defaults {
-    materials: DefaultMaterials,
-}
-
-#[derive(Default)]
-struct DefaultMaterials {
-    lambertian: Lambertian,
-    metallic: Metal,
-    dielectric: Dielectric,
-}
-
 impl Scene {
     pub fn from_file(scene: scene_format::Scene) -> Scene {
-        let defaults = Scene::defaults(&scene);
         let materials: HashMap<_, _> = scene
             .materials
-            .into_iter()
-            .map(|(k, v)| (k, Scene::material(v, &defaults, &Default::default())))
+            .iter()
+            .map(|(k, v)| (k.to_string(), Scene::material(&scene.settings, &v)))
             .collect();
 
         let mut world = vec![];
         for object in scene.world {
-            world.push(Scene::object(object, &defaults, &materials))
+            world.push(Scene::object(&scene.settings, object, &materials))
         }
 
         Scene {
@@ -66,66 +53,42 @@ impl Scene {
         }
     }
 
-    /// Get the defaults specified by the scene
-    fn defaults(scene: &scene_format::Scene) -> Defaults {
-        macro_rules! set {
-            ($scene:expr, $($path:tt).+) => {
-                if let Some(value) = $scene.$($path).+ {
-                    $($path).+ = value;
-                }
-            };
-        }
-
-        let mut defaults = Defaults::default();
-        set!(scene, defaults.materials.lambertian.albedo);
-        set!(scene, defaults.materials.lambertian.random_kind);
-        set!(scene, defaults.materials.metallic.albedo);
-        set!(scene, defaults.materials.metallic.fuzz);
-        set!(scene, defaults.materials.metallic.random_kind);
-        set!(scene, defaults.materials.dielectric.refractive_index);
-
-        defaults
-    }
-
     /// Convert material to internal format
     fn material(
-        material: scene_format::Material,
-        defaults: &Defaults,
-        materials: &HashMap<String, Arc<dyn Material>>,
+        settings: &scene_format::Settings,
+        material: &scene_format::Material,
     ) -> Arc<dyn Material> {
         match material {
-            scene_format::Material::Reference { name } => Arc::clone(&materials[&name]),
             scene_format::Material::Lambertian(mat) => Arc::new(Lambertian {
-                albedo: mat.albedo.unwrap_or(defaults.materials.lambertian.albedo),
-                random_kind: mat
-                    .random_kind
-                    .unwrap_or(defaults.materials.lambertian.random_kind),
+                albedo: mat.albedo,
+                random_kind: settings.scattering_mode,
             }),
             scene_format::Material::Metallic(mat) => Arc::new(Metal {
-                albedo: mat.albedo.unwrap_or(defaults.materials.metallic.albedo),
-                fuzz: mat.fuzz.unwrap_or(defaults.materials.metallic.fuzz),
-                random_kind: mat
-                    .random_kind
-                    .unwrap_or(defaults.materials.metallic.random_kind),
+                albedo: mat.albedo,
+                fuzz: mat.fuzz,
+                random_kind: settings.scattering_mode,
             }),
             scene_format::Material::Dielectric(mat) => Arc::new(Dielectric {
-                refractive_index: mat
-                    .refractive_index
-                    .unwrap_or(defaults.materials.dielectric.refractive_index),
+                refractive_index: mat.refractive_index,
             }),
         }
     }
 
     fn object(
+        settings: &scene_format::Settings,
         object: scene_format::Object,
-        defaults: &Defaults,
         materials: &HashMap<String, Arc<dyn Material>>,
     ) -> Box<dyn Hittable> {
         match object {
             scene_format::Object::Sphere(obj) => Box::new(Sphere {
                 centre: obj.centre,
                 radius: obj.radius,
-                material: Scene::material(obj.material, defaults, materials),
+                material: match obj.material {
+                    scene_format::MaterialReference::Named(name) => Arc::clone(&materials[&name]),
+                    scene_format::MaterialReference::Material(mat) => {
+                        Scene::material(settings, &mat)
+                    }
+                },
             }),
         }
     }

@@ -1,12 +1,10 @@
 [settings]
-width = 640
-height = 480
-samples_per_pixel = 500
-recursive_depth = 100
-gamma = 1.0
-
-[defaults.materials.lambertian]
-random_kind = "Sphere"
+width = 400
+height = 225
+samples_per_pixel = 100
+recursive_depth = 50
+gamma = 2.2
+scattering_mode = "Sphere"
 
 [materials.left]
 kind = "Dielectric"
@@ -32,16 +30,12 @@ albedo = [ 0.1, 0.2, 0.5 ]
 shape = "Sphere"
 centre = [ -1.0, 0.0, -1.0 ]
 radius = 0.5
-[world.material]
-kind = "Reference"
-name = "left"
+material = "left"
 [[world]]
 shape = "Sphere"
 centre = [ -1.0, 0.0, -1.0 ]
 radius = -0.4
-[world.material]
-kind = "Reference"
-name = "left"
+material = "left"
 
 [[world]] # right
 shape = "Sphere"

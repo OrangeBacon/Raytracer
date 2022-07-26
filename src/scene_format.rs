@@ -7,14 +7,10 @@ use glam::DVec3;
 use serde::Deserialize;
 
 /// Top level scene file
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Scene {
     /// Required settings to render a scene
     pub settings: Settings,
-
-    /// Values to override the defaults of some types
-    #[serde(default)]
-    pub defaults: Defaults,
 
     /// Globally available materials
     #[serde(default)]
@@ -26,7 +22,7 @@ pub struct Scene {
 }
 
 /// Required settings to render a scene
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone, Copy)]
 pub struct Settings {
     /// Height in pixels of the output image
     pub height: u32,
@@ -42,35 +38,15 @@ pub struct Settings {
 
     /// output = pow(output, 1.0 / gamma), gamma correction/tone mapping
     pub gamma: f64,
-}
 
-/// Values to override the defaults of some types
-#[derive(Deserialize, Debug, Default)]
-#[serde(default)]
-pub struct Defaults {
-    /// Default material settings
-    pub materials: DefaultMaterials,
-}
-
-/// Default material settings
-#[derive(Deserialize, Debug, Default)]
-#[serde(default)]
-pub struct DefaultMaterials {
-    /// Default lambertian material settings
-    pub lambertian: Lambertian,
-
-    /// Default metallic material settings
-    pub metallic: Metal,
-
-    /// Default dielectric material settings
-    pub dielectric: Dielectric,
+    /// The random number generation to use during scattering
+    pub scattering_mode: RandomKind,
 }
 
 /// All possible materials to use for an object
 #[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "kind")]
 pub enum Material {
-    Reference { name: String },
     Lambertian(Lambertian),
     Metallic(Metal),
     Dielectric(Dielectric),
@@ -81,10 +57,7 @@ pub enum Material {
 #[serde(default)]
 pub struct Lambertian {
     /// The base colour of the material
-    pub albedo: Option<DVec3>,
-
-    /// The random number generation to use during scattering
-    pub random_kind: Option<RandomKind>,
+    pub albedo: DVec3,
 }
 
 /// Metallic materials
@@ -92,20 +65,17 @@ pub struct Lambertian {
 #[serde(default)]
 pub struct Metal {
     /// The base colour of the material
-    pub albedo: Option<DVec3>,
+    pub albedo: DVec3,
 
     /// How rough the metallic object is
-    pub fuzz: Option<f64>,
-
-    /// The random number generation to use during scattering
-    pub random_kind: Option<RandomKind>,
+    pub fuzz: f64,
 }
 
 /// Dielectric Material
 #[derive(Deserialize, Debug, Default, Clone, Copy)]
 #[serde(default)]
 pub struct Dielectric {
-    pub refractive_index: Option<f64>,
+    pub refractive_index: f64,
 }
 
 /// The random number generation to use during scattering
@@ -119,14 +89,14 @@ pub enum RandomKind {
     Hemisphere,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "shape")]
 pub enum Object {
     Sphere(Sphere),
 }
 
 /// A Single sphere
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Sphere {
     /// Radius of the sphere
     pub radius: f64,
@@ -135,5 +105,12 @@ pub struct Sphere {
     pub centre: DVec3,
 
     /// Material the object is made from
-    pub material: Material,
+    pub material: MaterialReference,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum MaterialReference {
+    Named(String),
+    Material(Material),
 }
