@@ -6,6 +6,7 @@ use glam::{dvec3, DVec3};
 use rand::Rng;
 
 use crate::{
+    bvh::BVHNode,
     hit::{Hittable, MovingSphere, Sphere},
     material::{Dielectric, Lambertian, Material, Metal},
     scene_format,
@@ -52,7 +53,7 @@ pub struct Scene {
     pub focal_distance: Option<f64>,
 
     /// All the objects in the scene
-    pub world: Vec<Box<dyn Hittable>>,
+    pub world: Arc<dyn Hittable>,
 
     /// Start time of the camera aperture opening
     pub time0: f64,
@@ -94,7 +95,12 @@ impl Scene {
             focal_distance: scene.settings.focus_distance,
             time0: scene.settings.time0,
             time1: scene.settings.time1.unwrap_or(1.0),
-            world,
+            world: BVHNode::new(
+                &world,
+                scene.settings.time0,
+                scene.settings.time1.unwrap_or(1.0),
+            )
+            .unwrap(),
         }
     }
 
@@ -123,9 +129,9 @@ impl Scene {
         settings: &scene_format::Settings,
         object: scene_format::Object,
         materials: &HashMap<String, Arc<dyn Material>>,
-    ) -> Box<dyn Hittable> {
+    ) -> Arc<dyn Hittable> {
         match object {
-            scene_format::Object::Sphere(obj) => Box::new(Sphere {
+            scene_format::Object::Sphere(obj) => Arc::new(Sphere {
                 centre: obj.centre,
                 radius: obj.radius,
                 material: match obj.material {
@@ -140,10 +146,10 @@ impl Scene {
     }
 }
 
-fn gen_sphere_field() -> Box<dyn Hittable> {
+fn gen_sphere_field() -> Arc<dyn Hittable> {
     let mut rng = rand::thread_rng();
 
-    let mut objects: Vec<Box<dyn Hittable>> = vec![];
+    let mut objects: Vec<Arc<dyn Hittable>> = vec![];
 
     for a in -11..11 {
         for b in -11..11 {
@@ -164,7 +170,7 @@ fn gen_sphere_field() -> Box<dyn Hittable> {
                 let albedo = DVec3::from_array(rng.gen()) * DVec3::from_array(rng.gen());
                 let centre2 = centre + dvec3(0.0, rng.gen_range(0.0..=0.5), 0.0);
 
-                objects.push(Box::new(MovingSphere {
+                objects.push(Arc::new(MovingSphere {
                     centre0: centre,
                     centre1: centre2,
                     time0: 0.0,
@@ -182,7 +188,7 @@ fn gen_sphere_field() -> Box<dyn Hittable> {
                     rng.gen_range(0.5..1.0),
                 );
                 let fuzz = rng.gen_range(0.0..0.5);
-                objects.push(Box::new(Sphere {
+                objects.push(Arc::new(Sphere {
                     centre,
                     radius,
                     material: Arc::new(Metal {
@@ -192,7 +198,7 @@ fn gen_sphere_field() -> Box<dyn Hittable> {
                     }),
                 }));
             } else {
-                objects.push(Box::new(Sphere {
+                objects.push(Arc::new(Sphere {
                     centre,
                     radius,
                     material: Arc::new(Dielectric {
@@ -203,5 +209,5 @@ fn gen_sphere_field() -> Box<dyn Hittable> {
         }
     }
 
-    Box::new(objects)
+    BVHNode::new(&objects, 0.0, 1.0).unwrap()
 }

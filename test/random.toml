@@ -1,7 +1,7 @@
 [settings]
-width = 1200
-height = 800
-samples_per_pixel = 500
+width = 400
+height = 225
+samples_per_pixel = 100
 recursive_depth = 50
 gamma = 2.2
 scattering_mode = "Sphere"

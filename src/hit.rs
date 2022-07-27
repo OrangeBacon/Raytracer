@@ -2,7 +2,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use glam::DVec3;
 
-use crate::{material::Material, ray::Ray};
+use crate::{aabb::AABB, material::Material, ray::Ray};
 
 pub struct HitRecord {
     pub point: DVec3,
@@ -14,6 +14,8 @@ pub struct HitRecord {
 
 pub trait Hittable: Send + Sync + Debug {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
+
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
 }
 
 impl HitRecord {
@@ -82,33 +84,12 @@ impl Hittable for Sphere {
             Arc::clone(&self.material),
         ));
     }
-}
 
-impl Hittable for Box<dyn Hittable> {
-    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        (**self).hit(ray, t_min, t_max)
-    }
-}
-
-impl<T: Hittable> Hittable for Vec<T> {
-    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        (&self[..]).hit(ray, t_min, t_max)
-    }
-}
-
-impl<'a, T: Hittable> Hittable for &'a [T] {
-    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let mut closest = t_max;
-        let mut output = None;
-
-        for object in *self {
-            if let Some(record) = object.hit(ray, t_min, closest) {
-                closest = record.t;
-                output = Some(record);
-            }
-        }
-
-        output
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+        Some(AABB {
+            minimum: self.centre - DVec3::splat(self.radius),
+            maximum: self.centre + DVec3::splat(self.radius),
+        })
     }
 }
 
@@ -158,5 +139,57 @@ impl Hittable for MovingSphere {
             root,
             Arc::clone(&self.material),
         ));
+    }
+
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+        let box0 = AABB {
+            minimum: self.centre(time0) - DVec3::splat(self.radius),
+            maximum: self.centre(time0) + DVec3::splat(self.radius),
+        };
+
+        let box1 = AABB {
+            minimum: self.centre(time1) - DVec3::splat(self.radius),
+            maximum: self.centre(time1) + DVec3::splat(self.radius),
+        };
+
+        Some(box0.surrounds(box1))
+    }
+}
+
+#[derive(Debug)]
+pub struct HittableVec {
+    pub objects: Vec<Arc<dyn Hittable>>,
+}
+
+impl Hittable for HittableVec {
+    fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let mut closest = t_max;
+        let mut output = None;
+
+        for object in &self.objects {
+            if let Some(record) = object.hit(ray, t_min, closest) {
+                closest = record.t;
+                output = Some(record);
+            }
+        }
+
+        output
+    }
+
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+        let mut result = None;
+
+        for object in &self.objects {
+            if let Some(aabb) = object.bounding_box(time0, time1) {
+                match result {
+                    None => result = Some(aabb),
+                    Some(a) => result = Some(a.surrounds(aabb)),
+                }
+            } else {
+                return None;
+            }
+        }
+
+        result
     }
 }

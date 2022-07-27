@@ -1,3 +1,5 @@
+mod aabb;
+mod bvh;
 mod camera;
 mod hit;
 mod material;
@@ -7,16 +9,14 @@ mod scene;
 mod scene_format;
 mod utils;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use clap::Parser;
 use glam::{dvec3, DVec3};
-use hit::Hittable;
 use rand::Rng;
-use ray::Ray;
 
-use crate::{camera::Camera, scene::Scene};
+use crate::{camera::Camera, hit::Hittable, ray::Ray, scene::Scene};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -46,7 +46,7 @@ fn main() -> Result<()> {
             let v = (y as f64 + rng.gen::<f64>()) / scene.height as f64;
 
             let ray = camera.ray(u, v);
-            colour += ray_colour(ray, &scene.world[..], scene.recursive_depth);
+            colour += ray_colour(ray, &scene.world, scene.recursive_depth);
         }
 
         colour / scene.samples_per_pixel as f64
@@ -56,7 +56,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn ray_colour(ray: Ray, world: &[Box<dyn Hittable>], depth: u32) -> DVec3 {
+fn ray_colour(ray: Ray, world: &Arc<dyn Hittable>, depth: u32) -> DVec3 {
     if depth <= 0 {
         return DVec3::ZERO;
     }
