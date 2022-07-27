@@ -1,4 +1,5 @@
 use glam::DVec3;
+use rand::Rng;
 
 use crate::{ray::Ray, scene::Scene, utils::rand_unit_disk};
 
@@ -12,6 +13,8 @@ pub struct Camera {
     u: DVec3,
     v: DVec3,
     lens_radius: Option<f64>,
+    time0: f64,
+    time1: f64,
 }
 
 impl Camera {
@@ -47,6 +50,8 @@ impl Camera {
             u,
             v,
             lens_radius,
+            time0: scene.time0,
+            time1: scene.time1,
         }
     }
 
@@ -58,11 +63,14 @@ impl Camera {
             DVec3::ZERO
         };
 
+        let mut rng = rand::thread_rng();
+
         Ray {
             origin: self.origin + offset,
             direction: self.lower_left + s * self.horizontal + t * self.vertical
                 - self.origin
                 - offset,
+            time: rng.gen_range(self.time0..=self.time1),
         }
     }
 }

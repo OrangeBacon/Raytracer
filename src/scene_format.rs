@@ -67,6 +67,12 @@ pub struct Settings {
     /// The distance of the focal plane from the origin
     /// If not specified, no depth of field effect will be used.
     pub focus_distance: Option<f64>,
+
+    /// Start time of the camera aperture opening
+    pub time0: f64,
+
+    /// End time of the camera aperture opening
+    pub time1: Option<f64>,
 }
 
 /// All possible materials to use for an object

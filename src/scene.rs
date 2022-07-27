@@ -6,7 +6,7 @@ use glam::{dvec3, DVec3};
 use rand::Rng;
 
 use crate::{
-    hit::{Hittable, Sphere},
+    hit::{Hittable, MovingSphere, Sphere},
     material::{Dielectric, Lambertian, Material, Metal},
     scene_format,
 };
@@ -53,6 +53,12 @@ pub struct Scene {
 
     /// All the objects in the scene
     pub world: Vec<Box<dyn Hittable>>,
+
+    /// Start time of the camera aperture opening
+    pub time0: f64,
+
+    /// End time of the camera aperture opening
+    pub time1: f64,
 }
 
 impl Scene {
@@ -86,6 +92,8 @@ impl Scene {
             gamma: scene.settings.gamma.unwrap_or(2.2),
             aperture: scene.settings.aperture.unwrap_or(0.5),
             focal_distance: scene.settings.focus_distance,
+            time0: scene.settings.time0,
+            time1: scene.settings.time1.unwrap_or(1.0),
             world,
         }
     }
@@ -135,7 +143,7 @@ impl Scene {
 fn gen_sphere_field() -> Box<dyn Hittable> {
     let mut rng = rand::thread_rng();
 
-    let mut objects = vec![];
+    let mut objects: Vec<Box<dyn Hittable>> = vec![];
 
     for a in -11..11 {
         for b in -11..11 {
@@ -154,14 +162,19 @@ fn gen_sphere_field() -> Box<dyn Hittable> {
 
             if mat < 0.8 {
                 let albedo = DVec3::from_array(rng.gen()) * DVec3::from_array(rng.gen());
-                objects.push(Sphere {
-                    centre,
+                let centre2 = centre + dvec3(0.0, rng.gen_range(0.0..=0.5), 0.0);
+
+                objects.push(Box::new(MovingSphere {
+                    centre0: centre,
+                    centre1: centre2,
+                    time0: 0.0,
+                    time1: 1.0,
                     radius,
                     material: Arc::new(Lambertian {
                         albedo,
                         random_kind: scene_format::RandomKind::Hemisphere,
                     }),
-                });
+                }));
             } else if mat < 0.95 {
                 let albedo = dvec3(
                     rng.gen_range(0.5..1.0),
@@ -169,7 +182,7 @@ fn gen_sphere_field() -> Box<dyn Hittable> {
                     rng.gen_range(0.5..1.0),
                 );
                 let fuzz = rng.gen_range(0.0..0.5);
-                objects.push(Sphere {
+                objects.push(Box::new(Sphere {
                     centre,
                     radius,
                     material: Arc::new(Metal {
@@ -177,15 +190,15 @@ fn gen_sphere_field() -> Box<dyn Hittable> {
                         fuzz,
                         random_kind: scene_format::RandomKind::Hemisphere,
                     }),
-                });
+                }));
             } else {
-                objects.push(Sphere {
+                objects.push(Box::new(Sphere {
                     centre,
                     radius,
                     material: Arc::new(Dielectric {
                         refractive_index: 1.5,
                     }),
-                })
+                }))
             }
         }
     }
