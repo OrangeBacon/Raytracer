@@ -36,11 +36,12 @@ pub fn ray_trace(
     let time = now.elapsed();
     print!("Image rendered: ");
     let min = time.as_secs() / 60;
-    if min > 1 {
-        print!("{} minutes ", min);
-    } else if min == 1 {
-        print!("{} minute ", min);
+    match min % 60 {
+        2.. => print!("{} minutes ", min),
+        1 => print!("{} minute ", min),
+        _ => (),
     }
+
     print!("{:.2} seconds", time.as_secs_f64() % 60.0);
 
     image

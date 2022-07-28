@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use glam::DVec3;
 use rand::Rng;
@@ -7,6 +7,7 @@ use crate::{
     hit::HitRecord,
     ray::Ray,
     scene_format::RandomKind,
+    texture::Texture,
     utils::{near_zero, rand_hemisphere_point, rand_sphere_point},
 };
 
@@ -25,9 +26,9 @@ fn rand_sphere(normal: DVec3, kind: RandomKind) -> DVec3 {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Lambertian {
-    pub albedo: DVec3,
+    pub albedo: Arc<dyn Texture>,
     pub random_kind: RandomKind,
 }
 
@@ -44,7 +45,7 @@ impl Material for Lambertian {
             direction,
             time: ray.time,
         };
-        let attenuation = self.albedo;
+        let attenuation = self.albedo.value(hit_record.uv, hit_record.point);
 
         Some(ScatterRecord {
             attenuation,
@@ -57,9 +58,9 @@ fn reflect(vec: DVec3, normal: DVec3) -> DVec3 {
     vec - 2.0 * vec.dot(normal) * normal
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Metal {
-    pub albedo: DVec3,
+    pub albedo: Arc<dyn Texture>,
     pub fuzz: f64,
     pub random_kind: RandomKind,
 }
@@ -72,7 +73,7 @@ impl Material for Metal {
             direction: reflected + self.fuzz * rand_sphere(hit_record.normal, self.random_kind),
             time: ray.time,
         };
-        let attenuation = self.albedo;
+        let attenuation = self.albedo.value(hit_record.uv, hit_record.point);
 
         if scattered.direction.dot(hit_record.normal) > 0.0 {
             Some(ScatterRecord {

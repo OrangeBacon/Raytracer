@@ -16,6 +16,9 @@ pub struct Scene {
     #[serde(default)]
     pub materials: HashMap<String, Material>,
 
+    #[serde(default)]
+    pub textures: HashMap<String, Texture>,
+
     /// All objects present in the world
     #[serde(default)]
     pub world: Vec<Object>,
@@ -85,19 +88,19 @@ pub enum Material {
 }
 
 /// Lambertian (diffuse) material
-#[derive(Deserialize, Debug, Default, Clone, Copy)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(default)]
 pub struct Lambertian {
     /// The base colour of the material
-    pub albedo: DVec3,
+    pub albedo: TextureReference,
 }
 
 /// Metallic materials
-#[derive(Deserialize, Debug, Default, Clone, Copy)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(default)]
 pub struct Metal {
     /// The base colour of the material
-    pub albedo: DVec3,
+    pub albedo: TextureReference,
 
     /// How rough the metallic object is
     pub fuzz: f64,
@@ -119,6 +122,31 @@ pub enum RandomKind {
 
     /// Only scatter in the hemisphere facing outwards from a collision
     Hemisphere,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum TextureReference {
+    Solid(DVec3),
+    Named(String),
+    Texture(Texture),
+}
+impl Default for TextureReference {
+    fn default() -> Self {
+        Self::Solid(DVec3::default())
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(tag = "kind")]
+pub enum Texture {
+    Solid {
+        albedo: DVec3,
+    },
+    Checker {
+        odd: Box<Texture>,
+        even: Box<Texture>,
+    },
 }
 
 #[derive(Deserialize, Debug, Clone)]

@@ -10,6 +10,7 @@ use crate::{
     hit::{Hittable, MovingSphere, Sphere},
     material::{Dielectric, Lambertian, Material, Metal},
     scene_format,
+    texture::{Checker, SolidColour, Texture},
 };
 
 /// Scene description
@@ -64,15 +65,31 @@ pub struct Scene {
 
 impl Scene {
     pub fn from_file(scene: scene_format::Scene) -> Scene {
+        let textures = scene
+            .textures
+            .iter()
+            .map(|(k, v)| (k.to_string(), Scene::texture(v)))
+            .collect();
+
         let materials: HashMap<_, _> = scene
             .materials
             .iter()
-            .map(|(k, v)| (k.to_string(), Scene::material(&scene.settings, &v)))
+            .map(|(k, v)| {
+                (
+                    k.to_string(),
+                    Scene::material(&scene.settings, v, &textures),
+                )
+            })
             .collect();
 
         let mut world = vec![];
         for object in scene.world {
-            world.push(Scene::object(&scene.settings, object, &materials))
+            world.push(Scene::object(
+                &scene.settings,
+                object,
+                &materials,
+                &textures,
+            ))
         }
 
         let aspect_ratio = match (scene.settings.aspect_height, scene.settings.aspect_width) {
@@ -108,14 +125,15 @@ impl Scene {
     fn material(
         settings: &scene_format::Settings,
         material: &scene_format::Material,
+        textures: &HashMap<String, Arc<dyn Texture>>,
     ) -> Arc<dyn Material> {
         match material {
             scene_format::Material::Lambertian(mat) => Arc::new(Lambertian {
-                albedo: mat.albedo,
+                albedo: Self::texture_ref(&mat.albedo, textures),
                 random_kind: settings.scattering_mode.unwrap_or_default(),
             }),
             scene_format::Material::Metallic(mat) => Arc::new(Metal {
-                albedo: mat.albedo,
+                albedo: Self::texture_ref(&mat.albedo, textures),
                 fuzz: mat.fuzz,
                 random_kind: settings.scattering_mode.unwrap_or_default(),
             }),
@@ -125,10 +143,34 @@ impl Scene {
         }
     }
 
+    fn texture_ref(
+        texture: &scene_format::TextureReference,
+        textures: &HashMap<String, Arc<dyn Texture>>,
+    ) -> Arc<dyn Texture> {
+        match texture {
+            scene_format::TextureReference::Solid(colour) => {
+                Arc::new(SolidColour { colour: *colour })
+            }
+            scene_format::TextureReference::Named(name) => Arc::clone(&textures[name]),
+            scene_format::TextureReference::Texture(tex) => Scene::texture(tex),
+        }
+    }
+
+    fn texture(texture: &scene_format::Texture) -> Arc<dyn Texture> {
+        match texture {
+            scene_format::Texture::Solid { albedo } => Arc::new(SolidColour { colour: *albedo }),
+            scene_format::Texture::Checker { odd, even } => Arc::new(Checker {
+                odd: Scene::texture(odd),
+                even: Scene::texture(even),
+            }),
+        }
+    }
+
     fn object(
         settings: &scene_format::Settings,
         object: scene_format::Object,
         materials: &HashMap<String, Arc<dyn Material>>,
+        textures: &HashMap<String, Arc<dyn Texture>>,
     ) -> Arc<dyn Hittable> {
         match object {
             scene_format::Object::Sphere(obj) => Arc::new(Sphere {
@@ -137,7 +179,7 @@ impl Scene {
                 material: match obj.material {
                     scene_format::MaterialReference::Named(name) => Arc::clone(&materials[&name]),
                     scene_format::MaterialReference::Material(mat) => {
-                        Scene::material(settings, &mat)
+                        Scene::material(settings, &mat, textures)
                     }
                 },
             }),
@@ -167,7 +209,7 @@ fn gen_sphere_field() -> Arc<dyn Hittable> {
             let mat: f64 = rng.gen();
 
             if mat < 0.8 {
-                let albedo = DVec3::from_array(rng.gen()) * DVec3::from_array(rng.gen());
+                let colour = DVec3::from_array(rng.gen()) * DVec3::from_array(rng.gen());
                 let centre2 = centre + dvec3(0.0, rng.gen_range(0.0..=0.5), 0.0);
 
                 objects.push(Arc::new(MovingSphere {
@@ -177,12 +219,12 @@ fn gen_sphere_field() -> Arc<dyn Hittable> {
                     time1: 1.0,
                     radius,
                     material: Arc::new(Lambertian {
-                        albedo,
+                        albedo: Arc::new(SolidColour { colour }),
                         random_kind: scene_format::RandomKind::Hemisphere,
                     }),
                 }));
             } else if mat < 0.95 {
-                let albedo = dvec3(
+                let colour = dvec3(
                     rng.gen_range(0.5..1.0),
                     rng.gen_range(0.5..1.0),
                     rng.gen_range(0.5..1.0),
@@ -192,7 +234,7 @@ fn gen_sphere_field() -> Arc<dyn Hittable> {
                     centre,
                     radius,
                     material: Arc::new(Metal {
-                        albedo,
+                        albedo: Arc::new(SolidColour { colour }),
                         fuzz,
                         random_kind: scene_format::RandomKind::Hemisphere,
                     }),

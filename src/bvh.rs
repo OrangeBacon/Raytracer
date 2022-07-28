@@ -3,7 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use rand::Rng;
 
 use crate::{
-    aabb::AABB,
+    aabb::Aabb,
     hit::{HitRecord, Hittable},
 };
 
@@ -11,11 +11,11 @@ use crate::{
 pub struct BVHNode {
     left: Arc<dyn Hittable>,
     right: Arc<dyn Hittable>,
-    aabb: AABB,
+    aabb: Aabb,
 }
 
 impl BVHNode {
-    pub fn new(objects: &[Arc<dyn Hittable>], time0: f64, time1: f64) -> Option<Arc<dyn Hittable>> {
+    pub fn new(objects: &[Arc<dyn Hittable>], time0: f64, time1: f64) -> Option<Arc<Self>> {
         let axis = rand::thread_rng().gen_range(0..=2);
 
         let (left, right) = if objects.len() == 1 {
@@ -70,7 +70,7 @@ impl Hittable for BVHNode {
         right.or(left)
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
         Some(self.aabb)
     }
 }

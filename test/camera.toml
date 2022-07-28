@@ -1,19 +1,27 @@
 [settings]
 width = 400
 height = 225
+origin = [13, 2, 3]
+look_at = [0, 0, 0]
+vfov = 20
+
+[materials.checker]
+kind = "Lambertian"
+albedo = "checker"
+
+[textures.checker]
+kind = "Checker"
+odd = { kind = "Solid", albedo = [0.2, 0.3, 0.1] }
+even = { kind = "Solid", albedo = [0.9, 0.9, 0.9] }
 
 [[world]] # left
 shape = "Sphere"
-centre = [ -0.707, 0.0, -1.0 ]
-radius = 0.707
-[world.material]
-kind = "Lambertian"
-albedo = [ 0.0, 0.0, 1.0 ]
+centre = [ 0.0, -10.0, 0.0 ]
+radius = 10
+material = "checker"
 
 [[world]] # right
 shape = "Sphere"
-centre = [ 0.707, 0.0, -1.0 ]
-radius = 0.707
-[world.material]
-kind = "Lambertian"
-albedo = [ 1.0, 0.0, 0.0 ]
+centre = [ 0.0, 10.0, 0.0 ]
+radius = 10
+material = "checker"

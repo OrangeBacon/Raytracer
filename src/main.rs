@@ -8,6 +8,7 @@ mod ray_trace;
 mod scene;
 mod scene_format;
 mod utils;
+mod texture;
 
 use std::{path::PathBuf, sync::Arc};
 
@@ -57,7 +58,7 @@ fn main() -> Result<()> {
 }
 
 fn ray_colour(ray: Ray, world: &Arc<dyn Hittable>, depth: u32) -> DVec3 {
-    if depth <= 0 {
+    if depth == 0 {
         return DVec3::ZERO;
     }
 

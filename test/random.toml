@@ -19,7 +19,10 @@ centre = [ 0.0, -1000.0, 0.0 ]
 radius = 1000.0
 [world.material]
 kind = "Lambertian"
-albedo = [ 0.5, 0.5, 0.5 ]
+[world.material.albedo]
+kind = "Checker"
+odd = { kind = "Solid", albedo = [0.2, 0.3, 0.1] }
+even = { kind = "Solid", albedo = [0.9, 0.9, 0.9] }
 
 [[world]]
 shape = "Sphere"

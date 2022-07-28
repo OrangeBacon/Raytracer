@@ -1,8 +1,8 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{f64::consts::PI, fmt::Debug, sync::Arc};
 
-use glam::DVec3;
+use glam::{dvec2, DVec2, DVec3};
 
-use crate::{aabb::AABB, material::Material, ray::Ray};
+use crate::{aabb::Aabb, material::Material, ray::Ray};
 
 pub struct HitRecord {
     pub point: DVec3,
@@ -10,12 +10,13 @@ pub struct HitRecord {
     pub t: f64,
     pub front_face: bool,
     pub material: Arc<dyn Material>,
+    pub uv: DVec2,
 }
 
 pub trait Hittable: Send + Sync + Debug {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb>;
 }
 
 impl HitRecord {
@@ -25,6 +26,7 @@ impl HitRecord {
         outward_normal: DVec3,
         t: f64,
         material: Arc<dyn Material>,
+        uv: DVec2,
     ) -> Self {
         let mut record = HitRecord {
             point,
@@ -32,6 +34,7 @@ impl HitRecord {
             normal: DVec3::ZERO,
             t,
             front_face: false,
+            uv,
         };
         record.set_face_normal(ray, outward_normal);
         record
@@ -76,21 +79,30 @@ impl Hittable for Sphere {
         }
 
         let point = ray.at(root);
-        return Some(HitRecord::new(
+        let outward_normal = (point - self.centre) / self.radius;
+        Some(HitRecord::new(
             ray,
             point,
-            (point - self.centre) / self.radius,
+            outward_normal,
             root,
             Arc::clone(&self.material),
-        ));
+            sphere_uv(outward_normal),
+        ))
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        Some(AABB {
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<Aabb> {
+        Some(Aabb {
             minimum: self.centre - DVec3::splat(self.radius),
             maximum: self.centre + DVec3::splat(self.radius),
         })
     }
+}
+
+fn sphere_uv(point: DVec3) -> DVec2 {
+    let theta = (-point.y).acos();
+    let phi = (-point.z).atan2(point.x) + PI;
+
+    dvec2(phi / (2.0 * PI), theta / PI)
 }
 
 #[derive(Debug)]
@@ -132,22 +144,24 @@ impl Hittable for MovingSphere {
         }
 
         let point = ray.at(root);
-        return Some(HitRecord::new(
+        let outward_normal = (point - self.centre(ray.time)) / self.radius;
+        Some(HitRecord::new(
             ray,
             point,
-            (point - self.centre(ray.time)) / self.radius,
+            outward_normal,
             root,
             Arc::clone(&self.material),
-        ));
+            sphere_uv(outward_normal),
+        ))
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
-        let box0 = AABB {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
+        let box0 = Aabb {
             minimum: self.centre(time0) - DVec3::splat(self.radius),
             maximum: self.centre(time0) + DVec3::splat(self.radius),
         };
 
-        let box1 = AABB {
+        let box1 = Aabb {
             minimum: self.centre(time1) - DVec3::splat(self.radius),
             maximum: self.centre(time1) + DVec3::splat(self.radius),
         };
@@ -176,7 +190,7 @@ impl Hittable for HittableVec {
         output
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<Aabb> {
         let mut result = None;
 
         for object in &self.objects {

@@ -3,12 +3,12 @@ use glam::DVec3;
 use crate::ray::Ray;
 
 #[derive(Debug, Clone, Copy)]
-pub struct AABB {
+pub struct Aabb {
     pub minimum: DVec3,
     pub maximum: DVec3,
 }
 
-impl AABB {
+impl Aabb {
     pub fn hit(&self, ray: Ray, mut t_min: f64, mut t_max: f64) -> bool {
         for a in 0..3 {
             let inv_d = 1.0 / ray.direction[a];
@@ -29,8 +29,8 @@ impl AABB {
         true
     }
 
-    pub fn surrounds(&self, other: AABB) -> AABB {
-        AABB {
+    pub fn surrounds(&self, other: Aabb) -> Aabb {
+        Aabb {
             minimum: self.minimum.min(other.minimum),
             maximum: self.maximum.max(other.maximum),
         }
