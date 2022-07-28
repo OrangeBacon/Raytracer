@@ -9,6 +9,7 @@ mod scene;
 mod scene_format;
 mod utils;
 mod texture;
+mod perlin;
 
 use std::{path::PathBuf, sync::Arc};
 

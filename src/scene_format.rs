@@ -147,6 +147,9 @@ pub enum Texture {
         odd: Box<Texture>,
         even: Box<Texture>,
     },
+    Noise {
+        scale: f64,
+    },
 }
 
 #[derive(Deserialize, Debug, Clone)]

@@ -36,6 +36,11 @@ pub fn ray_trace(
     let time = now.elapsed();
     print!("Image rendered: ");
     let min = time.as_secs() / 60;
+    let hours = min / 60;
+
+    if hours > 0 {
+        print!("{} hours ", hours);
+    }
     match min % 60 {
         2.. => print!("{} minutes ", min),
         1 => print!("{} minute ", min),

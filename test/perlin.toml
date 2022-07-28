@@ -1,0 +1,23 @@
+[settings]
+width = 400
+height = 225
+origin = [13, 2, 3]
+look_at = [0, 0, 0]
+gamma = 2.0
+vfov = 20
+
+[materials.noise]
+kind = "Lambertian"
+albedo = { kind = "Noise", scale = 4 }
+
+[[world]] # left
+shape = "Sphere"
+centre = [ 0.0, -1000.0, 0.0 ]
+radius = 1000
+material = "noise"
+
+[[world]] # right
+shape = "Sphere"
+centre = [ 0.0, 2.0, 0.0 ]
+radius = 2
+material = "noise"

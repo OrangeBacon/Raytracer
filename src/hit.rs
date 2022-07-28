@@ -105,6 +105,20 @@ fn sphere_uv(point: DVec3) -> DVec2 {
     dvec2(phi / (2.0 * PI), theta / PI)
 }
 
+#[cfg(test)]
+#[test]
+fn sphere_uv_test() {
+    use approx::assert_relative_eq;
+    use glam::dvec3;
+
+    assert_relative_eq!(sphere_uv(dvec3(1.0, 0.0, 0.0)), dvec2(0.5, 0.5));
+    assert_relative_eq!(sphere_uv(dvec3(0.0, 1.0, 0.0)), dvec2(0.5, 1.0));
+    assert_relative_eq!(sphere_uv(dvec3(0.0, 0.0, 1.0)), dvec2(0.25, 0.5));
+    assert_relative_eq!(sphere_uv(dvec3(-1.0, 0.0, 0.0)), dvec2(0.0, 0.5));
+    assert_relative_eq!(sphere_uv(dvec3(0.0, -1.0, 0.0)), dvec2(0.5, 0.0));
+    assert_relative_eq!(sphere_uv(dvec3(0.0, 0.0, -1.0)), dvec2(0.75, 0.5));
+}
+
 #[derive(Debug)]
 pub struct MovingSphere {
     pub centre0: DVec3,

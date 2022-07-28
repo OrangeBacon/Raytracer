@@ -9,6 +9,7 @@ use crate::{
     bvh::BVHNode,
     hit::{Hittable, MovingSphere, Sphere},
     material::{Dielectric, Lambertian, Material, Metal},
+    perlin::NoiseTexture,
     scene_format,
     texture::{Checker, SolidColour, Texture},
 };
@@ -163,6 +164,7 @@ impl Scene {
                 odd: Scene::texture(odd),
                 even: Scene::texture(even),
             }),
+            scene_format::Texture::Noise { scale } => Arc::new(NoiseTexture::new(*scale)),
         }
     }
 
