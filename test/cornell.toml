@@ -5,7 +5,7 @@ origin = [278, 287, -800]
 look_at = [278, 278, 0]
 vfov = 40
 background_colour =[0.0, 0.0, 0.0]
-samples_per_pixel = 200
+samples_per_pixel = 1000
 
 [materials.red]
 kind = "Lambertian"
@@ -72,4 +72,16 @@ a1 = 555
 b0 = 0
 b1 = 555
 k = 555
+material = "white"
+
+[[world]]
+shape = "Cube"
+minimum = [130, 0, 65]
+maximum = [295, 165, 230]
+material = "white"
+
+[[world]]
+shape = "Cube"
+minimum = [265, 0, 295]
+maximum = [430, 330, 460]
 material = "white"

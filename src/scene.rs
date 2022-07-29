@@ -13,6 +13,7 @@ use crate::{
     scene_format,
     shapes::{
         aa_rect::{XyRect, XzRect, YzRect},
+        cube::Cube,
         sphere::{MovingSphere, Sphere},
         Hittable,
     },
@@ -232,6 +233,11 @@ impl Scene {
                 z1: rect.b1,
                 k: rect.k,
             }),
+            scene_format::Object::Cube(cube) => Arc::new(Cube::new(
+                cube.minimum,
+                cube.maximum,
+                Self::material_ref(&cube.material, settings, textures, materials)?,
+            )),
         })
     }
 }

@@ -18,6 +18,19 @@ pub struct XyRect {
     pub k: f64,
 }
 
+impl XyRect {
+    pub fn new(mat: &Arc<dyn Material>, x0: f64, x1: f64, y0: f64, y1: f64, k: f64) -> Arc<Self> {
+        Arc::new(Self {
+            mat: Arc::clone(mat),
+            x0,
+            x1,
+            y0,
+            y1,
+            k,
+        })
+    }
+}
+
 impl Hittable for XyRect {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let t = (self.k - ray.origin.z) / ray.direction.z;
@@ -62,6 +75,19 @@ pub struct XzRect {
     pub k: f64,
 }
 
+impl XzRect {
+    pub fn new(mat: &Arc<dyn Material>, x0: f64, x1: f64, z0: f64, z1: f64, k: f64) -> Arc<Self> {
+        Arc::new(Self {
+            mat: Arc::clone(mat),
+            x0,
+            x1,
+            z0,
+            z1,
+            k,
+        })
+    }
+}
+
 impl Hittable for XzRect {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let t = (self.k - ray.origin.y) / ray.direction.y;
@@ -104,6 +130,19 @@ pub struct YzRect {
     pub z0: f64,
     pub z1: f64,
     pub k: f64,
+}
+
+impl YzRect {
+    pub fn new(mat: &Arc<dyn Material>, y0: f64, y1: f64, z0: f64, z1: f64, k: f64) -> Arc<Self> {
+        Arc::new(Self {
+            mat: Arc::clone(mat),
+            y0,
+            y1,
+            z0,
+            z1,
+            k,
+        })
+    }
 }
 
 impl Hittable for YzRect {

@@ -1,5 +1,6 @@
 pub mod aa_rect;
 pub mod sphere;
+pub mod cube;
 
 use std::{fmt::Debug, sync::Arc};
 

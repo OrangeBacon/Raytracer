@@ -174,6 +174,7 @@ pub enum Object {
     XyRect(Rect),
     YzRect(Rect),
     XzRect(Rect),
+    Cube(Cube),
 }
 
 /// A Single sphere
@@ -197,6 +198,13 @@ pub struct Rect {
     pub b0: f64,
     pub b1: f64,
     pub k: f64,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Cube {
+    pub material: MaterialReference,
+    pub minimum: DVec3,
+    pub maximum: DVec3,
 }
 
 #[derive(Deserialize, Debug, Clone)]
