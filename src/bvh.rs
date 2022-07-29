@@ -4,7 +4,7 @@ use rand::Rng;
 
 use crate::{
     aabb::Aabb,
-    hit::{HitRecord, Hittable},
+    shapes::{HitRecord, Hittable},
 };
 
 #[derive(Debug)]

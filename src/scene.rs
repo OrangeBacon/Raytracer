@@ -8,10 +8,14 @@ use rand::Rng;
 
 use crate::{
     bvh::BVHNode,
-    hit::{Hittable, MovingSphere, Sphere, XyRect, XzRect, YzRect},
     material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
     perlin::NoiseTexture,
     scene_format,
+    shapes::{
+        aa_rect::{XyRect, XzRect, YzRect},
+        sphere::{MovingSphere, Sphere},
+        Hittable,
+    },
     texture::{Checker, ImageTexture, SolidColour, Texture},
 };
 

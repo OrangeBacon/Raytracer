@@ -4,7 +4,7 @@ use glam::{DVec2, DVec3};
 use rand::Rng;
 
 use crate::{
-    hit::HitRecord,
+    shapes::HitRecord,
     ray::Ray,
     scene_format::RandomKind,
     texture::Texture,

@@ -1,7 +1,7 @@
 mod aabb;
 mod bvh;
 mod camera;
-mod hit;
+mod shapes;
 mod material;
 mod perlin;
 mod ray;
@@ -18,7 +18,7 @@ use clap::Parser;
 use glam::DVec3;
 use rand::Rng;
 
-use crate::{camera::Camera, hit::Hittable, ray::Ray, scene::Scene};
+use crate::{camera::Camera, shapes::Hittable, ray::Ray, scene::Scene};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
