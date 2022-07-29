@@ -2,6 +2,7 @@
 
 use std::{collections::HashMap, sync::Arc};
 
+use anyhow::Result;
 use glam::{dvec3, DVec3};
 use rand::Rng;
 
@@ -11,7 +12,7 @@ use crate::{
     material::{Dielectric, Lambertian, Material, Metal},
     perlin::NoiseTexture,
     scene_format,
-    texture::{Checker, SolidColour, Texture},
+    texture::{Checker, ImageTexture, SolidColour, Texture},
 };
 
 /// Scene description
@@ -65,23 +66,23 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn from_file(scene: scene_format::Scene) -> Scene {
+    pub fn from_file(scene: scene_format::Scene) -> Result<Scene> {
         let textures = scene
             .textures
             .iter()
-            .map(|(k, v)| (k.to_string(), Scene::texture(v)))
-            .collect();
+            .map(|(k, v)| Ok((k.to_string(), Scene::texture(v)?)))
+            .collect::<Result<HashMap<_, _>>>()?;
 
-        let materials: HashMap<_, _> = scene
+        let materials = scene
             .materials
             .iter()
             .map(|(k, v)| {
-                (
+                Ok((
                     k.to_string(),
-                    Scene::material(&scene.settings, v, &textures),
-                )
+                    Scene::material(&scene.settings, v, &textures)?,
+                ))
             })
-            .collect();
+            .collect::<Result<HashMap<_, _>>>()?;
 
         let mut world = vec![];
         for object in scene.world {
@@ -90,7 +91,7 @@ impl Scene {
                 object,
                 &materials,
                 &textures,
-            ))
+            )?)
         }
 
         let aspect_ratio = match (scene.settings.aspect_height, scene.settings.aspect_width) {
@@ -98,7 +99,7 @@ impl Scene {
             (_, _) => scene.settings.width as f64 / scene.settings.height as f64,
         };
 
-        Scene {
+        Ok(Scene {
             origin: scene.settings.origin,
             look_at: scene.settings.look_at.unwrap_or(DVec3::NEG_Z),
             up_direction: scene.settings.up_direction.unwrap_or(DVec3::Y),
@@ -118,8 +119,8 @@ impl Scene {
                 scene.settings.time0,
                 scene.settings.time1.unwrap_or(1.0),
             )
-            .unwrap(),
-        }
+            .ok_or_else(|| anyhow::anyhow!("Unable to construct BVH"))?,
+        })
     }
 
     /// Convert material to internal format
@@ -127,45 +128,46 @@ impl Scene {
         settings: &scene_format::Settings,
         material: &scene_format::Material,
         textures: &HashMap<String, Arc<dyn Texture>>,
-    ) -> Arc<dyn Material> {
-        match material {
+    ) -> Result<Arc<dyn Material>> {
+        Ok(match material {
             scene_format::Material::Lambertian(mat) => Arc::new(Lambertian {
-                albedo: Self::texture_ref(&mat.albedo, textures),
+                albedo: Self::texture_ref(&mat.albedo, textures)?,
                 random_kind: settings.scattering_mode.unwrap_or_default(),
             }),
             scene_format::Material::Metallic(mat) => Arc::new(Metal {
-                albedo: Self::texture_ref(&mat.albedo, textures),
+                albedo: Self::texture_ref(&mat.albedo, textures)?,
                 fuzz: mat.fuzz,
                 random_kind: settings.scattering_mode.unwrap_or_default(),
             }),
             scene_format::Material::Dielectric(mat) => Arc::new(Dielectric {
                 refractive_index: mat.refractive_index,
             }),
-        }
+        })
     }
 
     fn texture_ref(
         texture: &scene_format::TextureReference,
         textures: &HashMap<String, Arc<dyn Texture>>,
-    ) -> Arc<dyn Texture> {
-        match texture {
+    ) -> Result<Arc<dyn Texture>> {
+        Ok(match texture {
             scene_format::TextureReference::Solid(colour) => {
                 Arc::new(SolidColour { colour: *colour })
             }
             scene_format::TextureReference::Named(name) => Arc::clone(&textures[name]),
-            scene_format::TextureReference::Texture(tex) => Scene::texture(tex),
-        }
+            scene_format::TextureReference::Texture(tex) => Scene::texture(tex)?,
+        })
     }
 
-    fn texture(texture: &scene_format::Texture) -> Arc<dyn Texture> {
-        match texture {
+    fn texture(texture: &scene_format::Texture) -> Result<Arc<dyn Texture>> {
+        Ok(match texture {
             scene_format::Texture::Solid { albedo } => Arc::new(SolidColour { colour: *albedo }),
             scene_format::Texture::Checker { odd, even } => Arc::new(Checker {
-                odd: Scene::texture(odd),
-                even: Scene::texture(even),
+                odd: Scene::texture(odd)?,
+                even: Scene::texture(even)?,
             }),
             scene_format::Texture::Noise { scale } => Arc::new(NoiseTexture::new(*scale)),
-        }
+            scene_format::Texture::Image { file_name } => Arc::new(ImageTexture::new(file_name)?),
+        })
     }
 
     fn object(
@@ -173,20 +175,20 @@ impl Scene {
         object: scene_format::Object,
         materials: &HashMap<String, Arc<dyn Material>>,
         textures: &HashMap<String, Arc<dyn Texture>>,
-    ) -> Arc<dyn Hittable> {
-        match object {
+    ) -> Result<Arc<dyn Hittable>> {
+        Ok(match object {
             scene_format::Object::Sphere(obj) => Arc::new(Sphere {
                 centre: obj.centre,
                 radius: obj.radius,
                 material: match obj.material {
                     scene_format::MaterialReference::Named(name) => Arc::clone(&materials[&name]),
                     scene_format::MaterialReference::Material(mat) => {
-                        Scene::material(settings, &mat, textures)
+                        Scene::material(settings, &mat, textures)?
                     }
                 },
             }),
             scene_format::Object::SphereField => gen_sphere_field(),
-        }
+        })
     }
 }
 

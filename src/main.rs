@@ -36,7 +36,7 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     let scene = std::fs::read_to_string(&args.scene)?;
-    let scene = Scene::from_file(toml::from_str(&scene)?);
+    let scene = Scene::from_file(toml::from_str(&scene)?)?;
 
     let camera = Camera::new(&scene);
 

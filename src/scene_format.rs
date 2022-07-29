@@ -1,7 +1,7 @@
 //! Serde description of the scene data structure as read by this program.
 //! Should not be used for rendering, should be converted to internal formats
 
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use glam::DVec3;
 use serde::Deserialize;
@@ -149,6 +149,9 @@ pub enum Texture {
     },
     Noise {
         scale: f64,
+    },
+    Image {
+        file_name: PathBuf,
     },
 }
 
