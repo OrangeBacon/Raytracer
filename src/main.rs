@@ -3,19 +3,19 @@ mod bvh;
 mod camera;
 mod hit;
 mod material;
+mod perlin;
 mod ray;
 mod ray_trace;
 mod scene;
 mod scene_format;
-mod utils;
 mod texture;
-mod perlin;
+mod utils;
 
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use clap::Parser;
-use glam::{dvec3, DVec3};
+use glam::DVec3;
 use rand::Rng;
 
 use crate::{camera::Camera, hit::Hittable, ray::Ray, scene::Scene};
@@ -48,7 +48,12 @@ fn main() -> Result<()> {
             let v = (y as f64 + rng.gen::<f64>()) / scene.height as f64;
 
             let ray = camera.ray(u, v);
-            colour += ray_colour(ray, &scene.world, scene.recursive_depth);
+            colour += ray_colour(
+                ray,
+                scene.background_colour,
+                &scene.world,
+                scene.recursive_depth,
+            );
         }
 
         colour / scene.samples_per_pixel as f64
@@ -58,19 +63,21 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn ray_colour(ray: Ray, world: &Arc<dyn Hittable>, depth: u32) -> DVec3 {
+fn ray_colour(ray: Ray, background: DVec3, world: &Arc<dyn Hittable>, depth: u32) -> DVec3 {
     if depth == 0 {
         return DVec3::ZERO;
     }
 
     if let Some(record) = world.hit(ray, 0.001, f64::INFINITY) {
+        let emitted = record.material.emitted(record.uv, record.point);
+
         if let Some(scatter) = record.material.scatter(ray, &record) {
-            return scatter.attenuation * ray_colour(scatter.scattered, world, depth - 1);
+            return emitted
+                + scatter.attenuation
+                    * ray_colour(scatter.scattered, background, world, depth - 1);
         }
-        return DVec3::ZERO;
+        return emitted;
     }
 
-    let direction = ray.direction.normalize();
-    let t = 0.5 * (direction.y + 1.0);
-    (1.0 - t) * DVec3::ONE + t * dvec3(0.5, 0.7, 1.0)
+    background
 }

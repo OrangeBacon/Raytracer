@@ -8,8 +8,8 @@ use rand::Rng;
 
 use crate::{
     bvh::BVHNode,
-    hit::{Hittable, MovingSphere, Sphere},
-    material::{Dielectric, Lambertian, Material, Metal},
+    hit::{Hittable, MovingSphere, Sphere, XyRect, XzRect, YzRect},
+    material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
     perlin::NoiseTexture,
     scene_format,
     texture::{Checker, ImageTexture, SolidColour, Texture},
@@ -63,6 +63,9 @@ pub struct Scene {
 
     /// End time of the camera aperture opening
     pub time1: f64,
+
+    /// The colour of the sky box
+    pub background_colour: DVec3,
 }
 
 impl Scene {
@@ -114,12 +117,27 @@ impl Scene {
             focal_distance: scene.settings.focus_distance,
             time0: scene.settings.time0,
             time1: scene.settings.time1.unwrap_or(1.0),
+            background_colour: scene.settings.background_colour,
             world: BVHNode::new(
                 &world,
                 scene.settings.time0,
                 scene.settings.time1.unwrap_or(1.0),
             )
             .ok_or_else(|| anyhow::anyhow!("Unable to construct BVH"))?,
+        })
+    }
+
+    fn material_ref(
+        material: &scene_format::MaterialReference,
+        settings: &scene_format::Settings,
+        textures: &HashMap<String, Arc<dyn Texture>>,
+        materials: &HashMap<String, Arc<dyn Material>>,
+    ) -> Result<Arc<dyn Material>> {
+        Ok(match material {
+            scene_format::MaterialReference::Named(name) => Arc::clone(&materials[name]),
+            scene_format::MaterialReference::Material(mat) => {
+                Scene::material(settings, &mat, textures)?
+            }
         })
     }
 
@@ -141,6 +159,9 @@ impl Scene {
             }),
             scene_format::Material::Dielectric(mat) => Arc::new(Dielectric {
                 refractive_index: mat.refractive_index,
+            }),
+            scene_format::Material::DiffuseLight(mat) => Arc::new(DiffuseLight {
+                tex: Self::texture_ref(&mat.albedo, textures)?,
             }),
         })
     }
@@ -180,14 +201,33 @@ impl Scene {
             scene_format::Object::Sphere(obj) => Arc::new(Sphere {
                 centre: obj.centre,
                 radius: obj.radius,
-                material: match obj.material {
-                    scene_format::MaterialReference::Named(name) => Arc::clone(&materials[&name]),
-                    scene_format::MaterialReference::Material(mat) => {
-                        Scene::material(settings, &mat, textures)?
-                    }
-                },
+                material: Self::material_ref(&obj.material, settings, textures, materials)?,
             }),
             scene_format::Object::SphereField => gen_sphere_field(),
+            scene_format::Object::XyRect(rect) => Arc::new(XyRect {
+                mat: Self::material_ref(&rect.material, settings, textures, materials)?,
+                x0: rect.a0,
+                x1: rect.a1,
+                y0: rect.b0,
+                y1: rect.b1,
+                k: rect.k,
+            }),
+            scene_format::Object::YzRect(rect) => Arc::new(YzRect {
+                mat: Self::material_ref(&rect.material, settings, textures, materials)?,
+                y0: rect.a0,
+                y1: rect.a1,
+                z0: rect.b0,
+                z1: rect.b1,
+                k: rect.k,
+            }),
+            scene_format::Object::XzRect(rect) => Arc::new(XzRect {
+                mat: Self::material_ref(&rect.material, settings, textures, materials)?,
+                x0: rect.a0,
+                x1: rect.a1,
+                z0: rect.b0,
+                z1: rect.b1,
+                k: rect.k,
+            }),
         })
     }
 }

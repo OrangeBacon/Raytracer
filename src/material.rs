@@ -1,6 +1,6 @@
 use std::{fmt::Debug, sync::Arc};
 
-use glam::DVec3;
+use glam::{DVec2, DVec3};
 use rand::Rng;
 
 use crate::{
@@ -16,6 +16,10 @@ pub struct ScatterRecord {
     pub scattered: Ray,
 }
 pub trait Material: Send + Sync + Debug {
+    fn emitted(&self, _uv: DVec2, _point: DVec3) -> DVec3 {
+        DVec3::ZERO
+    }
+
     fn scatter(&self, ray: Ray, hit_record: &HitRecord) -> Option<ScatterRecord>;
 }
 
@@ -34,7 +38,8 @@ pub struct Lambertian {
 
 impl Material for Lambertian {
     fn scatter(&self, ray: Ray, hit_record: &HitRecord) -> Option<ScatterRecord> {
-        let mut direction = hit_record.normal + rand_sphere(hit_record.normal, self.random_kind);
+        let mut direction =
+            hit_record.normal + rand_sphere(hit_record.normal, self.random_kind).normalize();
 
         if near_zero(direction) {
             direction = hit_record.normal;
@@ -138,5 +143,20 @@ impl Material for Dielectric {
             attenuation,
             scattered,
         })
+    }
+}
+
+#[derive(Debug)]
+pub struct DiffuseLight {
+    pub tex: Arc<dyn Texture>,
+}
+
+impl Material for DiffuseLight {
+    fn emitted(&self, uv: DVec2, point: DVec3) -> DVec3 {
+        self.tex.value(uv, point)
+    }
+
+    fn scatter(&self, _: Ray, _: &HitRecord) -> Option<ScatterRecord> {
+        None
     }
 }

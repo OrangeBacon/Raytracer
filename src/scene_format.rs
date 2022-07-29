@@ -76,6 +76,9 @@ pub struct Settings {
 
     /// End time of the camera aperture opening
     pub time1: Option<f64>,
+
+    /// The colour of the sky box
+    pub background_colour: DVec3,
 }
 
 /// All possible materials to use for an object
@@ -85,6 +88,7 @@ pub enum Material {
     Lambertian(Lambertian),
     Metallic(Metal),
     Dielectric(Dielectric),
+    DiffuseLight(DiffuseLight),
 }
 
 /// Lambertian (diffuse) material
@@ -111,6 +115,13 @@ pub struct Metal {
 #[serde(default)]
 pub struct Dielectric {
     pub refractive_index: f64,
+}
+
+/// Diffuse emissive material
+#[derive(Deserialize, Debug, Default, Clone)]
+pub struct DiffuseLight {
+    /// The base colour of the material
+    pub albedo: TextureReference,
 }
 
 /// The random number generation to use during scattering
@@ -160,6 +171,9 @@ pub enum Texture {
 pub enum Object {
     Sphere(Sphere),
     SphereField,
+    XyRect(Rect),
+    YzRect(Rect),
+    XzRect(Rect),
 }
 
 /// A Single sphere
@@ -173,6 +187,16 @@ pub struct Sphere {
 
     /// Material the object is made from
     pub material: MaterialReference,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Rect {
+    pub material: MaterialReference,
+    pub a0: f64,
+    pub a1: f64,
+    pub b0: f64,
+    pub b1: f64,
+    pub k: f64,
 }
 
 #[derive(Deserialize, Debug, Clone)]

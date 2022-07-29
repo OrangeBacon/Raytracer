@@ -1,0 +1,75 @@
+[settings]
+width = 600
+height = 600
+origin = [278, 287, -800]
+look_at = [278, 278, 0]
+vfov = 40
+background_colour =[0.0, 0.0, 0.0]
+samples_per_pixel = 200
+
+[materials.red]
+kind = "Lambertian"
+albedo = [0.65, 0.05, 0.05]
+[materials.white]
+kind = "Lambertian"
+albedo = [0.73, 0.73, 0.73]
+[materials.green]
+kind = "Lambertian"
+albedo = [0.12, 0.45, 0.15]
+[materials.light]
+kind = "DiffuseLight"
+albedo = [15, 15, 15]
+
+[[world]]
+shape = "YzRect"
+a0 = 0
+a1 = 555
+b0 = 0
+b1 = 555
+k = 555
+material = "green"
+
+[[world]]
+shape = "YzRect"
+a0 = 0
+a1 = 555
+b0 = 0
+b1 = 555
+k = 0
+material = "red"
+
+[[world]]
+shape = "XzRect"
+a0 = 213
+a1 = 343
+b0 = 227
+b1 = 332
+k = 554
+material = "light"
+
+[[world]]
+shape = "XzRect"
+a0 = 0
+a1 = 555
+b0 = 0
+b1 = 555
+k = 0
+material = "white"
+
+[[world]]
+shape = "XzRect"
+a0 = 0
+a1 = 555
+b0 = 0
+b1 = 555
+k = 555
+material = "white"
+
+[[world]]
+shape = "XyRect"
+a0 = 0
+a1 = 555
+b0 = 0
+b1 = 555
+k = 555
+material = "white"

@@ -5,6 +5,7 @@ origin = [13, 2, 3]
 look_at = [0, 0, 0]
 gamma = 2.0
 vfov = 20
+background_colour = [0.7, 0.8, 1.0]
 
 [materials.noise]
 kind = "Lambertian"

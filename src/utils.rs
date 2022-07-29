@@ -4,12 +4,15 @@ use rand::Rng;
 pub fn rand_sphere_point() -> DVec3 {
     let mut rng = rand::thread_rng();
 
-    let point = DVec3::from_array(rng.gen());
-
-    if point == DVec3::ZERO {
-        DVec3::ZERO
-    } else {
-        point.length_recip() * point
+    loop {
+        let p = dvec3(
+            rng.gen_range(-1.0..=1.0),
+            rng.gen_range(-1.0..=1.0),
+            rng.gen_range(-1.0..=1.0),
+        );
+        if p.length_squared() < 1.0 {
+            break p;
+        }
     }
 }
 
