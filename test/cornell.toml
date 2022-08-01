@@ -5,7 +5,7 @@ origin = [278, 287, -800]
 look_at = [278, 278, 0]
 vfov = 40
 background_colour =[0.0, 0.0, 0.0]
-samples_per_pixel = 1000
+samples_per_pixel = 200
 
 [materials.red]
 kind = "Lambertian"
@@ -75,13 +75,25 @@ k = 555
 material = "white"
 
 [[world]]
+shape = "Translate"
+offset = [265, 0, 295]
+[world.child]
+shape = "RotateY"
+angle = 15
+[world.child.child]
 shape = "Cube"
-minimum = [130, 0, 65]
-maximum = [295, 165, 230]
+minimum = [0, 0, 0]
+maximum = [165, 330, 165]
 material = "white"
 
 [[world]]
+shape = "Translate"
+offset = [130, 0, 65]
+[world.child]
+shape = "RotateY"
+angle = -18
+[world.child.child]
 shape = "Cube"
-minimum = [265, 0, 295]
-maximum = [430, 330, 460]
+minimum = [0, 0, 0]
+maximum = [165, 165, 165]
 material = "white"

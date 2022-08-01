@@ -175,6 +175,8 @@ pub enum Object {
     YzRect(Rect),
     XzRect(Rect),
     Cube(Cube),
+    Translate(Translate),
+    RotateY(RotateY),
 }
 
 /// A Single sphere
@@ -205,6 +207,18 @@ pub struct Cube {
     pub material: MaterialReference,
     pub minimum: DVec3,
     pub maximum: DVec3,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Translate {
+    pub child: Box<Object>,
+    pub offset: DVec3,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct RotateY {
+    pub child: Box<Object>,
+    pub angle: f64,
 }
 
 #[derive(Deserialize, Debug, Clone)]

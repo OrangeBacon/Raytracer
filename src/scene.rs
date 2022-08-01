@@ -15,6 +15,7 @@ use crate::{
         aa_rect::{XyRect, XzRect, YzRect},
         cube::Cube,
         sphere::{MovingSphere, Sphere},
+        transform::{RotateY, Translate},
         Hittable,
     },
     texture::{Checker, ImageTexture, SolidColour, Texture},
@@ -237,6 +238,14 @@ impl Scene {
                 cube.minimum,
                 cube.maximum,
                 Self::material_ref(&cube.material, settings, textures, materials)?,
+            )),
+            scene_format::Object::Translate(trans) => Arc::new(Translate {
+                child: Self::object(settings, *trans.child, materials, textures)?,
+                offset: trans.offset,
+            }),
+            scene_format::Object::RotateY(rot) => Arc::new(RotateY::new(
+                Self::object(settings, *rot.child, materials, textures)?,
+                rot.angle,
             )),
         })
     }
