@@ -58,7 +58,7 @@ impl RotateY {
                 for j in 0..2 {
                     for k in 0..2 {
                         let ijk = dvec3(i as f64, j as f64, k as f64);
-                        let xyz = ijk * bbox.maximum + (ijk - 1.0) * bbox.minimum;
+                        let xyz = ijk * bbox.maximum + (1.0 - ijk) * bbox.minimum;
                         let newx = cos_theta * xyz.x + sin_theta * xyz.z;
                         let newz = -sin_theta * xyz.x + cos_theta * xyz.z;
                         let tester = dvec3(newx, xyz.y, newz);

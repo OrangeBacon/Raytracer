@@ -38,11 +38,13 @@ pub fn ray_trace(
     let min = time.as_secs() / 60;
     let hours = min / 60;
 
-    if hours > 0 {
-        print!("{} hours ", hours);
+    match hours {
+        2.. => print!("{} hours ", hours),
+        1 => print!("{} hour ", hours),
+        _ => (),
     }
     match min % 60 {
-        2.. => print!("{} minutes ", min),
+        min @ 2.. => print!("{} minutes ", min),
         1 => print!("{} minute ", min),
         _ => (),
     }

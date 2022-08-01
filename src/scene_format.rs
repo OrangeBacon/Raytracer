@@ -170,6 +170,7 @@ pub enum Texture {
 #[serde(tag = "shape")]
 pub enum Object {
     Sphere(Sphere),
+    MovingSphere(MovingSphere),
     SphereField,
     XyRect(Rect),
     YzRect(Rect),
@@ -178,6 +179,8 @@ pub enum Object {
     Translate(Translate),
     RotateY(RotateY),
     Volume(Volume),
+    RandomBoxes(RandomBoxes),
+    RandomCube(RandomCube),
 }
 
 /// A Single sphere
@@ -188,6 +191,22 @@ pub struct Sphere {
 
     /// The centre location
     pub centre: DVec3,
+
+    /// Material the object is made from
+    pub material: MaterialReference,
+}
+
+/// A Single sphere
+#[derive(Deserialize, Debug, Clone)]
+pub struct MovingSphere {
+    /// Radius of the sphere
+    pub radius: f64,
+
+    pub centre0: DVec3,
+    pub centre1: DVec3,
+
+    pub time0: f64,
+    pub time1: f64,
 
     /// Material the object is made from
     pub material: MaterialReference,
@@ -225,8 +244,24 @@ pub struct RotateY {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Volume {
     pub boundary: Box<Object>,
-    pub material: MaterialReference,
+    pub texture: TextureReference,
     pub density: f64,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct RandomBoxes {
+    pub boxes_per_side: u32,
+    pub box_size: f64,
+    pub min_height: f64,
+    pub max_height: f64,
+    pub material: MaterialReference,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct RandomCube {
+    pub count: u32,
+    pub size: f64,
+    pub object: Box<Object>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

@@ -16,6 +16,10 @@ pub struct BVHNode {
 
 impl BVHNode {
     pub fn new(objects: &[Arc<dyn Hittable>], time0: f64, time1: f64) -> Option<Arc<Self>> {
+        if objects.is_empty() {
+            return None;
+        }
+
         let axis = rand::thread_rng().gen_range(0..=2);
 
         let (left, right) = if objects.len() == 1 {

@@ -163,7 +163,7 @@ impl Material for DiffuseLight {
 
 #[derive(Debug)]
 pub struct Isotropic {
-    albedo: Arc<dyn Texture>,
+    pub albedo: Arc<dyn Texture>,
 }
 
 impl Material for Isotropic {

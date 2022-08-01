@@ -2,7 +2,12 @@ use std::sync::Arc;
 
 use glam::{DVec2, DVec3};
 
-use crate::{aabb::Aabb, material::Material, ray::Ray};
+use crate::{
+    aabb::Aabb,
+    material::{Isotropic, Material},
+    ray::Ray,
+    texture::Texture,
+};
 
 use super::{HitRecord, Hittable};
 
@@ -15,10 +20,10 @@ pub struct Volume {
 }
 
 impl Volume {
-    pub fn new(boundary: Arc<dyn Hittable>, density: f64, texture: Arc<dyn Material>) -> Self {
+    pub fn new(boundary: Arc<dyn Hittable>, density: f64, texture: Arc<dyn Texture>) -> Self {
         Self {
             boundary,
-            phase: texture,
+            phase: Arc::new(Isotropic { albedo: texture }),
             neg_inv_density: -1.0 / density,
         }
     }

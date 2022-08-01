@@ -1,0 +1,125 @@
+[settings]
+width = 800
+height = 800
+samples_per_pixel = 10000
+recursive_depth = 50
+scattering_mode = "Sphere"
+background_colour = [0.0, 0.0, 0.0]
+origin = [478, 278, -600]
+look_at = [278, 278, 0]
+vfov = 40
+
+[materials.ground]
+kind = "Lambertian"
+albedo = [0.48, 0.83, 0.53]
+
+[[world]] # ground
+shape = "RandomBoxes"
+boxes_per_side = 20
+box_size = 100
+min_height = 1
+max_height = 100
+material = "ground"
+
+[[world]]
+shape = "XzRect"
+a0 = 123
+a1 = 423
+b0 = 147
+b1 = 412
+k = 554
+[world.material]
+kind = "DiffuseLight"
+albedo = [7, 7, 7]
+
+[[world]]
+shape = "MovingSphere"
+centre0 = [400, 400, 200]
+centre1 = [430, 400, 200]
+time0 = 0
+time1 = 1
+radius = 50
+[world.material]
+kind = "Lambertian"
+albedo = [0.7, 0.3, 0.1]
+
+[[world]]
+shape = "Sphere"
+centre = [260, 150, 45]
+radius = 50
+[world.material]
+kind = "Dielectric"
+refractive_index = 1.5
+
+[[world]]
+shape = "Sphere"
+centre = [0, 150, 145]
+radius = 50
+[world.material]
+kind = "Metallic"
+albedo = [0.8, 0.8, 0.9]
+fuzz = 1.0
+
+[[world]]
+shape = "Sphere"
+centre = [360, 150, 145]
+radius = 70
+[world.material]
+kind = "Dielectric"
+refractive_index = 1.5
+
+[[world]]
+shape = "Volume"
+density = 0.2
+texture = [0.2, 0.4, 0.9]
+[world.boundary]
+shape = "Sphere"
+centre = [360, 150, 145]
+radius = 70
+[world.boundary.material]
+kind = "Dielectric"
+refractive_index = 1.5
+
+[[world]]
+shape = "Volume"
+density = 0.0001
+texture = [1, 1, 1]
+[world.boundary]
+shape = "Sphere"
+centre = [0, 0, 0]
+radius = 5000
+[world.boundary.material]
+kind = "Dielectric"
+refractive_index = 1.5
+
+[[world]]
+shape = "Sphere"
+centre = [400, 200, 400]
+radius = 100
+[world.material]
+kind = "Lambertian"
+albedo = { kind = "Image", file_name = "./test/earthmap.jpg" }
+
+[[world]]
+shape = "Sphere"
+centre = [220, 280, 300]
+radius = 80
+[world.material]
+kind = "Lambertian"
+albedo = { kind = "Noise", scale = 0.1 }
+
+[[world]]
+shape = "Translate"
+offset = [-100, 270, 395]
+[world.child]
+shape = "RotateY"
+angle = 15
+[world.child.child]
+shape = "RandomCube"
+count = 1000
+size = 165
+[world.child.child.object]
+shape = "Sphere"
+radius = 10
+centre = [0, 0, 0]
+material = {kind = "Lambertian", albedo = [0.73, 0.73, 0.73]}

@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use glam::{dvec3, DVec3};
-use rand::Rng;
+use rand::{prelude::Distribution, Rng};
 
 use crate::{
     bvh::BVHNode,
@@ -98,7 +98,7 @@ impl Scene {
         for object in scene.world {
             world.push(Scene::object(
                 &scene.settings,
-                object,
+                &object,
                 &materials,
                 &textures,
             )?)
@@ -200,13 +200,21 @@ impl Scene {
 
     fn object(
         settings: &scene_format::Settings,
-        object: scene_format::Object,
+        object: &scene_format::Object,
         materials: &HashMap<String, Arc<dyn Material>>,
         textures: &HashMap<String, Arc<dyn Texture>>,
     ) -> Result<Arc<dyn Hittable>> {
         Ok(match object {
             scene_format::Object::Sphere(obj) => Arc::new(Sphere {
                 centre: obj.centre,
+                radius: obj.radius,
+                material: Self::material_ref(&obj.material, settings, textures, materials)?,
+            }),
+            scene_format::Object::MovingSphere(obj) => Arc::new(MovingSphere {
+                centre0: obj.centre0,
+                centre1: obj.centre1,
+                time0: obj.time0,
+                time1: obj.time1,
                 radius: obj.radius,
                 material: Self::material_ref(&obj.material, settings, textures, materials)?,
             }),
@@ -241,18 +249,24 @@ impl Scene {
                 Self::material_ref(&cube.material, settings, textures, materials)?,
             )),
             scene_format::Object::Translate(trans) => Arc::new(Translate {
-                child: Self::object(settings, *trans.child, materials, textures)?,
+                child: Self::object(settings, &trans.child, materials, textures)?,
                 offset: trans.offset,
             }),
             scene_format::Object::RotateY(rot) => Arc::new(RotateY::new(
-                Self::object(settings, *rot.child, materials, textures)?,
+                Self::object(settings, &rot.child, materials, textures)?,
                 rot.angle,
             )),
             scene_format::Object::Volume(vol) => Arc::new(Volume::new(
-                Self::object(settings, *vol.boundary, materials, textures)?,
+                Self::object(settings, &vol.boundary, materials, textures)?,
                 vol.density,
-                Self::material_ref(&vol.material, settings, textures, materials)?,
+                Self::texture_ref(&vol.texture, textures)?,
             )),
+            scene_format::Object::RandomBoxes(boxes) => {
+                gen_boxes(&boxes, settings, textures, materials)?
+            }
+            scene_format::Object::RandomCube(cube) => {
+                gen_cube(&cube, settings, textures, materials)?
+            }
         })
     }
 }
@@ -321,4 +335,61 @@ fn gen_sphere_field() -> Arc<dyn Hittable> {
     }
 
     BVHNode::new(&objects, 0.0, 1.0).unwrap()
+}
+
+fn gen_boxes(
+    boxes: &scene_format::RandomBoxes,
+    settings: &scene_format::Settings,
+    textures: &HashMap<String, Arc<dyn Texture>>,
+    materials: &HashMap<String, Arc<dyn Material>>,
+) -> Result<Arc<dyn Hittable>> {
+    let mut objects: Vec<Arc<dyn Hittable>> = vec![];
+    let mut rng = rand::thread_rng();
+    let mat = Scene::material_ref(&boxes.material, settings, textures, materials)?;
+
+    for i in 0..boxes.boxes_per_side {
+        for j in 0..boxes.boxes_per_side {
+            let x0 = -1000.0 + i as f64 * boxes.box_size;
+            let z0 = -1000.0 + j as f64 * boxes.box_size;
+            let y0 = 0.0;
+            let x1 = x0 + boxes.box_size;
+            let y1 = rng.gen_range(boxes.min_height..=boxes.max_height);
+            let z1 = z0 + boxes.box_size;
+
+            objects.push(Arc::new(Cube::new(
+                dvec3(x0, y0, z0),
+                dvec3(x1, y1, z1),
+                Arc::clone(&mat),
+            )))
+        }
+    }
+
+    Ok(BVHNode::new(&objects, 0.0, 1.0).unwrap())
+}
+
+fn gen_cube(
+    cube: &scene_format::RandomCube,
+    settings: &scene_format::Settings,
+    textures: &HashMap<String, Arc<dyn Texture>>,
+    materials: &HashMap<String, Arc<dyn Material>>,
+) -> Result<Arc<dyn Hittable>> {
+    let mut objects: Vec<Arc<dyn Hittable>> = vec![];
+
+    let object = Scene::object(settings, &cube.object, materials, textures)?;
+
+    let mut rng = rand::thread_rng();
+    let uniform = rand::distributions::Uniform::new(0.0, cube.size);
+    for _ in 0..cube.count {
+        let position = dvec3(
+            uniform.sample(&mut rng),
+            uniform.sample(&mut rng),
+            uniform.sample(&mut rng),
+        );
+        objects.push(Arc::new(Translate {
+            child: Arc::clone(&object),
+            offset: position,
+        }))
+    }
+
+    Ok(BVHNode::new(&objects, 0.0, 1.0).unwrap())
 }
