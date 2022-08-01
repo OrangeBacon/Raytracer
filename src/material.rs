@@ -4,9 +4,9 @@ use glam::{DVec2, DVec3};
 use rand::Rng;
 
 use crate::{
-    shapes::HitRecord,
     ray::Ray,
     scene_format::RandomKind,
+    shapes::HitRecord,
     texture::Texture,
     utils::{near_zero, rand_hemisphere_point, rand_sphere_point},
 };
@@ -158,5 +158,23 @@ impl Material for DiffuseLight {
 
     fn scatter(&self, _: Ray, _: &HitRecord) -> Option<ScatterRecord> {
         None
+    }
+}
+
+#[derive(Debug)]
+pub struct Isotropic {
+    albedo: Arc<dyn Texture>,
+}
+
+impl Material for Isotropic {
+    fn scatter(&self, ray: Ray, hit_record: &HitRecord) -> Option<ScatterRecord> {
+        Some(ScatterRecord {
+            attenuation: self.albedo.value(hit_record.uv, hit_record.point),
+            scattered: Ray {
+                origin: hit_record.point,
+                direction: rand_sphere_point(),
+                time: ray.time,
+            },
+        })
     }
 }

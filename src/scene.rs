@@ -16,6 +16,7 @@ use crate::{
         cube::Cube,
         sphere::{MovingSphere, Sphere},
         transform::{RotateY, Translate},
+        volume::Volume,
         Hittable,
     },
     texture::{Checker, ImageTexture, SolidColour, Texture},
@@ -246,6 +247,11 @@ impl Scene {
             scene_format::Object::RotateY(rot) => Arc::new(RotateY::new(
                 Self::object(settings, *rot.child, materials, textures)?,
                 rot.angle,
+            )),
+            scene_format::Object::Volume(vol) => Arc::new(Volume::new(
+                Self::object(settings, *vol.boundary, materials, textures)?,
+                vol.density,
+                Self::material_ref(&vol.material, settings, textures, materials)?,
             )),
         })
     }

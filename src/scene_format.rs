@@ -177,6 +177,7 @@ pub enum Object {
     Cube(Cube),
     Translate(Translate),
     RotateY(RotateY),
+    Volume(Volume),
 }
 
 /// A Single sphere
@@ -219,6 +220,13 @@ pub struct Translate {
 pub struct RotateY {
     pub child: Box<Object>,
     pub angle: f64,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Volume {
+    pub boundary: Box<Object>,
+    pub material: MaterialReference,
+    pub density: f64,
 }
 
 #[derive(Deserialize, Debug, Clone)]

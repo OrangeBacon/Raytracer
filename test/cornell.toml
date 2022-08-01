@@ -18,7 +18,7 @@ kind = "Lambertian"
 albedo = [0.12, 0.45, 0.15]
 [materials.light]
 kind = "DiffuseLight"
-albedo = [15, 15, 15]
+albedo = [7, 7, 7]
 
 [[world]]
 shape = "YzRect"
@@ -40,10 +40,10 @@ material = "red"
 
 [[world]]
 shape = "XzRect"
-a0 = 213
-a1 = 343
-b0 = 227
-b1 = 332
+a0 = 113
+a1 = 443
+b0 = 127
+b1 = 432
 k = 554
 material = "light"
 
@@ -75,24 +75,32 @@ k = 555
 material = "white"
 
 [[world]]
+shape = "Volume"
+density = 0.01
+material = { kind = "Lambertian", albedo = [0,0,0]}
+[world.boundary]
 shape = "Translate"
 offset = [265, 0, 295]
-[world.child]
+[world.boundary.child]
 shape = "RotateY"
 angle = 15
-[world.child.child]
+[world.boundary.child.child]
 shape = "Cube"
 minimum = [0, 0, 0]
 maximum = [165, 330, 165]
 material = "white"
 
 [[world]]
+shape = "Volume"
+density = 0.01
+material = { kind = "Lambertian", albedo = [1,1,1]}
+[world.boundary]
 shape = "Translate"
 offset = [130, 0, 65]
-[world.child]
+[world.boundary.child]
 shape = "RotateY"
 angle = -18
-[world.child.child]
+[world.boundary.child.child]
 shape = "Cube"
 minimum = [0, 0, 0]
 maximum = [165, 165, 165]

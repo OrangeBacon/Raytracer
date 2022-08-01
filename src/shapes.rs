@@ -2,6 +2,7 @@ pub mod aa_rect;
 pub mod sphere;
 pub mod cube;
 pub mod transform;
+pub mod volume;
 
 use std::{fmt::Debug, sync::Arc};
 
