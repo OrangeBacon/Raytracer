@@ -1,9 +1,10 @@
+mod normal3;
 mod number;
 mod point2;
 mod point3;
+mod ray;
 mod vector2;
 mod vector3;
-mod normal3;
 
 #[cfg(feature = "double")]
 pub type Float = f64;
@@ -30,3 +31,6 @@ pub use point3::Point3i;
 pub use normal3::Normal3;
 pub use normal3::Normal3f;
 pub use normal3::Normal3i;
+
+pub use ray::Ray;
+pub use ray::RayDifferential;
