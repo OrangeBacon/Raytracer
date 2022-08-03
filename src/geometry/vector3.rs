@@ -41,6 +41,16 @@ impl<T: Number> Vector3<T> {
         }
     }
 
+    /// Create a vector with all components being equal
+    pub fn splat(val: T) -> Self {
+        Self::new(val, val, val)
+    }
+
+    /// Cast the location of a vector to another numeric type
+    pub fn cast<U: Number>(&self) -> Vector3<U> {
+        Vector3::new(U::cast(self.x), U::cast(self.y), U::cast(self.z))
+    }
+
     /// Convert a vector3 into the equivalent normal3
     pub fn to_normal(&self) -> Normal3<T> {
         Normal3::new(self.x, self.y, self.z)

@@ -37,6 +37,16 @@ impl<T: Number> Vector2<T> {
         }
     }
 
+    /// Create a vector with all components being equal
+    pub fn splat(val: T) -> Self {
+        Self::new(val, val)
+    }
+
+    /// Cast the location of a vector to another numeric type
+    pub fn cast<U: Number>(&self) -> Vector2<U> {
+        Vector2::new(U::cast(self.x), U::cast(self.y))
+    }
+
     /// Array of all components of the vector
     pub fn to_array(&self) -> [T; 2] {
         [self.x, self.y]

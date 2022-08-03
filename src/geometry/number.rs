@@ -21,6 +21,15 @@ pub trait Number:
     /// The One value for the type
     const ONE: Self;
 
+    /// The two value for the type
+    const TWO: Self;
+
+    /// The smallest value for this type
+    const MIN: Self;
+
+    /// The largest value for this type
+    const MAX: Self;
+
     /// Is this type a NaN value, always false if type is not floating
     fn is_nan(&self) -> bool;
 
@@ -57,6 +66,9 @@ macro_rules! NumberFloat {
         impl Number for $type {
             const ZERO: Self = 0.0;
             const ONE: Self = 1.0;
+            const TWO: Self = 2.0;
+            const MIN: Self = <$type>::MIN;
+            const MAX: Self = <$type>::MAX;
 
             #[inline]
             fn is_nan(&self) -> bool {
@@ -121,6 +133,9 @@ macro_rules! NumberInteger {
         impl Number for $type {
             const ZERO: Self = 0;
             const ONE: Self = 1;
+            const TWO: Self = 2;
+            const MIN: Self = <$type>::MIN;
+            const MAX: Self = <$type>::MAX;
 
             #[inline]
             fn is_nan(&self) -> bool {

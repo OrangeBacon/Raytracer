@@ -1,12 +1,12 @@
 use std::{
     marker::PhantomData,
-    ops::{Add, AddAssign, Index, Mul, MulAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Index, Mul, MulAssign, Sub, SubAssign, Div, DivAssign},
 };
 
 use crate::geometry::{number::Number, Float, Point2, Vector3};
 
 /// Three dimensional cartesian coordinate
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Point3<T: Number> {
     pub x: T,
     pub y: T,
@@ -23,6 +23,22 @@ impl<T: Number> Point3<T> {
         x: T::ZERO,
         y: T::ZERO,
         z: T::ZERO,
+        _remove_constructors: PhantomData,
+    };
+
+    /// Smallest possible point
+    pub const MIN: Self = Self {
+        x: T::MIN,
+        y: T::MIN,
+        z: T::MIN,
+        _remove_constructors: PhantomData,
+    };
+
+    /// Largest possible point
+    pub const MAX: Self = Self {
+        x: T::MAX,
+        y: T::MAX,
+        z: T::MAX,
         _remove_constructors: PhantomData,
     };
 
@@ -194,6 +210,24 @@ impl<T: Number> MulAssign<T> for Point3<T> {
     #[inline]
     fn mul_assign(&mut self, rhs: T) {
         *self = *self * rhs;
+    }
+}
+
+impl<T: Number> Div<T> for Point3<T> {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, rhs: T) -> Self::Output {
+        debug_assert_ne!(rhs, T::ZERO);
+        let inv = T::ONE / rhs;
+        Point3::new(self.x * inv, self.y * inv, self.z * inv)
+    }
+}
+
+impl<T: Number> DivAssign<T> for Point3<T> {
+    #[inline]
+    fn div_assign(&mut self, rhs: T) {
+        *self = *self / rhs;
     }
 }
 

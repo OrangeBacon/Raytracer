@@ -1,12 +1,12 @@
 use std::{
     marker::PhantomData,
-    ops::{Add, AddAssign, Index, Mul, MulAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
 };
 
-use crate::geometry::{number::Number, Float, Vector2, Vector3};
+use crate::geometry::{number::Number, Float, Vector2};
 
 /// Two dimensional cartesian coordinate
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Point2<T: Number> {
     pub x: T,
     pub y: T,
@@ -21,6 +21,20 @@ impl<T: Number> Point2<T> {
     pub const ZERO: Self = Self {
         x: T::ZERO,
         y: T::ZERO,
+        _remove_constructors: PhantomData,
+    };
+
+    /// Smallest possible point
+    pub const MIN: Self = Self {
+        x: T::MIN,
+        y: T::MIN,
+        _remove_constructors: PhantomData,
+    };
+
+    /// Largest possible point
+    pub const MAX: Self = Self {
+        x: T::MAX,
+        y: T::MAX,
         _remove_constructors: PhantomData,
     };
 
@@ -134,16 +148,16 @@ impl<T: Number> AddAssign for Point2<T> {
     }
 }
 
-impl<T: Number> Add<Vector3<T>> for Point2<T> {
+impl<T: Number> Add<Vector2<T>> for Point2<T> {
     type Output = Self;
 
-    fn add(self, rhs: Vector3<T>) -> Self::Output {
+    fn add(self, rhs: Vector2<T>) -> Self::Output {
         Point2::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
-impl<T: Number> AddAssign<Vector3<T>> for Point2<T> {
-    fn add_assign(&mut self, rhs: Vector3<T>) {
+impl<T: Number> AddAssign<Vector2<T>> for Point2<T> {
+    fn add_assign(&mut self, rhs: Vector2<T>) {
         *self = *self + rhs
     }
 }
@@ -156,16 +170,16 @@ impl<T: Number> Sub for Point2<T> {
     }
 }
 
-impl<T: Number> Sub<Vector3<T>> for Point2<T> {
+impl<T: Number> Sub<Vector2<T>> for Point2<T> {
     type Output = Self;
 
-    fn sub(self, rhs: Vector3<T>) -> Self::Output {
+    fn sub(self, rhs: Vector2<T>) -> Self::Output {
         Point2::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
-impl<T: Number> SubAssign<Vector3<T>> for Point2<T> {
-    fn sub_assign(&mut self, rhs: Vector3<T>) {
+impl<T: Number> SubAssign<Vector2<T>> for Point2<T> {
+    fn sub_assign(&mut self, rhs: Vector2<T>) {
         *self = *self - rhs
     }
 }
@@ -183,6 +197,24 @@ impl<T: Number> MulAssign<T> for Point2<T> {
     #[inline]
     fn mul_assign(&mut self, rhs: T) {
         *self = *self * rhs;
+    }
+}
+
+impl<T: Number> Div<T> for Point2<T> {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, rhs: T) -> Self::Output {
+        debug_assert_ne!(rhs, T::ZERO);
+        let inv = T::ONE / rhs;
+        Point2::new(self.x * inv, self.y * inv)
+    }
+}
+
+impl<T: Number> DivAssign<T> for Point2<T> {
+    #[inline]
+    fn div_assign(&mut self, rhs: T) {
+        *self = *self / rhs;
     }
 }
 
