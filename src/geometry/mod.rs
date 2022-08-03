@@ -6,6 +6,7 @@ mod number;
 mod point2;
 mod point3;
 mod ray;
+mod transform;
 mod vector2;
 mod vector3;
 
@@ -47,6 +48,8 @@ pub use bounds2::Bounds2f;
 pub use bounds2::Bounds2i;
 
 pub use matrix4x4::Matrix4x4;
+
+pub use transform::Transform;
 
 /// Linearly interpolate between two floats
 pub fn lerp(t: Float, a: Float, b: Float) -> Float {

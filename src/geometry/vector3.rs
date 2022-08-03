@@ -26,6 +26,30 @@ impl<T: Number> Vector3<T> {
         _remove_constructors: PhantomData,
     };
 
+    /// Vector pointing along the X axis
+    pub const X: Self = Self {
+        x: T::ONE,
+        y: T::ZERO,
+        z: T::ZERO,
+        _remove_constructors: PhantomData,
+    };
+
+    /// Vector pointing along the X axis
+    pub const Y: Self = Self {
+        x: T::ZERO,
+        y: T::ONE,
+        z: T::ZERO,
+        _remove_constructors: PhantomData,
+    };
+
+    /// Vector pointing along the X axis
+    pub const Z: Self = Self {
+        x: T::ZERO,
+        y: T::ZERO,
+        z: T::ONE,
+        _remove_constructors: PhantomData,
+    };
+
     /// Create a new vector with the given components
     #[inline]
     pub fn new(x: T, y: T, z: T) -> Self {

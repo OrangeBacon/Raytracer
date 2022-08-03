@@ -1,4 +1,4 @@
-use std::ops::{Mul, MulAssign};
+use std::ops::{Index, Mul, MulAssign};
 
 use crate::geometry::Float;
 
@@ -18,8 +18,13 @@ impl Matrix4x4 {
         ],
     };
 
+    /// Create a new matrix, [row1, row2, ..]
+    pub fn new(data: &[[Float; 4]; 4]) -> Self {
+        Self { data: *data }
+    }
+
     /// Construct a matrix [row1, row2, ...]
-    pub fn from_array(data: [Float; 16]) -> Self {
+    pub fn from_array(data: &[Float; 16]) -> Self {
         Self {
             data: [
                 [data[0], data[1], data[2], data[3]],
@@ -39,11 +44,11 @@ impl Matrix4x4 {
     /// Get the transpose of the matrix
     #[rustfmt::skip]
     pub fn transpose(&self) -> Self {
-        Self::from_array([
-            self.data[0][0], self.data[1][0], self.data[2][0], self.data[3][0],
-            self.data[0][1], self.data[1][1], self.data[2][1], self.data[3][1],
-            self.data[0][2], self.data[1][2], self.data[2][2], self.data[3][2],
-            self.data[0][3], self.data[1][3], self.data[2][3], self.data[3][3],
+        Self::new(&[
+            [self.data[0][0], self.data[1][0], self.data[2][0], self.data[3][0]],
+            [self.data[0][1], self.data[1][1], self.data[2][1], self.data[3][1]],
+            [self.data[0][2], self.data[1][2], self.data[2][2], self.data[3][2]],
+            [self.data[0][3], self.data[1][3], self.data[2][3], self.data[3][3]],
         ])
     }
 
@@ -134,7 +139,7 @@ impl Matrix4x4 {
 fn mat_inv() {
     let a = format!(
         "{:.2?}",
-        Matrix4x4::from_array([
+        Matrix4x4::from_array(&[
             1.0, 4.0, 5.0, -1.0, -2.0, 3.0, -1.0, 0.0, 2.0, 1.0, 1.0, 0.0, 3.0, -1.0, 2.0, 1.0
         ])
         .inverse()
@@ -142,7 +147,7 @@ fn mat_inv() {
     );
     let b = format!(
         "{:.2?}",
-        Matrix4x4::from_array([
+        Matrix4x4::from_array(&[
             -0.1, -0.1, 0.6, -0.1, 0.0, 0.25, 0.25, 0.0, 0.2, -0.05, -0.45, 0.2, -0.1, 0.65, -0.65,
             0.9
         ])
@@ -151,7 +156,7 @@ fn mat_inv() {
 
     let a = format!(
         "{:.2?}",
-        Matrix4x4::from_array([
+        Matrix4x4::from_array(&[
             1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0
         ])
         .inverse()
@@ -159,7 +164,7 @@ fn mat_inv() {
     );
     let b = format!(
         "{:.2?}",
-        Matrix4x4::from_array([
+        Matrix4x4::from_array(&[
             0.25, 0.25, 0.25, -0.25, 0.25, 0.25, -0.25, 0.25, 0.25, -0.25, 0.25, 0.25, -0.25, 0.25,
             0.25, 0.25,
         ])
@@ -189,5 +194,13 @@ impl Mul for Matrix4x4 {
 impl MulAssign for Matrix4x4 {
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
+    }
+}
+
+impl Index<usize> for Matrix4x4 {
+    type Output = [Float; 4];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data[index]
     }
 }
