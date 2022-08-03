@@ -30,12 +30,30 @@ pub trait Number:
     /// Square root of the number
     fn sqrt(&self) -> Self;
 
+    /// floor of the number
+    fn floor(&self) -> Self;
+
+    /// ceiling of the number
+    fn ceil(&self) -> Self;
+
     /// Ordering of two values
     fn order(&self, rhs: &Self) -> Ordering;
+
+    /// Cast to self
+    fn cast<T: Number>(num: T) -> Self;
+
+    /// Cast to double
+    fn f64(&self) -> f64;
+
+    /// Cast to float
+    fn f32(&self) -> f32;
+
+    /// Cast to integer
+    fn i32(&self) -> i32;
 }
 
 macro_rules! NumberFloat {
-    ($type:ty) => {
+    (($type:ty, $name:ident)) => {
         impl Number for $type {
             const ZERO: Self = 0.0;
             const ONE: Self = 1.0;
@@ -56,20 +74,50 @@ macro_rules! NumberFloat {
             }
 
             #[inline]
+            fn floor(&self) -> Self {
+                <$type>::floor(*self)
+            }
+
+            #[inline]
+            fn ceil(&self) -> Self {
+                <$type>::ceil(*self)
+            }
+
+            #[inline]
             fn order(&self, rhs: &Self) -> Ordering {
                 self.total_cmp(rhs)
             }
+
+            #[inline]
+            fn cast<T: Number>(num: T) -> Self {
+                num.$name()
+            }
+
+            #[inline]
+            fn f64(&self) -> f64 {
+                *self as _
+            }
+
+            #[inline]
+            fn f32(&self) -> f32 {
+                *self as _
+            }
+
+            #[inline]
+            fn i32(&self) -> i32 {
+                *self as _
+            }
         }
     };
-    ($type:ty, $($other:ty),+ $(,)?) => {
-        NumberFloat!($type); $(NumberFloat!($other);)+
+    (($type:ty, $name:ident), $(($other_type:ty, $other_name:ident)),+ $(,)?) => {
+        NumberFloat!(($type, $name)); $(NumberFloat!(($other_type, $other_name));)+
     }
 }
 
-NumberFloat!(f32, f64);
+NumberFloat!((f32, f32), (f64, f64));
 
 macro_rules! NumberInteger {
-    ($type:ty) => {
+    (($type:ty, $name:ident)) => {
         impl Number for $type {
             const ZERO: Self = 0;
             const ONE: Self = 1;
@@ -92,14 +140,44 @@ macro_rules! NumberInteger {
             }
 
             #[inline]
+            fn floor(&self) -> Self {
+                *self
+            }
+
+            #[inline]
+            fn ceil(&self) -> Self {
+                *self
+            }
+
+            #[inline]
             fn order(&self, rhs: &Self) -> Ordering {
                 self.cmp(rhs)
             }
+
+            #[inline]
+            fn cast<T: Number>(num: T) -> Self {
+                num.$name()
+            }
+
+            #[inline]
+            fn f64(&self) -> f64 {
+                *self as _
+            }
+
+            #[inline]
+            fn f32(&self) -> f32 {
+                *self as _
+            }
+
+            #[inline]
+            fn i32(&self) -> i32 {
+                *self as _
+            }
         }
     };
-    ($type:ty, $($other:ty),+ $(,)?) => {
-        NumberInteger!($type); $(NumberInteger!($other);)+
+    (($type:ty, $name:ident), $(($other_type:ty, $other_name:ident)),+ $(,)?) => {
+        NumberFloat!(($type, $name)); $(NumberFloat!(($other_type, $other_name));)+
     }
 }
 
-NumberInteger!(i32);
+NumberInteger!((i32, i32));
