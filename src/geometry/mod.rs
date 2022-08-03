@@ -3,6 +3,7 @@ mod point2;
 mod point3;
 mod vector2;
 mod vector3;
+mod normal3;
 
 #[cfg(feature = "double")]
 pub type Float = f64;
@@ -25,3 +26,7 @@ pub use point2::Point2i;
 pub use point3::Point3;
 pub use point3::Point3f;
 pub use point3::Point3i;
+
+pub use normal3::Normal3;
+pub use normal3::Normal3f;
+pub use normal3::Normal3i;
