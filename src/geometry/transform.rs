@@ -46,6 +46,19 @@ impl Transform {
         })
     }
 
+    // note: using getters here so there are no setters to break inv = mat.inv()
+    // if could expose read-only fields that would be better
+
+    /// Get the transformation matrix for this transform
+    pub fn mat(&self) -> &Matrix4x4 {
+        &self.mat
+    }
+
+    /// Get the inverse of the transformation matrix of this transform
+    pub fn inv(&self) -> &Matrix4x4 {
+        &self.inv
+    }
+
     /// Create the inverse of this transform
     pub fn inverse(&self) -> Self {
         Self {

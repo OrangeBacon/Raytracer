@@ -9,7 +9,7 @@ pub type Vector3f = Vector3<Float>;
 pub type Vector3i = Vector3<i32>;
 
 /// Three component numeric vector
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Vector3<T: Number> {
     pub x: T,
     pub y: T,
@@ -83,6 +83,11 @@ impl<T: Number> Vector3<T> {
     /// Array of all components of the vector
     pub fn to_array(&self) -> [T; 3] {
         [self.x, self.y, self.z]
+    }
+
+    /// Construct a vector from its (x,y,z) components
+    pub fn from_array(data: [T; 3]) -> Self {
+        Self::new(data[0], data[1], data[2])
     }
 
     /// Are any of the components of this vector NaN
