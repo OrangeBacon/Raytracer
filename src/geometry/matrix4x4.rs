@@ -1,4 +1,4 @@
-use std::ops::{Index, Mul, MulAssign};
+use std::ops::{Index, Mul, MulAssign, IndexMut};
 
 use crate::geometry::Float;
 
@@ -208,5 +208,11 @@ impl Index<usize> for Matrix4x4 {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.data[index]
+    }
+}
+
+impl IndexMut<usize> for Matrix4x4 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.data[index]
     }
 }

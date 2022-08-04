@@ -1,10 +1,11 @@
 use std::ops::{Mul, MulAssign};
 
 use crate::geometry::{
-    number::Number, Bounds3, Float, Matrix4x4, Normal3, Point3, Point3f, Ray, Vector3, Vector3f,
+    number::Number, ray::RayDifferentials, Bounds3, Float, Matrix4x4, Normal3, Point3, Point3f,
+    Ray, RayDifferential, Vector3, Vector3f,
 };
 
-/// A 3d transformation matrix
+/// A 3d transformation matrix representing an affine transformation
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Transform {
     mat: Matrix4x4,
@@ -367,6 +368,23 @@ impl Mul<Transform> for Ray {
 impl MulAssign<Transform> for Ray {
     fn mul_assign(&mut self, rhs: Transform) {
         *self = *self * rhs
+    }
+}
+
+impl Mul<Transform> for RayDifferential {
+    type Output = RayDifferential;
+
+    fn mul(self, rhs: Transform) -> Self::Output {
+        let tr = self.main * rhs;
+        RayDifferential {
+            main: tr,
+            differentials: self.differentials.map(|old| RayDifferentials {
+                rx_origin: old.rx_origin * rhs,
+                ry_origin: old.ry_origin * rhs,
+                rx_direction: old.rx_direction * rhs,
+                ry_direction: old.ry_direction * rhs,
+            }),
+        }
     }
 }
 

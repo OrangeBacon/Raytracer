@@ -1,5 +1,7 @@
+mod animated_transform;
 mod bounds2;
 mod bounds3;
+mod interval;
 mod matrix4x4;
 mod normal3;
 mod number;
@@ -53,6 +55,10 @@ pub use matrix4x4::Matrix4x4;
 pub use transform::Transform;
 
 pub use quaternion::Quaternion;
+
+pub use animated_transform::AnimatedTransform;
+
+pub use interval::Interval;
 
 /// Linearly interpolate between two floats
 pub fn lerp(t: Float, a: Float, b: Float) -> Float {

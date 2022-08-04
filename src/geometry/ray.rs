@@ -54,7 +54,7 @@ pub struct RayDifferentials {
 /// Ray with differential information
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RayDifferential {
-    main: Ray,
+    pub main: Ray,
     pub differentials: Option<RayDifferentials>,
 }
 
