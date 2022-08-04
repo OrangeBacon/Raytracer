@@ -3,12 +3,18 @@ use std::ops::Deref;
 use crate::geometry::{Float, Point3f, Vector3f};
 
 /// Ray with an origin and a direction from the origin
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Ray {
     pub origin: Point3f,
     pub direction: Vector3f,
     pub t_max: Float,
     pub time: Float,
+}
+
+impl Default for Ray {
+    fn default() -> Self {
+        Self::ZERO
+    }
 }
 
 impl Ray {

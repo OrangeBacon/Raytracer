@@ -11,6 +11,12 @@ pub struct Transform {
     inv: Matrix4x4,
 }
 
+impl Default for Transform {
+    fn default() -> Self {
+        Self::IDENTITY
+    }
+}
+
 impl Transform {
     /// Transform that does not move an object at all
     pub const IDENTITY: Self = Self {

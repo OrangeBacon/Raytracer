@@ -8,6 +8,12 @@ pub struct Matrix4x4 {
     pub data: [[Float; 4]; 4],
 }
 
+impl Default for Matrix4x4 {
+    fn default() -> Self {
+        Self::IDENTITY
+    }
+}
+
 impl Matrix4x4 {
     pub const IDENTITY: Self = Self {
         data: [

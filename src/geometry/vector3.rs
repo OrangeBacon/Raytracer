@@ -5,16 +5,22 @@ use std::{
 
 use crate::geometry::{number::Number, Float, Normal3};
 
-pub type Vector3f = Vector3<Float>;
-pub type Vector3i = Vector3<i32>;
-
 /// Three component numeric vector
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Vector3<T: Number> {
     pub x: T,
     pub y: T,
     pub z: T,
     _remove_constructors: PhantomData<()>,
+}
+
+pub type Vector3f = Vector3<Float>;
+pub type Vector3i = Vector3<i32>;
+
+impl<T: Number> Default for Vector3<T> {
+    fn default() -> Self {
+        Self::ZERO
+    }
 }
 
 impl<T: Number> Vector3<T> {

@@ -9,11 +9,17 @@ pub struct Quaternion {
     pub w: Float,
 }
 
+impl Default for Quaternion {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
 impl Quaternion {
     /// Quaternion that does not rotate at all
     pub const ZERO: Self = Self {
         vec: Vector3f::ZERO,
-        w: 0.0,
+        w: 1.0,
     };
 
     /// Create a quaternion from its four components (x,y,z,w)

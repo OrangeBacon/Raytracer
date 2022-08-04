@@ -6,7 +6,7 @@ use std::{
 use crate::geometry::{number::Number, Float, Vector2};
 
 /// Two dimensional cartesian coordinate
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Point2<T: Number> {
     pub x: T,
     pub y: T,
@@ -15,6 +15,12 @@ pub struct Point2<T: Number> {
 
 pub type Point2f = Point2<Float>;
 pub type Point2i = Point2<i32>;
+
+impl<T: Number> Default for Point2<T> {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
 
 impl<T: Number> Point2<T> {
     /// A point at (0, 0)

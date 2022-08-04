@@ -2,14 +2,20 @@ use std::ops::Index;
 
 use crate::geometry::{number::Number, Float, Point3, Vector3};
 
-pub type Bounds3f = Bounds3<Float>;
-pub type Bounds3i = Bounds3<i32>;
-
 /// 3D Axis aligned bounding box
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Bounds3<T: Number> {
     pub min: Point3<T>,
     pub max: Point3<T>,
+}
+
+pub type Bounds3f = Bounds3<Float>;
+pub type Bounds3i = Bounds3<i32>;
+
+impl<T: Number> Default for Bounds3<T> {
+    fn default() -> Self {
+        Self::ZERO
+    }
 }
 
 impl<T: Number> Bounds3<T> {

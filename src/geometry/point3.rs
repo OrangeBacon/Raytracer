@@ -1,12 +1,12 @@
 use std::{
     marker::PhantomData,
-    ops::{Add, AddAssign, Index, Mul, MulAssign, Sub, SubAssign, Div, DivAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
 };
 
 use crate::geometry::{number::Number, Float, Point2, Vector3};
 
 /// Three dimensional cartesian coordinate
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Point3<T: Number> {
     pub x: T,
     pub y: T,
@@ -16,6 +16,12 @@ pub struct Point3<T: Number> {
 
 pub type Point3f = Point3<Float>;
 pub type Point3i = Point3<i32>;
+
+impl<T: Number> Default for Point3<T> {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
 
 impl<T: Number> Point3<T> {
     /// A point at (0, 0, 0)

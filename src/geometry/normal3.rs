@@ -9,12 +9,18 @@ pub type Normal3f = Normal3<Float>;
 pub type Normal3i = Normal3<i32>;
 
 /// Three component numeric normal
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Normal3<T: Number> {
     pub x: T,
     pub y: T,
     pub z: T,
     _remove_constructors: PhantomData<()>,
+}
+
+impl<T: Number> Default for Normal3<T> {
+    fn default() -> Self {
+        Self::ZERO
+    }
 }
 
 impl<T: Number> Normal3<T> {

@@ -5,15 +5,21 @@ use std::{
 
 use crate::geometry::{number::Number, Float};
 
-pub type Vector2f = Vector2<Float>;
-pub type Vector2i = Vector2<i32>;
-
 /// Two component numeric vector
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Vector2<T: Number> {
     pub x: T,
     pub y: T,
     _remove_constructors: PhantomData<()>,
+}
+
+pub type Vector2f = Vector2<Float>;
+pub type Vector2i = Vector2<i32>;
+
+impl<T: Number> Default for Vector2<T> {
+    fn default() -> Self {
+        Self::ZERO
+    }
 }
 
 impl<T: Number> Vector2<T> {
