@@ -1,3 +1,5 @@
+use std::ops::{Mul, MulAssign};
+
 use crate::geometry::{
     number::Number, Bounds3, Float, Matrix4x4, Normal3, Point3, Point3f, Ray, Vector3, Vector3f,
 };
@@ -105,9 +107,9 @@ impl Transform {
 
     /// Does this transformation matrix have a scale component?
     pub fn has_scale(&self) -> bool {
-        let a = self.apply(Vector3f::X).length_square();
-        let b = self.apply(Vector3f::Y).length_square();
-        let c = self.apply(Vector3f::Z).length_square();
+        let a = (Vector3f::X * *self).length_square();
+        let b = (Vector3f::Y * *self).length_square();
+        let c = (Vector3f::Z * *self).length_square();
 
         let not_one = |x| x < 0.999 || x > 1.001;
 
@@ -223,26 +225,39 @@ impl Transform {
         })
     }
 
-    /// Apply a transformation matrix to any applicable type
-    pub fn apply<T: Applicable>(&self, val: T) -> <T as Applicable>::Ret {
-        val.apply(self)
+    /// Does this transformation convert left handed to right handed coordinates?
+    pub fn swaps_handedness(&self) -> bool {
+        let mat = &self.mat;
+        let det = mat[0][0] * (mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1])
+            - mat[0][1] * (mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0])
+            + mat[0][2] * (mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0]);
+
+        det < 0.0
     }
 }
 
-/// Allows a type to have a transformation matrix be applied to it
-pub trait Applicable {
-    /// The output of the transformation
-    type Ret;
+impl Mul<Transform> for Transform {
+    type Output = Transform;
 
-    /// Apply the transformation
-    fn apply(&self, transform: &Transform) -> Self::Ret;
+    fn mul(self, rhs: Transform) -> Self::Output {
+        Transform {
+            mat: self.mat * rhs.mat,
+            inv: rhs.inv * self.inv,
+        }
+    }
 }
 
-impl<T: Number> Applicable for Point3<T> {
-    type Ret = Point3<T>;
+impl MulAssign<Transform> for Transform {
+    fn mul_assign(&mut self, rhs: Transform) {
+        *self = *self * rhs
+    }
+}
 
-    fn apply(&self, transform: &Transform) -> Self::Ret {
-        let m = &transform.mat;
+impl<T: Number> Mul<Transform> for Point3<T> {
+    type Output = Point3<T>;
+
+    fn mul(self, rhs: Transform) -> Self::Output {
+        let m = &rhs.mat;
         let [x, y, z] = [
             Float::cast(self.x),
             Float::cast(self.y),
@@ -261,11 +276,17 @@ impl<T: Number> Applicable for Point3<T> {
     }
 }
 
-impl<T: Number> Applicable for Vector3<T> {
-    type Ret = Vector3<T>;
+impl<T: Number> MulAssign<Transform> for Point3<T> {
+    fn mul_assign(&mut self, rhs: Transform) {
+        *self = *self * rhs
+    }
+}
 
-    fn apply(&self, transform: &Transform) -> Self::Ret {
-        let m = &transform.mat;
+impl<T: Number> Mul<Transform> for Vector3<T> {
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: Transform) -> Self::Output {
+        let m = &rhs.mat;
         let [x, y, z] = [
             Float::cast(self.x),
             Float::cast(self.y),
@@ -279,11 +300,17 @@ impl<T: Number> Applicable for Vector3<T> {
     }
 }
 
-impl<T: Number> Applicable for Normal3<T> {
-    type Ret = Normal3<T>;
+impl<T: Number> MulAssign<Transform> for Vector3<T> {
+    fn mul_assign(&mut self, rhs: Transform) {
+        *self = *self * rhs
+    }
+}
 
-    fn apply(&self, transform: &Transform) -> Self::Ret {
-        let m = &transform.inv;
+impl<T: Number> Mul<Transform> for Normal3<T> {
+    type Output = Normal3<T>;
+
+    fn mul(self, rhs: Transform) -> Self::Output {
+        let m = &rhs.inv;
         let [x, y, z] = [
             Float::cast(self.x),
             Float::cast(self.y),
@@ -297,26 +324,38 @@ impl<T: Number> Applicable for Normal3<T> {
     }
 }
 
-impl Applicable for Ray {
-    type Ret = Ray;
+impl<T: Number> MulAssign<Transform> for Normal3<T> {
+    fn mul_assign(&mut self, rhs: Transform) {
+        *self = *self * rhs
+    }
+}
 
-    fn apply(&self, transform: &Transform) -> Self::Ret {
-        let origin = transform.apply(self.origin);
-        let direction = transform.apply(self.direction);
+impl Mul<Transform> for Ray {
+    type Output = Ray;
+
+    fn mul(self, rhs: Transform) -> Self::Output {
+        let origin = self.origin * rhs;
+        let direction = self.direction * rhs;
 
         Ray {
             origin,
             direction,
-            ..*self
+            ..self
         }
     }
 }
 
-impl<T: Number> Applicable for Bounds3<T> {
-    type Ret = Bounds3<T>;
+impl MulAssign<Transform> for Ray {
+    fn mul_assign(&mut self, rhs: Transform) {
+        *self = *self * rhs
+    }
+}
 
-    fn apply(&self, transform: &Transform) -> Self::Ret {
-        let m = |x| transform.apply(x);
+impl<T: Number> Mul<Transform> for Bounds3<T> {
+    type Output = Bounds3<T>;
+
+    fn mul(self, rhs: Transform) -> Self::Output {
+        let m = |x| x * rhs;
 
         let ret = Bounds3::at_point(m(Point3::new(self.min.x, self.min.y, self.min.z)));
         let ret = ret.union_point(m(Point3::new(self.max.x, self.min.y, self.min.z)));
@@ -328,5 +367,11 @@ impl<T: Number> Applicable for Bounds3<T> {
         let ret = ret.union_point(m(Point3::new(self.max.x, self.max.y, self.max.z)));
 
         ret
+    }
+}
+
+impl<T: Number> MulAssign<Transform> for Bounds3<T> {
+    fn mul_assign(&mut self, rhs: Transform) {
+        *self = *self * rhs
     }
 }

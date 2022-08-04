@@ -6,6 +6,7 @@ pub type Bounds2f = Bounds2<Float>;
 pub type Bounds2i = Bounds2<i32>;
 
 /// 3D Axis aligned bounding box
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Bounds2<T: Number> {
     pub min: Point2<T>,
     pub max: Point2<T>,
@@ -36,10 +37,7 @@ impl<T: Number> Bounds2<T> {
 
     /// Get the coordinates of one corner of the bounds
     pub fn corner(&self, corner: usize) -> Point2<T> {
-        Point2::new(
-            self[corner & 1].x,
-            self[(corner & 2) >> 1].y,
-        )
+        Point2::new(self[corner & 1].x, self[(corner & 2) >> 1].y)
     }
 
     /// create bounding box containing self and the provided point

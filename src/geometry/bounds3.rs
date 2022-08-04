@@ -6,6 +6,7 @@ pub type Bounds3f = Bounds3<Float>;
 pub type Bounds3i = Bounds3<i32>;
 
 /// 3D Axis aligned bounding box
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Bounds3<T: Number> {
     pub min: Point3<T>,
     pub max: Point3<T>,
