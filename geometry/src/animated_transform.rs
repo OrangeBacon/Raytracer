@@ -77,7 +77,7 @@ impl AnimatedTransform {
                 mat[i][3] = 0.0;
                 mat[3][i] = 0.0;
             }
-            mat[3][3] = 0.0;
+            mat[3][3] = 1.0;
             mat
         };
 

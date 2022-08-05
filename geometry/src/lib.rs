@@ -17,10 +17,19 @@ mod vector3;
 mod tests;
 
 #[cfg(feature = "double")]
-pub type Float = f64;
+mod types {
+    pub type Float = f64;
+    pub type FloatBits = u64;
+}
 
 #[cfg(not(feature = "double"))]
-pub type Float = f32;
+mod types {
+    pub type Float = f32;
+    pub type FloatBits = u32;
+}
+
+pub use types::Float;
+pub use types::FloatBits;
 
 pub use number::Integer;
 pub use number::Number;

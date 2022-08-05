@@ -92,7 +92,7 @@ impl Transform {
         let mat = Matrix4x4::new(&[
             [1.0, 0.0, 0.0, delta.x],
             [0.0, 1.0, 0.0, delta.y],
-            [1.0, 0.0, 1.0, delta.z],
+            [0.0, 0.0, 1.0, delta.z],
             [0.0, 0.0, 0.0, 1.0],
         ]);
 

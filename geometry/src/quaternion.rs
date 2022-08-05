@@ -96,7 +96,7 @@ impl Transform {
     /// [`here`]: https://github.com/mmp/pbrt-v3/blob/aaa552a4b9cbf9dccb71450f47b268e0ed6370e2/src/core/quaternion.cpp#L61
     pub fn to_quaternion(&self) -> Quaternion {
         let m = self.mat();
-        let trace = m[0][1] + m[1][1] + m[2][2];
+        let trace = m[0][0] + m[1][1] + m[2][2];
 
         if trace > 0.0 {
             // Compute w from matrix trace, then xyz
@@ -129,7 +129,7 @@ impl Transform {
             if s != 0.0 {
                 s = 0.5 / s
             }
-            let w = (m[k][j] - m[k][j]) * s;
+            let w = (m[k][j] - m[j][k]) * s;
             q[j] = (m[j][i] + m[i][j]) * s;
             q[k] = (m[k][i] + m[i][k]) * s;
             let vec = Vector3f::from_array(q);
