@@ -22,6 +22,9 @@ pub type Float = f64;
 #[cfg(not(feature = "double"))]
 pub type Float = f32;
 
+pub use number::Integer;
+pub use number::Number;
+
 pub use vector2::Vector2;
 pub use vector2::Vector2f;
 pub use vector2::Vector2i;

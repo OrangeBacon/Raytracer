@@ -83,7 +83,7 @@ impl AnimatedTransform {
 
         // polar decomposition of a matrix
         // find the convergence of a series M(i+1) = 1/2 (M(i) + Inverse(Transpose(M(i))))
-        let mut norm: f32;
+        let mut norm: Float;
         let mut rotate = mat;
         for _ in 0..=100 {
             // calculate next item in series

@@ -30,6 +30,9 @@ pub trait Number:
     /// The largest value for this type
     const MAX: Self;
 
+    /// The closest value to pi for this type
+    const PI: Self;
+
     /// Is this type a NaN value, always false if type is not floating
     fn is_nan(&self) -> bool;
 
@@ -72,6 +75,7 @@ macro_rules! NumberFloat {
             const TWO: Self = 2.0;
             const MIN: Self = <$type>::MIN;
             const MAX: Self = <$type>::MAX;
+            const PI: Self = std::$name::consts::PI;
 
             #[inline]
             fn is_nan(&self) -> bool {
@@ -140,6 +144,7 @@ macro_rules! NumberInteger {
             const TWO: Self = 2;
             const MIN: Self = <$type>::MIN;
             const MAX: Self = <$type>::MAX;
+            const PI: Self = std::f64::consts::PI as _;
 
             #[inline]
             fn is_nan(&self) -> bool {

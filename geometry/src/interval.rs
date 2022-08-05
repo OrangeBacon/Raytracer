@@ -1,9 +1,6 @@
-use std::{
-    f32::consts::PI,
-    ops::{Add, Index, Mul, Sub},
-};
+use std::ops::{Add, Index, Mul, Sub};
 
-use crate::Float;
+use crate::{number::Number, Float};
 
 /// class to simplify calculations with intervals of real numbers
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -47,10 +44,10 @@ impl Interval {
         if sin_low > sin_high {
             std::mem::swap(&mut sin_low, &mut sin_high);
         }
-        if self.low < PI / 2.0 && self.high > PI / 2.0 {
+        if self.low < Float::PI / 2.0 && self.high > Float::PI / 2.0 {
             sin_high = 1.0;
         }
-        if self.low < (3.0 / 2.0) * PI && self.high > (3.0 / 2.0) * PI {
+        if self.low < (3.0 / 2.0) * Float::PI && self.high > (3.0 / 2.0) * Float::PI {
             sin_low = -1.0;
         }
 
@@ -66,7 +63,7 @@ impl Interval {
         if cos_low > cos_high {
             std::mem::swap(&mut cos_low, &mut cos_high);
         }
-        if self.low < PI && self.high > PI {
+        if self.low < Float::PI && self.high > Float::PI {
             cos_low = -1.0;
         }
 
