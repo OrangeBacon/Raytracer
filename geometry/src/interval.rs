@@ -3,7 +3,7 @@ use std::{
     ops::{Add, Index, Mul, Sub},
 };
 
-use crate::geometry::Float;
+use crate::Float;
 
 /// class to simplify calculations with intervals of real numbers
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]

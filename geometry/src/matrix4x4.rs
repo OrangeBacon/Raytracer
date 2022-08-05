@@ -1,6 +1,6 @@
-use std::ops::{Index, Mul, MulAssign, IndexMut};
+use std::ops::{Index, IndexMut, Mul, MulAssign};
 
-use crate::geometry::Float;
+use crate::Float;
 
 /// 4 by 4 floating point matrix
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]

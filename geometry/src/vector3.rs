@@ -3,28 +3,28 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use crate::geometry::{number::Number, Float, Vector3};
+use crate::{number::Number, Float, Normal3};
 
-pub type Normal3f = Normal3<Float>;
-pub type Normal3i = Normal3<i32>;
-
-/// Three component numeric normal
+/// Three component numeric vector
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Normal3<T: Number> {
+pub struct Vector3<T: Number> {
     pub x: T,
     pub y: T,
     pub z: T,
     _remove_constructors: PhantomData<()>,
 }
 
-impl<T: Number> Default for Normal3<T> {
+pub type Vector3f = Vector3<Float>;
+pub type Vector3i = Vector3<i32>;
+
+impl<T: Number> Default for Vector3<T> {
     fn default() -> Self {
         Self::ZERO
     }
 }
 
-impl<T: Number> Normal3<T> {
-    /// normal with all components being zero
+impl<T: Number> Vector3<T> {
+    /// Vector with all components being zero
     pub const ZERO: Self = Self {
         x: T::ZERO,
         y: T::ZERO,
@@ -32,7 +32,31 @@ impl<T: Number> Normal3<T> {
         _remove_constructors: PhantomData,
     };
 
-    /// Create a new normal with the given components
+    /// Vector pointing along the X axis
+    pub const X: Self = Self {
+        x: T::ONE,
+        y: T::ZERO,
+        z: T::ZERO,
+        _remove_constructors: PhantomData,
+    };
+
+    /// Vector pointing along the X axis
+    pub const Y: Self = Self {
+        x: T::ZERO,
+        y: T::ONE,
+        z: T::ZERO,
+        _remove_constructors: PhantomData,
+    };
+
+    /// Vector pointing along the X axis
+    pub const Z: Self = Self {
+        x: T::ZERO,
+        y: T::ZERO,
+        z: T::ONE,
+        _remove_constructors: PhantomData,
+    };
+
+    /// Create a new vector with the given components
     #[inline]
     pub fn new(x: T, y: T, z: T) -> Self {
         debug_assert!(!x.is_nan());
@@ -47,71 +71,86 @@ impl<T: Number> Normal3<T> {
         }
     }
 
-    /// Convert a normal3 into the equivalent vector3
-    pub fn to_vector(&self) -> Vector3<T> {
-        Vector3::new(self.x, self.y, self.z)
+    /// Create a vector with all components being equal
+    pub fn splat(val: T) -> Self {
+        Self::new(val, val, val)
     }
 
-    /// Array of all components of the normal
+    /// Cast the location of a vector to another numeric type
+    pub fn cast<U: Number>(&self) -> Vector3<U> {
+        Vector3::new(U::cast(self.x), U::cast(self.y), U::cast(self.z))
+    }
+
+    /// Convert a vector3 into the equivalent normal3
+    pub fn to_normal(&self) -> Normal3<T> {
+        Normal3::new(self.x, self.y, self.z)
+    }
+
+    /// Array of all components of the vector
     pub fn to_array(&self) -> [T; 3] {
         [self.x, self.y, self.z]
     }
 
-    /// Are any of the components of this normal NaN
+    /// Construct a vector from its (x,y,z) components
+    pub fn from_array(data: [T; 3]) -> Self {
+        Self::new(data[0], data[1], data[2])
+    }
+
+    /// Are any of the components of this vector NaN
     pub fn has_nan(&self) -> bool {
         self.x.is_nan() || self.y.is_nan() || self.z.is_nan()
     }
 
-    /// Component-wise absolute value of the normal
+    /// Component-wise absolute value of the vector
     pub fn abs(&self) -> Self {
-        Normal3::new(self.x.abs(), self.y.abs(), self.z.abs())
+        Vector3::new(self.x.abs(), self.y.abs(), self.z.abs())
     }
 
-    /// Calculate the dot product of two normals
+    /// Calculate the dot product of two vectors
     pub fn dot(&self, rhs: Self) -> T {
         self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
     }
 
-    /// Calculate the absolute value of the dot product of two normals
+    /// Calculate the absolute value of the dot product of two vectors
     pub fn absdot(&self, rhs: Self) -> T {
         self.dot(rhs).abs()
     }
 
-    /// Calculate the cross product of two normals
+    /// Calculate the cross product of two vectors
     pub fn cross(&self, rhs: Self) -> Self {
-        Normal3::new(
+        Vector3::new(
             (self.y * rhs.z) - (self.z * rhs.y),
             (self.z * rhs.x) - (self.x * rhs.z),
             (self.x * rhs.y) - (self.y * rhs.x),
         )
     }
 
-    /// Square of the length of the normal
+    /// Square of the length of the vector
     pub fn length_square(&self) -> T {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
-    /// Length of the normal
+    /// Length of the vector
     pub fn length(&self) -> T {
         self.length_square().sqrt()
     }
 
-    /// Unit normal/Normalise the normal
+    /// Unit vector/Normalise the vector
     pub fn normalise(&self) -> Self {
         *self / self.length()
     }
 
-    /// Value of the smallest component of the normal
+    /// Value of the smallest component of the vector
     pub fn min_component(&self) -> T {
         self.to_array().into_iter().min_by(T::order).unwrap()
     }
 
-    /// Value of the largest component of the normal
+    /// Value of the largest component of the vector
     pub fn max_component(&self) -> T {
         self.to_array().into_iter().max_by(T::order).unwrap()
     }
 
-    /// Index of the largest component of the normal
+    /// Index of the largest component of the vector
     pub fn max_dimension(&self) -> usize {
         self.to_array()
             .into_iter()
@@ -121,51 +160,42 @@ impl<T: Number> Normal3<T> {
             .0
     }
 
-    /// Component-wise minimum of two normals
+    /// Component-wise minimum of two vectors
     pub fn min(&self, rhs: Self) -> Self {
-        Normal3::new(
+        Vector3::new(
             std::cmp::min_by(self.x, rhs.x, T::order),
             std::cmp::min_by(self.y, rhs.y, T::order),
             std::cmp::min_by(self.z, rhs.z, T::order),
         )
     }
 
-    /// Component-wise maximum of two normals
+    /// Component-wise maximum of two vectors
     pub fn max(&self, rhs: Self) -> Self {
-        Normal3::new(
+        Vector3::new(
             std::cmp::max_by(self.x, rhs.x, T::order),
             std::cmp::max_by(self.y, rhs.y, T::order),
             std::cmp::max_by(self.z, rhs.z, T::order),
         )
     }
 
-    /// Re-order a normal given indices of the where to move each component to
+    /// Re-order a vector given indices of the where to move each component to
     pub fn permute(&self, idx: [usize; 3]) -> Self {
-        Normal3::new(self[idx[0]], self[idx[1]], self[idx[2]])
+        Vector3::new(self[idx[0]], self[idx[1]], self[idx[2]])
     }
 
     /// Construct a coordinate system from a single axis
     pub fn coordinate_system(&self) -> (Self, Self) {
         let v2 = if self.x.abs() > self.y.abs() {
-            Normal3::new(-self.z, T::ZERO, self.x) / (self.x * self.x + self.z * self.z).sqrt()
+            Vector3::new(-self.z, T::ZERO, self.x) / (self.x * self.x + self.z * self.z).sqrt()
         } else {
-            Normal3::new(T::ZERO, self.z, -self.y) / (self.y * self.y + self.z * self.z).sqrt()
+            Vector3::new(T::ZERO, self.z, -self.y) / (self.y * self.y + self.z * self.z).sqrt()
         };
 
         (v2, self.cross(v2))
     }
-
-    /// Orient a normal to face forwards relative to the provided vector
-    pub fn face_forward(&self, vec: Vector3<T>) -> Self {
-        if self.dot(vec.to_normal()) < T::ZERO {
-            -*self
-        } else {
-            *self
-        }
-    }
 }
 
-impl<T: Number> Index<usize> for Normal3<T> {
+impl<T: Number> Index<usize> for Vector3<T> {
     type Output = T;
 
     #[inline]
@@ -174,73 +204,73 @@ impl<T: Number> Index<usize> for Normal3<T> {
     }
 }
 
-impl<T: Number> Add for Normal3<T> {
-    type Output = Normal3<T>;
+impl<T: Number> Add for Vector3<T> {
+    type Output = Vector3<T>;
 
     #[inline]
     fn add(self, rhs: Self) -> Self::Output {
-        Normal3::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
+        Vector3::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
     }
 }
 
-impl<T: Number> AddAssign for Normal3<T> {
+impl<T: Number> AddAssign for Vector3<T> {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
 
-impl<T: Number> Sub for Normal3<T> {
+impl<T: Number> Sub for Vector3<T> {
     type Output = Self;
 
     #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
-        Normal3::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+        Vector3::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
     }
 }
 
-impl<T: Number> SubAssign for Normal3<T> {
+impl<T: Number> SubAssign for Vector3<T> {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }
 
-impl<T: Number> Mul<T> for Normal3<T> {
+impl<T: Number> Mul<T> for Vector3<T> {
     type Output = Self;
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        Normal3::new(self.x * rhs, self.y * rhs, self.z * rhs)
+        Vector3::new(self.x * rhs, self.y * rhs, self.z * rhs)
     }
 }
 
-impl<T: Number> MulAssign<T> for Normal3<T> {
+impl<T: Number> MulAssign<T> for Vector3<T> {
     #[inline]
     fn mul_assign(&mut self, rhs: T) {
         *self = *self * rhs;
     }
 }
 
-impl<T: Number> Div<T> for Normal3<T> {
+impl<T: Number> Div<T> for Vector3<T> {
     type Output = Self;
 
     #[inline]
     fn div(self, rhs: T) -> Self::Output {
         debug_assert_ne!(rhs, T::ZERO);
         let inv = T::ONE / rhs;
-        Normal3::new(self.x * inv, self.y * inv, self.z * inv)
+        Vector3::new(self.x * inv, self.y * inv, self.z * inv)
     }
 }
 
-impl<T: Number> DivAssign<T> for Normal3<T> {
+impl<T: Number> DivAssign<T> for Vector3<T> {
     #[inline]
     fn div_assign(&mut self, rhs: T) {
         *self = *self / rhs;
     }
 }
 
-impl<T: Number> Neg for Normal3<T> {
+impl<T: Number> Neg for Vector3<T> {
     type Output = Self;
 
     #[inline]
@@ -251,11 +281,11 @@ impl<T: Number> Neg for Normal3<T> {
 
 macro_rules! ForNumbers {
     ($ty:ty) => {
-        impl Mul<Normal3<$ty>> for $ty {
-            type Output = Normal3<$ty>;
+        impl Mul<Vector3<$ty>> for $ty {
+            type Output = Vector3<$ty>;
 
             #[inline]
-            fn mul(self, rhs: Normal3<$ty>) -> Self::Output {
+            fn mul(self, rhs: Vector3<$ty>) -> Self::Output {
                 rhs * self
             }
         }

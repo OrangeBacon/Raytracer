@@ -1,6 +1,6 @@
 use std::ops::{Mul, MulAssign};
 
-use crate::geometry::{
+use crate::{
     number::Number, ray::RayDifferentials, Bounds3, Float, Matrix4x4, Normal3, Point3, Point3f,
     Ray, RayDifferential, Vector3, Vector3f,
 };

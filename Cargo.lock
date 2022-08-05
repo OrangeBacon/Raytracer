@@ -3,5 +3,12 @@
 version = 3
 
 [[package]]
+name = "geometry"
+version = "0.1.0"
+
+[[package]]
 name = "pbrt"
 version = "0.1.0"
+dependencies = [
+ "geometry",
+]

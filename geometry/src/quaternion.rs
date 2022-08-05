@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use crate::geometry::{Float, Matrix4x4, Transform, Vector3f};
+use crate::{Float, Matrix4x4, Transform, Vector3f};
 
 /// Quaternion (4 component rotation)
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]

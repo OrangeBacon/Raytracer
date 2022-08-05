@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use crate::geometry::{Float, Point3f, Vector3f};
+use crate::{Float, Point3f, Vector3f};
 
 /// Ray with an origin and a direction from the origin
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
