@@ -13,6 +13,9 @@ mod transform;
 mod vector2;
 mod vector3;
 
+#[cfg(test)]
+mod tests;
+
 #[cfg(feature = "double")]
 pub type Float = f64;
 
