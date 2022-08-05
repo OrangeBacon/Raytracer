@@ -9,4 +9,4 @@ edition = "2021"
 geometry = {path = "../geometry"}
 
 [features]
-double = []
+double = ["geometry/double"]

@@ -1,38 +1,21 @@
-use crate::Matrix4x4;
+use crate::{tests::rng::Rng, Matrix4x4};
 
 #[test]
 fn mat_inv() {
-    let a = format!(
-        "{:.2?}",
-        Matrix4x4::from_array(&[
-            1.0, 4.0, 5.0, -1.0, -2.0, 3.0, -1.0, 0.0, 2.0, 1.0, 1.0, 0.0, 3.0, -1.0, 2.0, 1.0
-        ])
-        .inverse()
-        .unwrap()
-    );
-    let b = format!(
-        "{:.2?}",
-        Matrix4x4::from_array(&[
-            -0.1, -0.1, 0.6, -0.1, 0.0, 0.25, 0.25, 0.0, 0.2, -0.05, -0.45, 0.2, -0.1, 0.65, -0.65,
-            0.9
-        ])
-    );
-    assert_eq!(a, b);
+    let mut rng = Rng::new(4); // chosen by totally fair dice roll
 
-    let a = format!(
-        "{:.2?}",
-        Matrix4x4::from_array(&[
-            1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0
-        ])
-        .inverse()
-        .unwrap()
-    );
-    let b = format!(
-        "{:.2?}",
-        Matrix4x4::from_array(&[
-            0.25, 0.25, 0.25, -0.25, 0.25, 0.25, -0.25, 0.25, 0.25, -0.25, 0.25, 0.25, -0.25, 0.25,
-            0.25, 0.25,
-        ])
-    );
-    assert_eq!(a, b)
+    for _ in 0..1000 {
+        let data = [(); 16].map(|_| rng.float());
+        let mat = Matrix4x4::from_array(&data);
+
+        if let Some(inv) = mat.inverse() {
+            for (row, ident) in (mat * inv).data.into_iter().zip(Matrix4x4::IDENTITY.data) {
+                for (element, ident) in row.into_iter().zip(ident) {
+                    assert!(element.abs() <= ident + 0.02)
+                }
+            }
+        } else {
+            assert!(mat.determinant().abs() <= 0.02);
+        }
+    }
 }

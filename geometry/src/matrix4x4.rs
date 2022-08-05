@@ -138,6 +138,36 @@ impl Matrix4x4 {
 
         Some(Matrix4x4 { data: minv })
     }
+
+    /// Calculate the determinant of this 4x4 matrix
+    pub fn determinant(&self) -> Float {
+        fn det2(mat: [&[Float]; 2]) -> Float {
+            mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]
+        }
+        fn det3(mat: [[Float; 3]; 3]) -> Float {
+            mat[0][0] * det2([&mat[1][1..=2], &mat[2][1..=2]])
+                - mat[0][1] * det2([&[mat[1][0], mat[1][2]], &[mat[2][0], mat[2][2]]])
+                + mat[0][2] * det2([&mat[1][0..=1], &mat[2][0..=1]])
+        }
+
+        self[0][0] * det3(self.cofactor([1, 2, 3])) - self[0][1] * det3(self.cofactor([0, 2, 3]))
+            + self[0][2] * det3(self.cofactor([0, 1, 3]))
+            - self[0][3] * det3(self.cofactor([0, 1, 2]))
+    }
+
+    /// Get the 3*3 cofactor of the matrix, rows 1,2,3 (excluding 0)
+    /// with the supplied columns
+    fn cofactor(&self, cols: [usize; 3]) -> [[Float; 3]; 3] {
+        let mut res = [[0.0; 3]; 3];
+
+        for row in 1..4 {
+            for (&col, res_col) in cols.iter().zip(0..3) {
+                res[row - 1][res_col] = self[row][col]
+            }
+        }
+
+        res
+    }
 }
 
 impl Mul for Matrix4x4 {
