@@ -159,6 +159,20 @@ impl<T: Number> Bounds3<T> {
 
         (centre, radius)
     }
+
+    /// Get the smallest squared distance between the bounds and a point.
+    /// Returns 0 if the point is inside the bounds
+    pub fn distance_squared(&self, point: Point3<T>) -> T {
+        let d = (self.min - point).max(point - self.max).max(Vector3::ZERO);
+
+        d.dot(d)
+    }
+
+    /// Get the smallest distance between the bounds and a point.
+    /// Returns 0 if the point is inside the bounds
+    pub fn distance(&self, point: Point3<T>) -> T {
+        self.distance_squared(point).sqrt()
+    }
 }
 
 impl<T: Number> Index<usize> for Bounds3<T> {

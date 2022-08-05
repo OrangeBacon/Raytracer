@@ -1,6 +1,9 @@
 use std::ops::Index;
 
-use crate::{number::Number, Float, Point2, Vector2};
+use crate::{
+    number::{Integer, Number},
+    Float, Point2, Vector2,
+};
 
 /// 3D Axis aligned bounding box
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -150,6 +153,20 @@ impl<T: Number> Bounds2<T> {
 
         (centre, radius)
     }
+
+    /// Get the smallest squared distance between the bounds and a point.
+    /// Returns 0 if the point is inside the bounds
+    pub fn distance_squared(&self, point: Point2<T>) -> T {
+        let d = (self.min - point).max(point - self.max).max(Vector2::ZERO);
+
+        d.dot(d)
+    }
+
+    /// Get the smallest distance between the bounds and a point.
+    /// Returns 0 if the point is inside the bounds
+    pub fn distance(&self, point: Point2<T>) -> T {
+        self.distance_squared(point).sqrt()
+    }
 }
 
 impl<T: Number> Index<usize> for Bounds2<T> {
@@ -162,5 +179,52 @@ impl<T: Number> Index<usize> for Bounds2<T> {
         } else {
             &self.max
         }
+    }
+}
+
+impl<T: Integer> IntoIterator for Bounds2<T> {
+    type Item = Point2<T>;
+
+    type IntoIter = Bounds2Iter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        // create iterator over no points if the bounds are degenerate
+        if self.min.x >= self.max.x || self.min.y >= self.max.y {
+            return Bounds2Iter {
+                point: Point2::MAX,
+                bounds: Default::default(),
+            };
+        }
+
+        Bounds2Iter {
+            point: self.min,
+            bounds: self,
+        }
+    }
+}
+
+/// Iterator over integer coordinates within bounds
+pub struct Bounds2Iter<T: Integer> {
+    point: Point2<T>,
+    bounds: Bounds2<T>,
+}
+
+impl<T: Integer> Iterator for Bounds2Iter<T> {
+    type Item = Point2<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.point.y >= self.bounds.max.y {
+            return None;
+        }
+
+        let point = self.point;
+
+        self.point.x = self.point.x + T::ONE;
+        if self.point.x >= self.bounds.max.x {
+            self.point.x = self.bounds.min.x;
+            self.point.y = self.point.y + T::ONE;
+        }
+
+        Some(point)
     }
 }

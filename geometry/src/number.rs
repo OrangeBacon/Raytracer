@@ -61,6 +61,9 @@ pub trait Number:
     fn i32(&self) -> i32;
 }
 
+/// Marker trait for integers
+pub trait Integer: Number {}
+
 macro_rules! NumberFloat {
     (($type:ty, $name:ident)) => {
         impl Number for $type {
@@ -130,6 +133,7 @@ NumberFloat!((f32, f32), (f64, f64));
 
 macro_rules! NumberInteger {
     (($type:ty, $name:ident)) => {
+        impl Integer for $type {}
         impl Number for $type {
             const ZERO: Self = 0;
             const ONE: Self = 1;
