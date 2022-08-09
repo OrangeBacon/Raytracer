@@ -13,6 +13,7 @@ mod transform;
 mod vector2;
 mod vector3;
 
+mod interaction;
 #[cfg(test)]
 mod tests;
 
@@ -74,6 +75,9 @@ pub use quaternion::Quaternion;
 pub use animated_transform::AnimatedTransform;
 
 pub use interval::Interval;
+
+pub use interaction::Interaction;
+pub use interaction::SurfaceInteraction;
 
 /// Linearly interpolate between two floats
 pub fn lerp(t: Float, a: Float, b: Float) -> Float {

@@ -52,6 +52,10 @@ impl<T: Number> Normal3<T> {
         Vector3::new(self.x, self.y, self.z)
     }
 
+    pub fn from_vector(vec: Vector3<T>) -> Self {
+        Self::new(vec.x, vec.y, vec.z)
+    }
+
     /// Array of all components of the normal
     pub fn to_array(&self) -> [T; 3] {
         [self.x, self.y, self.z]

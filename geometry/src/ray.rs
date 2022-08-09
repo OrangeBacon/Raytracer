@@ -9,6 +9,7 @@ pub struct Ray {
     pub direction: Vector3f,
     pub t_max: Float,
     pub time: Float,
+    pub material: (),
 }
 
 impl Default for Ray {
@@ -24,6 +25,7 @@ impl Ray {
         direction: Vector3f::ZERO,
         t_max: Float::INFINITY,
         time: 0.0,
+        material: (),
     };
 
     /// Create a new ray with a given origin and direction
@@ -33,6 +35,7 @@ impl Ray {
             direction,
             t_max: Float::INFINITY,
             time: 0.0,
+            material: (),
         }
     }
 
