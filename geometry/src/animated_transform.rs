@@ -155,7 +155,7 @@ impl AnimatedTransform {
 
         let mut bounds = Bounds3::ZERO;
         for i in 0..8 {
-            bounds = bounds.union_box(self.bound_point_motion(bounds.corner(i)));
+            bounds = bounds.union_box(self.bound_point_motion(bound.corner(i)));
         }
 
         bounds

@@ -111,14 +111,14 @@ impl Transform {
         let mat = Matrix4x4::new(&[
             [delta.x, 0.0, 0.0, 0.0],
             [0.0, delta.y, 0.0, 0.0],
-            [1.0, 0.0, delta.z, 0.0],
+            [0.0, 0.0, delta.z, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ]);
 
         let inv = Matrix4x4::new(&[
             [1.0 / delta.x, 0.0, 0.0, 0.0],
             [0.0, 1.0 / delta.y, 0.0, 0.0],
-            [1.0, 0.0, 1.0 / delta.z, 0.0],
+            [0.0, 0.0, 1.0 / delta.z, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ]);
 
@@ -162,7 +162,7 @@ impl Transform {
         let mat = Matrix4x4::new(&[
             [cos, 0.0, sin, 0.0],
             [0.0, 1.0, 0.0, 0.0],
-            [-sin, 1.0, cos, 0.0],
+            [-sin, 0.0, cos, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ]);
 
@@ -204,9 +204,9 @@ impl Transform {
                 0.0,
             ],
             [
-                a.x * a.y * (1.0 - cos) - a.z * sin,
+                a.x * a.y * (1.0 - cos) + a.z * sin,
                 a.y * a.y + (1.0 - a.y * a.y) * cos,
-                a.y * a.z * (1.0 - cos) + a.y * sin,
+                a.y * a.z * (1.0 - cos) - a.x * sin,
                 0.0,
             ],
             [

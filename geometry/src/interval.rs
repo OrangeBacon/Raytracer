@@ -1,4 +1,7 @@
-use std::ops::{Add, Index, Mul, Sub};
+use std::{
+    marker::PhantomData,
+    ops::{Add, Index, Mul, Sub},
+};
 
 use crate::{number::Number, Float};
 
@@ -7,6 +10,7 @@ use crate::{number::Number, Float};
 pub struct Interval {
     low: Float,
     high: Float,
+    _remove_constructors: PhantomData<()>,
 }
 
 impl Default for Interval {
@@ -14,6 +18,7 @@ impl Default for Interval {
         Self {
             low: 0.0,
             high: 0.0,
+            _remove_constructors: PhantomData,
         }
     }
 }
@@ -21,9 +26,13 @@ impl Default for Interval {
 impl Interval {
     /// Create a new interval between two points
     pub fn new(v0: Float, v1: Float) -> Self {
+        debug_assert!(!v0.is_nan());
+        debug_assert!(!v1.is_nan());
+
         Self {
             low: v0.min(v1),
             high: v0.max(v1),
+            _remove_constructors: PhantomData,
         }
     }
 
@@ -32,12 +41,15 @@ impl Interval {
         Self {
             low: val,
             high: val,
+            _remove_constructors: PhantomData,
         }
     }
 
     /// Calculate the sin of the interval, output is undefined when the interval is
     /// outside of the bounds [0, 2pi]
     pub fn sin(&self) -> Self {
+        debug_assert!(self.low >= 0.0);
+        debug_assert!(self.high <= 2.0001 * Float::PI);
         let mut sin_low = self.low.sin();
         let mut sin_high = self.high.sin();
 
@@ -57,6 +69,9 @@ impl Interval {
     /// Calculate the cos of the interval, output is undefined when the interval is
     /// outside of the bounds [0, 2pi]
     pub fn cos(&self) -> Self {
+        debug_assert!(self.low >= 0.0);
+        debug_assert!(self.high <= 2.0001 * Float::PI);
+
         let mut cos_low = self.low.cos();
         let mut cos_high = self.high.cos();
 
@@ -113,7 +128,7 @@ impl Interval {
 
             if depth > 0 {
                 // split interval and check both parts
-                let mid = (interval.low + interval.high) / 2.0;
+                let mid = (interval.low + interval.high) * 0.5;
                 inner(
                     Interval::new(interval.low, mid),
                     c,
@@ -132,7 +147,7 @@ impl Interval {
                 );
             } else {
                 // refine zero using newton's method
-                let mut t_newton = (interval.low + interval.high) / 2.0;
+                let mut t_newton = (interval.low + interval.high) * 0.5;
                 for _ in 0..4 {
                     let f_newton = c[1]
                         + (c[2] + c[3] * t_newton) * (2.0 * theta * t_newton).cos()
@@ -146,8 +161,10 @@ impl Interval {
                     }
                     t_newton = t_newton - f_newton / f_prime_newton;
                 }
-                res[*result_count] = t_newton;
-                *result_count += 1;
+                if t_newton >= interval.low - 1e-3 && t_newton < interval.high + 1e-3 {
+                    res[*result_count] = t_newton;
+                    *result_count += 1;
+                }
             }
         }
 
