@@ -16,6 +16,7 @@ mod vector3;
 mod interaction;
 #[cfg(test)]
 mod tests;
+pub mod float;
 
 #[cfg(feature = "double")]
 mod types {

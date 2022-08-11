@@ -1,37 +1,38 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use crate::{Float, Matrix4x4, Transform, Vector3f, ConstZero};
+use crate::{Float, Matrix4x4, Transform, Vector3f, ConstZero, Vector3, Number};
 
 /// Quaternion (4 component rotation)
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Quaternion {
-    pub vec: Vector3f,
-    pub w: Float,
+pub struct Quaternion<F: Number = Float> {
+    pub vec: Vector3<F>,
+    pub w: F,
 }
 
-impl Default for Quaternion {
+impl<F: Number> Default for Quaternion<F> {
     fn default() -> Self {
         Self::ZERO
     }
 }
 
-impl Quaternion {
-    /// Quaternion that does not rotate at all
-    pub const ZERO: Self = Self {
-        vec: Vector3f::ZERO,
-        w: 1.0,
+impl<F: Number> ConstZero for Quaternion<F> {
+    const ZERO: Self = Self {
+        vec: Vector3::ZERO,
+        w: F::ZERO,
     };
+}
 
+impl<F: Number> Quaternion<F> {
     /// Create a quaternion from its four components (x,y,z,w)
-    pub fn new(data: &[Float; 4]) -> Self {
+    pub fn new(data: &[F; 4]) -> Self {
         Self {
-            vec: Vector3f::new(data[0], data[1], data[2]),
+            vec: Vector3::new(data[0], data[1], data[2]),
             w: data[3],
         }
     }
 
     /// Inner product (dot product) of two quaternions
-    pub fn dot(&self, rhs: &Self) -> Float {
+    pub fn dot(&self, rhs: &Self) -> F {
         self.vec.dot(rhs.vec) + self.w * rhs.w
     }
 
@@ -51,17 +52,17 @@ impl Quaternion {
         let ws = self.vec * self.w;
 
         let mat = Matrix4x4::from_array(&[
-            1.0 - 2.0 * (yy + zz),
-            2.0 * (xy + ws.z),
-            2.0 * xz - ws.y,
+            (F::ONE - F::TWO * (yy + zz)).f32(),
+            (F::TWO * (xy + ws.z)).f32(),
+            (F::TWO * xz - ws.y).f32(),
             0.0,
-            2.0 * (xy - ws.z),
-            1.0 - 2.0 * (xx + zz),
-            2.0 * (yz + ws.x),
+            (F::TWO * (xy - ws.z)).f32(),
+            (F::ONE - F::TWO * (xx + zz)).f32(),
+            (F::TWO * (yz + ws.x)).f32(),
             0.0,
-            2.0 * (xz + ws.y),
-            2.0 * (yz - ws.x),
-            1.0 - 2.0 * (xx + yy),
+            (F::TWO * (xz + ws.y)).f32(),
+            (F::TWO * (yz - ws.x)).f32(),
+            (F::ONE - F::TWO * (xx + yy)).f32(),
             0.0,
             0.0,
             0.0,
@@ -74,13 +75,13 @@ impl Quaternion {
 
     /// Spherical linear interpolation between two quaternions
     /// Uses minimal rotation amount great circles
-    pub fn slerp(&self, t: Float, other: &Self) -> Self {
+    pub fn slerp(&self, t: F, other: &Self) -> Self {
         let cos = self.dot(other);
 
-        if cos > 0.9995 {
-            (*self * (1.0 - t) + *other * t).normalise()
+        if cos > (F::ONE - F::LARGE_EPSILON) {
+            (*self * (F::ONE - t) + *other * t).normalise()
         } else {
-            let theta = cos.clamp(-1.0, 1.0).acos();
+            let theta = cos.clamp(-F::ONE, F::ONE).acos();
             let theta_t = theta * t;
             let q_perpendicular = (*other - *self * cos).normalise();
 
@@ -139,10 +140,10 @@ impl Transform {
     }
 }
 
-impl Add<Quaternion> for Quaternion {
-    type Output = Quaternion;
+impl<F: Number> Add<Quaternion<F>> for Quaternion<F> {
+    type Output = Quaternion<F>;
 
-    fn add(self, rhs: Quaternion) -> Self::Output {
+    fn add(self, rhs: Quaternion<F>) -> Self::Output {
         Self {
             vec: self.vec + rhs.vec,
             w: self.w + rhs.w,
@@ -150,16 +151,16 @@ impl Add<Quaternion> for Quaternion {
     }
 }
 
-impl AddAssign<Quaternion> for Quaternion {
-    fn add_assign(&mut self, rhs: Quaternion) {
+impl<F: Number> AddAssign<Quaternion<F>> for Quaternion<F> {
+    fn add_assign(&mut self, rhs: Quaternion<F>) {
         *self = *self + rhs
     }
 }
 
-impl Sub<Quaternion> for Quaternion {
-    type Output = Quaternion;
+impl<F: Number> Sub<Quaternion<F>> for Quaternion<F> {
+    type Output = Quaternion<F>;
 
-    fn sub(self, rhs: Quaternion) -> Self::Output {
+    fn sub(self, rhs: Quaternion<F>) -> Self::Output {
         Self {
             vec: self.vec - rhs.vec,
             w: self.w - rhs.w,
@@ -167,14 +168,14 @@ impl Sub<Quaternion> for Quaternion {
     }
 }
 
-impl SubAssign<Quaternion> for Quaternion {
-    fn sub_assign(&mut self, rhs: Quaternion) {
+impl<F: Number> SubAssign<Quaternion<F>> for Quaternion<F> {
+    fn sub_assign(&mut self, rhs: Quaternion<F>) {
         *self = *self - rhs
     }
 }
 
-impl Neg for Quaternion {
-    type Output = Quaternion;
+impl<F: Number> Neg for Quaternion<F> {
+    type Output = Quaternion<F>;
 
     fn neg(self) -> Self::Output {
         Self {
@@ -184,10 +185,10 @@ impl Neg for Quaternion {
     }
 }
 
-impl Mul<Float> for Quaternion {
-    type Output = Quaternion;
+impl<F: Number> Mul<F> for Quaternion<F> {
+    type Output = Quaternion<F>;
 
-    fn mul(self, rhs: Float) -> Self::Output {
+    fn mul(self, rhs: F) -> Self::Output {
         Self {
             vec: self.vec * rhs,
             w: self.w * rhs,
@@ -195,16 +196,16 @@ impl Mul<Float> for Quaternion {
     }
 }
 
-impl MulAssign<Float> for Quaternion {
-    fn mul_assign(&mut self, rhs: Float) {
+impl<F: Number> MulAssign<F> for Quaternion<F> {
+    fn mul_assign(&mut self, rhs: F) {
         *self = *self * rhs
     }
 }
 
-impl Div<Float> for Quaternion {
-    type Output = Quaternion;
+impl<F: Number> Div<F> for Quaternion<F> {
+    type Output = Quaternion<F>;
 
-    fn div(self, rhs: Float) -> Self::Output {
+    fn div(self, rhs: F) -> Self::Output {
         Self {
             vec: self.vec / rhs,
             w: self.w / rhs,
@@ -212,8 +213,8 @@ impl Div<Float> for Quaternion {
     }
 }
 
-impl DivAssign<Float> for Quaternion {
-    fn div_assign(&mut self, rhs: Float) {
+impl<F: Number> DivAssign<F> for Quaternion<F> {
+    fn div_assign(&mut self, rhs: F) {
         *self = *self / rhs
     }
 }

@@ -39,6 +39,12 @@ pub trait Number:
     /// The closest value to pi for this type
     const PI: Self;
 
+    /// Infinity or Self::MAX if there is no representable infinity
+    const INFINITY: Self;
+
+    /// 0.0005
+    const LARGE_EPSILON: Self;
+
     /// Is this type a NaN value, always false if type is not floating
     fn is_nan(&self) -> bool;
 
@@ -68,6 +74,18 @@ pub trait Number:
 
     /// Cast to integer
     fn i32(&self) -> i32;
+
+    /// Clamp the value between two other values
+    fn clamp(&self, min: Self, max: Self) -> Self;
+
+    /// Sine of the number (radians)
+    fn sin(&self) -> Self;
+
+    /// Cos of the number (radians)
+    fn cos(&self) -> Self;
+
+    /// Inverse cos of the number (radians)
+    fn acos(&self) -> Self;
 }
 
 /// Marker trait for integers
@@ -86,30 +104,12 @@ macro_rules! NumberFloat {
             const MIN: Self = <$type>::MIN;
             const MAX: Self = <$type>::MAX;
             const PI: Self = std::$name::consts::PI;
+            const INFINITY: Self = <$type>::INFINITY;
+            const LARGE_EPSILON: Self = 0.0005;
 
             #[inline]
             fn is_nan(&self) -> bool {
                 <$type>::is_nan(*self)
-            }
-
-            #[inline]
-            fn abs(&self) -> Self {
-                <$type>::abs(*self)
-            }
-
-            #[inline]
-            fn sqrt(&self) -> Self {
-                <$type>::sqrt(*self)
-            }
-
-            #[inline]
-            fn floor(&self) -> Self {
-                <$type>::floor(*self)
-            }
-
-            #[inline]
-            fn ceil(&self) -> Self {
-                <$type>::ceil(*self)
             }
 
             #[inline]
@@ -136,10 +136,25 @@ macro_rules! NumberFloat {
             fn i32(&self) -> i32 {
                 *self as _
             }
+
+            #[inline]
+            fn clamp(&self, min: Self, max: Self) -> Self {
+                <$type>::clamp(*self, min, max)
+            }
+
+            NumberFloat! { @fns($type) sin, cos, acos, ceil, floor, sqrt, abs }
         }
     };
     (($type:ty, $name:ident), $(($other_type:ty, $other_name:ident)),+ $(,)?) => {
         NumberFloat!(($type, $name)); $(NumberFloat!(($other_type, $other_name));)+
+    };
+    (@fns($type:ty) $($name:ident),+ $(,)?) => {
+        $(
+            #[inline]
+            fn $name(&self) -> Self {
+                <$type>::$name(*self)
+            }
+        )+
     }
 }
 
@@ -155,6 +170,8 @@ macro_rules! NumberInteger {
             const MIN: Self = <$type>::MIN;
             const MAX: Self = <$type>::MAX;
             const PI: Self = std::f64::consts::PI as _;
+            const INFINITY: Self = Self::MAX;
+            const LARGE_EPSILON: Self = 0;
 
             #[inline]
             fn is_nan(&self) -> bool {
@@ -164,13 +181,6 @@ macro_rules! NumberInteger {
             #[inline]
             fn abs(&self) -> Self {
                 <$type>::abs(*self)
-            }
-
-            #[inline]
-            fn sqrt(&self) -> Self {
-                debug_assert!(self.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
-
-                (*self as f64).sqrt() as Self
             }
 
             #[inline]
@@ -207,10 +217,27 @@ macro_rules! NumberInteger {
             fn i32(&self) -> i32 {
                 *self as _
             }
+
+            #[inline]
+            fn clamp(&self, min: Self, max: Self) -> Self {
+                <$type as Ord>::clamp(*self, min, max)
+            }
+
+            NumberInteger! { @fns($type) sqrt, sin, cos, acos }
         }
     };
     (($type:ty, $name:ident), $(($other_type:ty, $other_name:ident)),+ $(,)?) => {
         NumberFloat!(($type, $name)); $(NumberFloat!(($other_type, $other_name));)+
+    };
+    (@fns($type:ty) $($name:ident),+ $(,)?) => {
+        $(
+            #[inline]
+            fn $name(&self) -> Self {
+                debug_assert!(self.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
+
+                (*self as f64).$name() as Self
+            }
+        )+
     }
 }
 
