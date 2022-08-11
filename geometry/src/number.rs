@@ -4,6 +4,12 @@ use std::{
     ops::{Add, Div, Mul, Neg, Sub},
 };
 
+/// any type that has a const default value
+pub trait ConstZero {
+    const ZERO: Self;
+}
+
+/// Any type that can be used as a number
 pub trait Number:
     Debug
     + Copy
@@ -66,6 +72,10 @@ pub trait Number:
 
 /// Marker trait for integers
 pub trait Integer: Number {}
+
+impl<T: Number> ConstZero for T {
+    const ZERO: Self = <T as Number>::ZERO;
+}
 
 macro_rules! NumberFloat {
     (($type:ty, $name:ident)) => {

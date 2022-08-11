@@ -34,6 +34,7 @@ pub use types::FloatBits;
 
 pub use number::Integer;
 pub use number::Number;
+pub use number::ConstZero;
 
 pub use vector2::Vector2;
 pub use vector2::Vector2f;

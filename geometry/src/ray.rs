@@ -1,33 +1,35 @@
 use std::ops::Deref;
 
-use crate::{Float, Point3f, Vector3f};
+use crate::{Float, Point3f, Vector3f, ConstZero};
 
 /// Ray with an origin and a direction from the origin
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Ray {
+pub struct Ray<T = ()> {
     pub origin: Point3f,
     pub direction: Vector3f,
     pub t_max: Float,
     pub time: Float,
-    pub material: (),
+    pub material: T,
 }
 
-impl Default for Ray {
+impl<T: ConstZero> Default for Ray<T> {
     fn default() -> Self {
         Self::ZERO
     }
 }
 
-impl Ray {
+impl<T: ConstZero> Ray<T> {
     /// Ray from (0,0,0) towards (0,0,0)
     pub const ZERO: Self = Self {
         origin: Point3f::ZERO,
         direction: Vector3f::ZERO,
         t_max: Float::INFINITY,
         time: 0.0,
-        material: (),
+        material: T::ZERO,
     };
+}
 
+impl<T: Default> Ray<T> {
     /// Create a new ray with a given origin and direction
     pub fn new(origin: Point3f, direction: Vector3f) -> Self {
         Self {
@@ -35,7 +37,20 @@ impl Ray {
             direction,
             t_max: Float::INFINITY,
             time: 0.0,
-            material: (),
+            material: Default::default(),
+        }
+    }
+}
+
+impl<T> Ray<T> {
+    /// Create a new ray with a given origin and direction
+    pub fn new_with(origin: Point3f, direction: Vector3f, data: T) -> Self {
+        Self {
+            origin,
+            direction,
+            t_max: Float::INFINITY,
+            time: 0.0,
+            material: data,
         }
     }
 
@@ -56,18 +71,20 @@ pub struct RayDifferentials {
 
 /// Ray with differential information
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct RayDifferential {
-    pub main: Ray,
+pub struct RayDifferential<T = ()> {
+    pub main: Ray<T>,
     pub differentials: Option<RayDifferentials>,
 }
 
-impl RayDifferential {
+impl<T: ConstZero> RayDifferential<T> {
     /// Ray::Zero, differentials = None
     pub const ZERO: Self = Self {
         main: Ray::ZERO,
         differentials: None,
     };
+}
 
+impl<T: Default> RayDifferential<T> {
     /// Create a new differential ray with no recorded differentials
     pub fn new(origin: Point3f, direction: Vector3f) -> Self {
         Self {
@@ -75,15 +92,19 @@ impl RayDifferential {
             differentials: None,
         }
     }
+}
 
+impl<T> RayDifferential<T> {
     /// Add differential storage to a given ray
-    pub fn from_ray(ray: Ray) -> Self {
+    pub fn from_ray(ray: Ray<T>) -> Self {
         Self {
             main: ray,
             differentials: None,
         }
     }
+}
 
+impl<T: Copy> RayDifferential<T> {
     /// Scale the differentials by a given spacing
     pub fn scale(&self, scale: Float) -> Self {
         Self {
@@ -99,8 +120,8 @@ impl RayDifferential {
     }
 }
 
-impl Deref for RayDifferential {
-    type Target = Ray;
+impl<T> Deref for RayDifferential<T> {
+    type Target = Ray<T>;
 
     fn deref(&self) -> &Self::Target {
         &self.main
