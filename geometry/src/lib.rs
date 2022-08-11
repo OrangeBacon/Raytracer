@@ -32,9 +32,9 @@ mod types {
 pub use types::Float;
 pub use types::FloatBits;
 
+pub use number::ConstZero;
 pub use number::Integer;
 pub use number::Number;
-pub use number::ConstZero;
 
 pub use vector2::Vector2;
 pub use vector2::Vector2f;
@@ -78,6 +78,7 @@ pub use animated_transform::AnimatedTransform;
 pub use interval::Interval;
 
 pub use interaction::Interaction;
+pub use interaction::SurfaceInteractable;
 pub use interaction::SurfaceInteraction;
 
 /// Linearly interpolate between two floats

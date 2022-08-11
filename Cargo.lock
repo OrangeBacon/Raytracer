@@ -11,4 +11,12 @@ name = "pbrt"
 version = "0.1.0"
 dependencies = [
  "geometry",
+ "shapes",
+]
+
+[[package]]
+name = "shapes"
+version = "0.1.0"
+dependencies = [
+ "geometry",
 ]

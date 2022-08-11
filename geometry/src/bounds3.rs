@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::{number::Number, Float, Point3, Vector3, ConstZero};
+use crate::{number::Number, ConstZero, Float, Point3, Ray, Vector3, Vector3f};
 
 /// 3D Axis aligned bounding box
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -172,6 +172,63 @@ impl<T: Number> Bounds3<T> {
     /// Returns 0 if the point is inside the bounds
     pub fn distance(&self, point: Point3<T>) -> T {
         self.distance_squared(point).sqrt()
+    }
+}
+
+impl Bounds3f {
+    /// Calculate the intersection point between the bounds and a given ray
+    pub fn intersect_p<U>(&self, ray: Ray<U>) -> Option<(Float, Float)> {
+        let mut t0: Float = 0.0;
+        let mut t1 = ray.t_max;
+
+        for i in 0..3 {
+            let inv_ray_dir = 1.0 / ray.direction[i];
+            let mut t_near = (self.min[i] - ray.origin[i]) / inv_ray_dir;
+            let mut t_far = (self.max[i] - ray.origin[i]) / inv_ray_dir;
+
+            if t_near > t_far {
+                std::mem::swap(&mut t_near, &mut t_far);
+            }
+
+            t0 = t0.max(t_near);
+            t1 = t1.min(t_far);
+            if t0 > t1 {
+                return None;
+            }
+        }
+
+        Some((t0, t1))
+    }
+
+    /// Calculate the intersection point between the bounds and a given ray
+    /// given the inverse of the ray directions pre-computed
+    pub fn intersect_inv<U>(
+        &self,
+        ray: Ray<U>,
+        inv: Vector3f,
+        is_neg: [bool; 3],
+    ) -> bool {
+        let mut t_min = (self[is_neg[0] as usize].x - ray.origin.x) * inv.x;
+        let mut t_max = (self[1 - is_neg[0] as usize].x - ray.origin.x) * inv.x;
+        let ty_min = (self[is_neg[1] as usize].y - ray.origin.y) * inv.y;
+        let ty_max = (self[1 - is_neg[1] as usize].y - ray.origin.y) * inv.y;
+
+        if t_min > ty_max || ty_min > t_max {
+            return false;
+        }
+        t_min = t_min.max(ty_min);
+        t_max = t_max.min(ty_max);
+
+        let tz_min = (self[is_neg[2] as usize].z - ray.origin.z) * inv.z;
+        let tz_max = (self[1 - is_neg[2] as usize].z - ray.origin.z) * inv.z;
+
+        if t_min > tz_max || tz_min > t_max {
+            return false;
+        }
+        t_min = t_min.max(tz_min);
+        t_max = t_max.min(tz_max);
+
+        t_min < ray.t_max && t_max > 0.0
     }
 }
 
