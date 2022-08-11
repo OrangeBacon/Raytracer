@@ -2,7 +2,7 @@ use std::ops::Index;
 
 use crate::{
     number::{Integer, Number},
-    Float, Point2, Vector2,
+    Float, Point2, Vector2, ConstZero,
 };
 
 /// 3D Axis aligned bounding box

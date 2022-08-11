@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::{number::Number, Float, Point3, Vector3};
+use crate::{number::Number, Float, Point3, Vector3, ConstZero};
 
 /// 3D Axis aligned bounding box
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

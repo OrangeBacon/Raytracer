@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use crate::{number::Number, Float, Vector3};
+use crate::{number::Number, ConstZero, Float, Vector3};
 
 pub type Normal3f = Normal3<Float>;
 pub type Normal3i = Normal3<i32>;
@@ -23,15 +23,16 @@ impl<T: Number> Default for Normal3<T> {
     }
 }
 
-impl<T: Number> Normal3<T> {
-    /// normal with all components being zero
-    pub const ZERO: Self = Self {
+impl<T: Number> ConstZero for Normal3<T> {
+    const ZERO: Self = Self {
         x: T::ZERO,
         y: T::ZERO,
         z: T::ZERO,
         _remove_constructors: PhantomData,
     };
+}
 
+impl<T: Number> Normal3<T> {
     /// Create a new normal with the given components
     #[inline]
     pub fn new(x: T, y: T, z: T) -> Self {

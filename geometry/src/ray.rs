@@ -18,9 +18,9 @@ impl<T: ConstZero> Default for Ray<T> {
     }
 }
 
-impl<T: ConstZero> Ray<T> {
+impl<T: ConstZero> ConstZero for Ray<T> {
     /// Ray from (0,0,0) towards (0,0,0)
-    pub const ZERO: Self = Self {
+    const ZERO: Self = Self {
         origin: Point3f::ZERO,
         direction: Vector3f::ZERO,
         t_max: Float::INFINITY,

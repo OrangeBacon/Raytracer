@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
 };
 
-use crate::{number::Number, Float, Vector2};
+use crate::{number::Number, Float, Vector2, ConstZero};
 
 /// Two dimensional cartesian coordinate
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -22,14 +22,15 @@ impl<T: Number> Default for Point2<T> {
     }
 }
 
-impl<T: Number> Point2<T> {
-    /// A point at (0, 0)
-    pub const ZERO: Self = Self {
+impl<T:Number> ConstZero for Point2<T> {
+    const ZERO: Self = Self {
         x: T::ZERO,
         y: T::ZERO,
         _remove_constructors: PhantomData,
     };
+}
 
+impl<T: Number> Point2<T> {
     /// Smallest possible point
     pub const MIN: Self = Self {
         x: T::MIN,
