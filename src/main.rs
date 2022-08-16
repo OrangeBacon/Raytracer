@@ -1,13 +1,14 @@
 mod aabb;
 mod bvh;
 mod camera;
-mod shapes;
 mod material;
+mod pbrt_parser;
 mod perlin;
 mod ray;
 mod ray_trace;
 mod scene;
 mod scene_format;
+mod shapes;
 mod texture;
 mod utils;
 
@@ -18,7 +19,7 @@ use clap::Parser;
 use glam::DVec3;
 use rand::Rng;
 
-use crate::{camera::Camera, shapes::Hittable, ray::Ray, scene::Scene};
+use crate::{camera::Camera, pbrt_parser::parse_pbrt, ray::Ray, scene::Scene, shapes::Hittable};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -34,6 +35,11 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+
+    if args.scene.extension().map(|s| s == "pbrt").unwrap_or(false) {
+        parse_pbrt(&args.scene)?;
+        return Ok(());
+    }
 
     let scene = std::fs::read_to_string(&args.scene)?;
     let scene = Scene::from_file(toml::from_str(&scene)?)?;
