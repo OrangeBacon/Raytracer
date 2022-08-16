@@ -17,4 +17,4 @@ rand = "0.8.5"
 toml = "0.5.9"
 serde = { version = "1.0.140", features = ["derive"] }
 approx = "0.5.1"
-geometry = { path = "../geometry" }
+parsers = { path = "../parsers" }

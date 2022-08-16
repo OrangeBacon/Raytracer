@@ -1,13 +1,21 @@
-use std::{path::Path, str::Chars};
+#![allow(unused)]
+
+mod transform_set;
+mod options;
+
+use std::{
+    path::Path,
+    str::Chars,
+};
 
 use anyhow::Result;
 
-pub fn parse_pbrt(file_name: impl AsRef<Path>) -> Result<Vec<Commands>> {
+use crate::pbrt::transform_set::TransformSet;
+
+pub fn parse_pbrt(file_name: impl AsRef<Path>) -> Result<Vec<()>> {
     let mut files = vec![std::fs::read_to_string(file_name)?];
 
-    let mut parser = Parser {
-        files: &mut files,
-    };
+    let mut parser = Parser::new(&mut files);
 
     parser.parse()
 }
@@ -101,52 +109,20 @@ impl<'a> Tokeniser<'a> {
     }
 }
 
-#[derive(Debug)]
-pub enum Commands {
-    AttributeBegin,
-    AttributeEnd,
-    ActiveTransform,
-    AreaLightSource,
-    Accelerator,
-    ConcatTransform,
-    CoordinateSystem,
-    CoordSysTransform,
-    Camera,
-    Film,
-    Integrator,
-    Include,
-    Identity,
-    LightSource,
-    LookAt,
-    MakeNamedMaterial,
-    MakeNamedMedium,
-    Material,
-    MediumInterface,
-    NamedMaterial,
-    ObjectBegin,
-    ObjectEnd,
-    ObjectInstance,
-    PixelFilter,
-    ReverseOrientation,
-    Shape,
-    Sampler,
-    Scale,
-    TransformBegin,
-    TransformEnd,
-    Transform,
-    Translate,
-    TransformTimes,
-    Texture,
-    WorldBegin,
-    WorldEnd,
-}
-
 struct Parser<'a> {
     files: &'a mut [String],
+    transforms: TransformSet,
 }
 
-impl Parser<'_> {
-    fn parse(&mut self) -> Result<Vec<Commands>> {
+impl<'a> Parser<'a> {
+    fn new(files: &'a mut [String]) -> Self {
+        Self {
+            files,
+            transforms: TransformSet::new(),
+        }
+    }
+
+    fn parse(&mut self) -> Result<Vec<()>> {
         Ok(vec![])
     }
 }

@@ -3,4 +3,5 @@ members = [
     "geometry",
     "main",
     "shapes",
+    "parsers",
 ]

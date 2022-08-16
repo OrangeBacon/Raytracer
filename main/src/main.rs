@@ -2,7 +2,6 @@ mod aabb;
 mod bvh;
 mod camera;
 mod material;
-mod pbrt_parser;
 mod perlin;
 mod ray;
 mod ray_trace;
@@ -17,9 +16,10 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::Result;
 use clap::Parser;
 use glam::DVec3;
+use parsers::parse_pbrt;
 use rand::Rng;
 
-use crate::{camera::Camera, pbrt_parser::parse_pbrt, ray::Ray, scene::Scene, shapes::Hittable};
+use crate::{camera::Camera, ray::Ray, scene::Scene, shapes::Hittable};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
