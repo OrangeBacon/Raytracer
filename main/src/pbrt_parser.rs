@@ -9,7 +9,7 @@ pub fn parse_pbrt(file_name: impl AsRef<Path>) -> Result<Vec<Commands>> {
         files: &mut files,
     };
 
-    Ok(parser.parse()?)
+    parser.parse()
 }
 
 struct Tokeniser<'a> {
@@ -33,7 +33,7 @@ impl<'a> Tokeniser<'a> {
             match next {
                 ' ' | '\n' | '\t' | '\r' => {}
                 '#' => {
-                    while let Some(ch) = self.chars.next() {
+                    for ch in self.chars.by_ref() {
                         if ch == '\n' || ch == '\r' {
                             break;
                         }
@@ -41,7 +41,7 @@ impl<'a> Tokeniser<'a> {
                 }
                 '"' => {
                     let mut len = 0;
-                    while let Some(ch) = self.chars.next() {
+                    for ch in self.chars.by_ref() {
                         len += ch.len_utf8();
 
                         if ch == '"' {

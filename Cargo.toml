@@ -3,5 +3,4 @@ members = [
     "geometry",
     "main",
     "shapes",
-    "api",
 ]

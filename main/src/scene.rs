@@ -143,7 +143,7 @@ impl Scene {
         Ok(match material {
             scene_format::MaterialReference::Named(name) => Arc::clone(&materials[name]),
             scene_format::MaterialReference::Material(mat) => {
-                Scene::material(settings, &mat, textures)?
+                Scene::material(settings, mat, textures)?
             }
         })
     }
@@ -262,10 +262,10 @@ impl Scene {
                 Self::texture_ref(&vol.texture, textures)?,
             )),
             scene_format::Object::RandomBoxes(boxes) => {
-                gen_boxes(&boxes, settings, textures, materials)?
+                gen_boxes(boxes, settings, textures, materials)?
             }
             scene_format::Object::RandomCube(cube) => {
-                gen_cube(&cube, settings, textures, materials)?
+                gen_cube(cube, settings, textures, materials)?
             }
         })
     }

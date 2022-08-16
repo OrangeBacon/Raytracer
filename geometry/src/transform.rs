@@ -401,9 +401,8 @@ impl<T: Number> Mul<Transform> for Bounds3<T> {
         let ret = ret.union_point(m(Point3::new(self.min.x, self.max.y, self.max.z)));
         let ret = ret.union_point(m(Point3::new(self.max.x, self.max.y, self.min.z)));
         let ret = ret.union_point(m(Point3::new(self.max.x, self.min.y, self.max.z)));
-        let ret = ret.union_point(m(Point3::new(self.max.x, self.max.y, self.max.z)));
-
-        ret
+        
+       ret.union_point(m(Point3::new(self.max.x, self.max.y, self.max.z)))
     }
 }
 

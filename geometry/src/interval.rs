@@ -159,7 +159,7 @@ impl Interval {
                     if f_newton == 0.0 || f_prime_newton == 0.0 {
                         return;
                     }
-                    t_newton = t_newton - f_newton / f_prime_newton;
+                    t_newton -= f_newton / f_prime_newton;
                 }
                 if t_newton >= interval.low - 1e-3 && t_newton < interval.high + 1e-3 {
                     res[*result_count] = t_newton;

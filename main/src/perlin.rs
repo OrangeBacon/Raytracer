@@ -45,9 +45,7 @@ impl Perlin {
         let mut rng = rand::thread_rng();
         for idx in (1..data.len()).rev() {
             let target = rng.gen_range(0..=idx);
-            let tmp = data[idx];
-            data[idx] = data[target];
-            data[target] = tmp;
+            data.swap(idx, target);
         }
 
         data
@@ -59,10 +57,10 @@ impl Perlin {
 
         let mut data = [[[DVec3::ZERO; 2]; 2]; 2];
 
-        for i in 0..2 {
-            for j in 0..2 {
-                for k in 0..2 {
-                    data[i][j][k] = self.values[self.x[((i as i32 + ijk.x) & 255) as usize]
+        for (i, data) in data.iter_mut().enumerate() {
+            for (j, data) in data.iter_mut().enumerate() {
+                for (k, data) in data.iter_mut().enumerate() {
+                    *data = self.values[self.x[((i as i32 + ijk.x) & 255) as usize]
                         ^ self.y[((j as i32 + ijk.y) & 255) as usize]
                         ^ self.z[((k as i32 + ijk.z) & 255) as usize]]
                 }
@@ -76,15 +74,15 @@ impl Perlin {
         let m_uvw = uvw * uvw * (3.0 - 2.0 * uvw);
 
         let mut accum = 0.0;
-        for i in 0..2 {
-            for j in 0..2 {
-                for k in 0..2 {
+        for (i, data) in data.iter().enumerate() {
+            for (j, data) in data.iter().enumerate() {
+                for (k, data) in data.iter().enumerate() {
                     let weight = uvw - dvec3(i as f64, j as f64, k as f64);
 
                     accum += (i as f64 * m_uvw.x + (1.0 - i as f64) * (1.0 - m_uvw.x))
                         * (j as f64 * m_uvw.y + (1.0 - j as f64) * (1.0 - m_uvw.y))
                         * (k as f64 * m_uvw.z + (1.0 - k as f64) * (1.0 - m_uvw.z))
-                        * data[i][j][k].dot(weight);
+                        * data.dot(weight);
                 }
             }
         }

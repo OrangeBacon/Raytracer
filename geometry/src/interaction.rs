@@ -1,6 +1,6 @@
 use std::ops::Mul;
 
-use crate::{Float, Normal3f, Point2f, Point3f, Vector3f, Transform};
+use crate::{Float, Normal3f, Point2f, Point3f, Transform, Vector3f};
 
 /// interaction at a point on a surface
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
