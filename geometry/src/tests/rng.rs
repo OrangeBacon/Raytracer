@@ -1,15 +1,15 @@
-use crate::{Float, FloatBits};
+use crate::{Float, Number};
 
 /// Simple xor shift pseudo random number generator used to generate
 /// test cases in a deterministic way.
 pub struct Rng {
-    state: FloatBits,
+    state: <Float as Number>::Bits,
     counter: u32,
 }
 
 impl Rng {
     /// Create a new random number generator
-    pub fn new(seed: FloatBits) -> Self {
+    pub fn new(seed: <Float as Number>::Bits) -> Self {
         Self {
             state: seed,
             counter: seed as _,

@@ -13,25 +13,16 @@ mod transform;
 mod vector2;
 mod vector3;
 
+pub mod float;
 mod interaction;
 #[cfg(test)]
 mod tests;
-pub mod float;
 
 #[cfg(feature = "double")]
-mod types {
-    pub type Float = f64;
-    pub type FloatBits = u64;
-}
+pub type Float = f64;
 
 #[cfg(not(feature = "double"))]
-mod types {
-    pub type Float = f32;
-    pub type FloatBits = u32;
-}
-
-pub use types::Float;
-pub use types::FloatBits;
+pub type Float = f32;
 
 pub use number::ConstZero;
 pub use number::Integer;

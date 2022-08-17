@@ -21,6 +21,9 @@ pub trait Number:
     + Div<Output = Self>
     + Neg<Output = Self>
 {
+    /// The Bit representation of the type
+    type Bits;
+
     /// The Zero value for the type
     const ZERO: Self;
 
@@ -96,8 +99,9 @@ impl<T: Number> ConstZero for T {
 }
 
 macro_rules! NumberFloat {
-    (($type:ty, $name:ident)) => {
+    (($type:ty, $name:ident, $bits:ty)) => {
         impl Number for $type {
+            type Bits = $bits;
             const ZERO: Self = 0.0;
             const ONE: Self = 1.0;
             const TWO: Self = 2.0;
@@ -145,8 +149,8 @@ macro_rules! NumberFloat {
             NumberFloat! { @fns($type) sin, cos, acos, ceil, floor, sqrt, abs }
         }
     };
-    (($type:ty, $name:ident), $(($other_type:ty, $other_name:ident)),+ $(,)?) => {
-        NumberFloat!(($type, $name)); $(NumberFloat!(($other_type, $other_name));)+
+    (($type:ty, $name:ident, $bits:ty), $(($other_type:ty, $other_name:ident, $other_bits:ty)),+ $(,)?) => {
+        NumberFloat!(($type, $name, $bits)); $(NumberFloat!(($other_type, $other_name, $other_bits));)+
     };
     (@fns($type:ty) $($name:ident),+ $(,)?) => {
         $(
@@ -158,12 +162,13 @@ macro_rules! NumberFloat {
     }
 }
 
-NumberFloat!((f32, f32), (f64, f64));
+NumberFloat!((f32, f32, u32), (f64, f64, u32));
 
 macro_rules! NumberInteger {
     (($type:ty, $name:ident)) => {
         impl Integer for $type {}
         impl Number for $type {
+            type Bits = Self;
             const ZERO: Self = 0;
             const ONE: Self = 1;
             const TWO: Self = 2;
@@ -227,7 +232,7 @@ macro_rules! NumberInteger {
         }
     };
     (($type:ty, $name:ident), $(($other_type:ty, $other_name:ident)),+ $(,)?) => {
-        NumberFloat!(($type, $name)); $(NumberFloat!(($other_type, $other_name));)+
+        NumberInteger!(($type, $name)); $(NumberInteger!(($other_type, $other_name));)+
     };
     (@fns($type:ty) $($name:ident),+ $(,)?) => {
         $(
