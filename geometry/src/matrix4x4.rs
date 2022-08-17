@@ -77,14 +77,14 @@ impl Matrix4x4 {
             // choose pivot
             for j in 0..4 {
                 if ipiv[j] != 1 {
-                    for k in 0..4 {
-                        if ipiv[k] == 0 {
+                    for (k, &ipiv) in ipiv.iter().enumerate() {
+                        if ipiv == 0 {
                             if minv[j][k].abs() >= big {
                                 big = minv[j][k].abs();
                                 irow = j;
                                 icol = k;
                             }
-                        } else if ipiv[k] > 1 {
+                        } else if ipiv > 1 {
                             return None;
                         }
                     }
@@ -130,8 +130,8 @@ impl Matrix4x4 {
 
         for j in (0..=3).rev() {
             if indxr[j] != indxc[j] {
-                for k in 0..4 {
-                    minv[k].swap(indxr[j], indxc[j]);
+                for k in &mut minv {
+                    k.swap(indxr[j], indxc[j]);
                 }
             }
         }
@@ -176,12 +176,12 @@ impl Mul for Matrix4x4 {
     fn mul(self, rhs: Self) -> Self::Output {
         let mut data: [[Float; 4]; 4] = Default::default();
 
-        for i in 0..4 {
+        for (i, row) in self.data.iter().enumerate() {
             for j in 0..4 {
-                data[i][j] = self.data[i][0] * rhs.data[0][j]
-                    + self.data[i][1] * rhs.data[1][j]
-                    + self.data[i][2] * rhs.data[2][j]
-                    + self.data[i][3] * rhs.data[3][j]
+                data[i][j] = row[0] * rhs.data[0][j]
+                    + row[1] * rhs.data[1][j]
+                    + row[2] * rhs.data[2][j]
+                    + row[3] * rhs.data[3][j]
             }
         }
 

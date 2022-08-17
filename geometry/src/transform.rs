@@ -131,7 +131,7 @@ impl Transform {
         let b = (Vector3f::Y * *self).length_square();
         let c = (Vector3f::Z * *self).length_square();
 
-        let not_one = |x| x < 0.999 || x > 1.001;
+        let not_one = |x| !(0.999..=1.001).contains(&x);
 
         not_one(a) || not_one(b) || not_one(c)
     }
