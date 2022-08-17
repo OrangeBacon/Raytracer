@@ -7,7 +7,8 @@ use crate::{Float, Number};
 const EPSILON: Float = Float::EPSILON * 0.5;
 
 /// Convert a floating point value into its bit representation.
-/// Safety: Assumes that the bit representation of the input is a valid value
+/// # Safety
+/// Assumes that the bit representation of the input is a valid value
 /// of the output type.
 #[inline]
 pub unsafe fn float_to_bits(f: Float) -> <Float as Number>::Bits {
@@ -15,7 +16,8 @@ pub unsafe fn float_to_bits(f: Float) -> <Float as Number>::Bits {
 }
 
 /// Convert the bits of a float into a float.
-/// Safety: Assumes that the bit representation of the input is a valid value
+/// # Safety
+/// Assumes that the bit representation of the input is a valid value
 /// of the output type.
 #[inline]
 pub unsafe fn bits_to_float(f: <Float as Number>::Bits) -> Float {
