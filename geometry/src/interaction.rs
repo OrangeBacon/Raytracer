@@ -5,12 +5,62 @@ use crate::{Float, Normal3f, Point2f, Point3f, Transform, Vector3f};
 /// interaction at a point on a surface
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Interaction<T = ()> {
+    /// location of the interaction
     pub point: Point3f,
+
+    /// Time that the interaction occured
     pub time: Float,
+
+    /// Error bound on calculations with this interaction
     pub error: Vector3f,
+
+    /// the negative ray direction at the interaction
     pub dir: Vector3f,
+
+    /// The direction of the normal at the point this intersection occurred
     pub normal: Option<Normal3f>,
+
+    /// Additional data at this interaction point (supposed to be a medium interface
+    /// but cargo does not like recursive dependencies between crates)
     pub medium_interface: T,
+}
+
+/// Parametric partial derivatives of a point
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct PartialDerivatives {
+    // Partial derivatives of a point in the tangent plane to the interaction
+    pub dpdu: Vector3f,
+    pub dpdv: Vector3f,
+
+    // Partial derivatives of the normal vector of the interaction
+    pub dndu: Normal3f,
+    pub dndv: Normal3f,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+/// Different partial derivatives and normals for particular points in the geometry of a shape.
+/// Used in bump mapping and other different surfaces.
+pub struct Shading {
+    pub normal: Normal3f,
+    pub derivatives: PartialDerivatives,
+}
+
+/// Small portion of the shape interface representing the parts that are used
+/// in a surface interaction.  Only exists to fix recursive cargo dependencies
+pub trait SurfaceInteractable {
+    /// Does the shape's transform reverse its orientation.
+    /// Equal to shape.reverse_orientation ^ shape.transform.swaps_handedness()
+    fn reverses_orientation(&self) -> bool;
+}
+
+/// Interaction between a ray and a generic point on a surface
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct SurfaceInteraction<S: SurfaceInteractable, T = ()> {
+    pub interaction: Interaction<T>,
+    pub uv: Point2f,
+    pub derivatives: PartialDerivatives,
+    pub shape: Option<S>,
+    pub shading: Shading,
 }
 
 impl<T: Default> Interaction<T> {
@@ -34,23 +84,15 @@ impl<T: Default> Interaction<T> {
 }
 
 impl<T> Interaction<T> {
-    /// Create a new record of an interaction at a point on a surface with a
-    /// given medium interface
-    pub fn new_with(
-        point: Point3f,
-        normal: Normal3f,
-        error: Vector3f,
-        dir: Vector3f,
-        time: Float,
-        medium_interface: T,
-    ) -> Self {
-        Self {
-            medium_interface,
-            point,
-            time,
-            error,
-            dir,
-            normal: Some(normal),
+    /// Add a medium interface to this interaction
+    pub fn with_medium<U>(self, medium: U) -> Interaction<U> {
+        Interaction {
+            medium_interface: medium,
+            point: self.point,
+            time: self.time,
+            error: self.error,
+            dir: self.dir,
+            normal: self.normal,
         }
     }
 
@@ -60,147 +102,70 @@ impl<T> Interaction<T> {
     }
 }
 
-pub trait SurfaceInteractable {
-    fn reverses_orientation(&self) -> bool;
+/// SurfaceInteractable for &dyn SurfaceInteractable
+impl<T: SurfaceInteractable + ?Sized> SurfaceInteractable for &T {
+    fn reverses_orientation(&self) -> bool {
+        (*self).reverses_orientation()
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct SurfaceInteraction<S: SurfaceInteractable, T = ()> {
-    pub interaction: Interaction<T>,
-    pub uv: Point2f,
-    pub dpdu: Vector3f,
-    pub dpdv: Vector3f,
-    pub dndu: Normal3f,
-    pub dndv: Normal3f,
-    pub shape: Option<S>,
-    pub shading: Shading,
+impl SurfaceInteractable for () {
+    fn reverses_orientation(&self) -> bool {
+        false
+    }
 }
 
-impl<S: SurfaceInteractable, T: Default> SurfaceInteraction<S, T> {
+impl SurfaceInteraction<(), ()> {
     /// Create a new surface interaction
     pub fn new(
         point: Point3f,
         error: Vector3f,
         uv: Point2f,
         dir: Vector3f,
-        dpdu: Vector3f,
-        dpdv: Vector3f,
-        dndu: Normal3f,
-        dndv: Normal3f,
+        derivatives: PartialDerivatives,
         time: Float,
     ) -> Self {
-        Self::new_shape_medium(
-            point,
-            error,
-            uv,
-            dir,
-            dpdu,
-            dpdv,
-            dndu,
-            dndv,
-            time,
-            Default::default(),
-            None,
-        )
-    }
-}
+        let normal = Normal3f::from_vector(derivatives.dpdu.cross(derivatives.dpdv).normalise());
+        let interaction = Interaction::new(point, normal, error, dir, time);
 
-impl<S: SurfaceInteractable, T: Default> SurfaceInteraction<S, T> {
-    /// Create a new surface interaction
-    pub fn new_shape(
-        point: Point3f,
-        error: Vector3f,
-        uv: Point2f,
-        dir: Vector3f,
-        dpdu: Vector3f,
-        dpdv: Vector3f,
-        dndu: Normal3f,
-        dndv: Normal3f,
-        time: Float,
-        shape: S,
-    ) -> Self {
-        Self::new_shape_medium(
-            point,
-            error,
+        Self {
+            interaction,
             uv,
-            dir,
-            dpdu,
-            dpdv,
-            dndu,
-            dndv,
-            time,
-            Default::default(),
-            Some(shape),
-        )
+            derivatives,
+            shape: None,
+            shading: Shading {
+                normal,
+                derivatives,
+            },
+        }
     }
 }
 
 impl<S: SurfaceInteractable, T> SurfaceInteraction<S, T> {
-    /// Create a new surface interaction
-    pub fn new_medium(
-        point: Point3f,
-        error: Vector3f,
-        uv: Point2f,
-        dir: Vector3f,
-        dpdu: Vector3f,
-        dpdv: Vector3f,
-        dndu: Normal3f,
-        dndv: Normal3f,
-        time: Float,
-        medium_interface: T,
-    ) -> Self {
-        Self::new_shape_medium(
-            point,
-            error,
-            uv,
-            dir,
-            dpdu,
-            dpdv,
-            dndu,
-            dndv,
-            time,
-            medium_interface,
-            None,
-        )
+    /// Associate a medium interface with this surface interaction
+    pub fn with_medium<U>(self, medium: U) -> SurfaceInteraction<S, U> {
+        SurfaceInteraction {
+            interaction: self.interaction.with_medium(medium),
+            uv: self.uv,
+            derivatives: self.derivatives,
+            shape: self.shape,
+            shading: self.shading,
+        }
     }
 
-    /// Create a new surface interaction
-    pub fn new_shape_medium(
-        point: Point3f,
-        error: Vector3f,
-        uv: Point2f,
-        dir: Vector3f,
-        dpdu: Vector3f,
-        dpdv: Vector3f,
-        dndu: Normal3f,
-        dndv: Normal3f,
-        time: Float,
-        medium_interface: T,
-        shape: Option<S>,
-    ) -> Self {
-        let normal = Normal3f::from_vector(dpdu.cross(dpdv).normalise());
-        let interaction = Interaction::new_with(point, normal, error, dir, time, medium_interface);
-
-        let mut this = Self {
-            interaction,
-            uv,
-            dpdu,
-            dpdv,
-            dndu,
-            dndv,
-            shape,
-            shading: Shading {
-                normal,
-                dpdu,
-                dpdv,
-                dndu,
-                dndv,
-            },
+    /// Associate a shape with this surface interaction
+    pub fn with_shape<S2: SurfaceInteractable>(self, shape: S2) -> SurfaceInteraction<S2, T> {
+        let mut this = SurfaceInteraction {
+            interaction: self.interaction,
+            uv: self.uv,
+            derivatives: self.derivatives,
+            shape: Some(shape),
+            shading: self.shading,
         };
 
         if let Some(shape) = &this.shape {
             if shape.reverses_orientation() {
-                this.interaction.normal = Some(normal * -1.0);
+                this.interaction.normal = Some(this.shading.normal * -1.0);
                 this.shading.normal *= -1.0;
             }
         }
@@ -211,13 +176,11 @@ impl<S: SurfaceInteractable, T> SurfaceInteraction<S, T> {
     /// Change the shading parameters associated with an interaction
     pub fn set_shading_geometry(
         &mut self,
-        dpdus: Vector3f,
-        dpdvs: Vector3f,
-        dndus: Normal3f,
-        dndvs: Normal3f,
+        derivatives: PartialDerivatives,
         orientation_is_authoritative: bool,
     ) {
-        self.shading.normal = Normal3f::from_vector(dpdus.cross(dpdvs)).normalise();
+        self.shading.normal =
+            Normal3f::from_vector(derivatives.dpdu.cross(derivatives.dpdv)).normalise();
 
         if let Some(shape) = &self.shape {
             if shape.reverses_orientation() {
@@ -233,20 +196,8 @@ impl<S: SurfaceInteractable, T> SurfaceInteraction<S, T> {
             }
         }
 
-        self.shading.dpdu = dpdus;
-        self.shading.dpdv = dpdvs;
-        self.shading.dndu = dndus;
-        self.shading.dndv = dndvs;
+        self.shading.derivatives = derivatives;
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Shading {
-    pub normal: Normal3f,
-    pub dpdu: Vector3f,
-    pub dpdv: Vector3f,
-    pub dndu: Normal3f,
-    pub dndv: Normal3f,
 }
 
 impl<S: SurfaceInteractable, T> Mul<SurfaceInteraction<S, T>> for Transform {
