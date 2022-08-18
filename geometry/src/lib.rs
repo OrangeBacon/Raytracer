@@ -1,6 +1,8 @@
 mod animated_transform;
 mod bounds2;
 mod bounds3;
+mod float;
+mod interaction;
 mod interval;
 mod matrix4x4;
 mod normal3;
@@ -13,8 +15,6 @@ mod transform;
 mod vector2;
 mod vector3;
 
-pub mod float;
-mod interaction;
 #[cfg(test)]
 mod tests;
 
@@ -27,6 +27,8 @@ pub type Float = f32;
 pub use number::ConstZero;
 pub use number::Integer;
 pub use number::Number;
+
+pub use float::*;
 
 pub use vector2::Vector2;
 pub use vector2::Vector2f;
@@ -69,9 +71,7 @@ pub use animated_transform::AnimatedTransform;
 
 pub use interval::Interval;
 
-pub use interaction::Interaction;
-pub use interaction::SurfaceInteractable;
-pub use interaction::SurfaceInteraction;
+pub use interaction::*;
 
 /// Linearly interpolate between two floats
 pub fn lerp(t: Float, a: Float, b: Float) -> Float {

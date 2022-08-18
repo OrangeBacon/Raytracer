@@ -4,7 +4,7 @@ use crate::{ConstZero, Float, Number, Point3, Vector3};
 
 /// Ray with an origin and a direction from the origin
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Ray<T = (), F: Number = Float> {
+pub struct Ray<T, F: Number> {
     pub origin: Point3<F>,
     pub direction: Vector3<F>,
     pub t_max: F,

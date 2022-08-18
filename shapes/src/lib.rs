@@ -28,12 +28,12 @@ pub trait Shape: Deref<Target = ShapeData> + DerefMut + SurfaceInteractable {
     /// Find the intersection of self and a ray
     fn intersect(
         &self,
-        ray: Ray,
+        ray: Ray<(), Float>,
         test_alpha: bool,
     ) -> Option<(Float, SurfaceInteraction<&dyn SurfaceInteractable>)>;
 
     /// Find whether self and a ray intersect
-    fn does_intersect(&self, ray: Ray, test_alpha: bool) -> bool {
+    fn does_intersect(&self, ray: Ray<(), Float>, test_alpha: bool) -> bool {
         self.intersect(ray, test_alpha).is_some()
     }
 

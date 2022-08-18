@@ -1,8 +1,11 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    f32::consts::PI,
+    ops::{Deref, DerefMut},
+};
 
 use geometry::{
-    float::EFloat, Bounds3f, ConstZero, Float, Point3f, SurfaceInteractable, SurfaceInteraction,
-    Transform, Vector2f,
+    Bounds3f, ConstZero, EFloat, Float, Normal3f, PartialDerivatives, Point2f, Point3f, Ray,
+    SurfaceInteractable, SurfaceInteraction, Transform, Vector2f, Vector3f,
 };
 
 use crate::{Shape, ShapeData};
@@ -62,10 +65,212 @@ impl Shape for Sphere {
 
     fn intersect(
         &self,
-        ray: geometry::Ray,
-        test_alpha: bool,
+        ray: Ray<(), Float>,
+        _test_alpha: bool,
     ) -> Option<(Float, SurfaceInteraction<&dyn SurfaceInteractable>)> {
-        todo!()
+        // transform ray to object space
+        let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
+
+        let ox = EFloat::new_with_err(ray.origin.x, o_err.x);
+        let oy = EFloat::new_with_err(ray.origin.y, o_err.y);
+        let oz = EFloat::new_with_err(ray.origin.z, o_err.z);
+        let dx = EFloat::new_with_err(ray.direction.x, d_err.x);
+        let dy = EFloat::new_with_err(ray.direction.y, d_err.y);
+        let dz = EFloat::new_with_err(ray.direction.z, d_err.z);
+
+        let a = dx * dx + dy * dy + dz * dz;
+        let b = 2.0 * (dx * ox + dy * oy + dz * oz);
+        let c = ox * ox + oy * oy + oz * oz - EFloat::new(self.radius) * EFloat::new(self.radius);
+
+        let (t0, t1) = EFloat::quadratic(a, b, c)?;
+
+        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= 0.0 {
+            return None;
+        }
+
+        let mut t_shape_hit = if t0.lower_bound() <= 0.0 {
+            if t1.upper_bound() > ray.t_max {
+                return None;
+            }
+            t1
+        } else {
+            t0
+        };
+
+        // compute sphere hit position
+        let mut p_hit = ray.at(t_shape_hit.value());
+        if p_hit.x == 0.0 && p_hit.y == 0.0 {
+            p_hit.x = 1e-5 * self.radius;
+        }
+
+        let mut phi = p_hit.y.atan2(p_hit.x);
+        if phi < 0.0 {
+            phi += 2.0 * PI
+        }
+
+        // test sphere intersection against clipping parameters
+        if (self.z_min > -self.radius && p_hit.z < self.z_min)
+            || (self.z_max < self.radius && p_hit.z > self.z_max)
+            || phi > self.phi_max
+        {
+            if t_shape_hit == t1 || t1.upper_bound() > ray.t_max {
+                return None;
+            }
+            t_shape_hit = t1;
+
+            p_hit = ray.at(t_shape_hit.value());
+            if p_hit.x == 0.0 && p_hit.y == 0.0 {
+                p_hit.x = 1e-5 * self.radius;
+            }
+
+            let mut phi = p_hit.y.atan2(p_hit.x);
+            if phi < 0.0 {
+                phi += 2.0 * PI
+            }
+
+            if (self.z_min > -self.radius && p_hit.z < self.z_min)
+                || (self.z_max < self.radius && p_hit.z > self.z_max)
+                || phi > self.phi_max
+            {
+                return None;
+            }
+        }
+
+        // Parametric representation of sphere hit
+        let u = phi / self.phi_max;
+        let theta = (p_hit.z / self.radius).clamp(-1.0, 1.0).acos();
+        let v = (theta - self.theta_min) / (self.theta_max - self.theta_min);
+
+        let z_radius = (p_hit.x * p_hit.x + p_hit.y * p_hit.y).sqrt();
+        let inv_z_radius = 1.0 / z_radius;
+        let cos_phi = p_hit.x * inv_z_radius;
+        let sin_phi = p_hit.y * inv_z_radius;
+        let dpdu = Vector3f::new(-self.phi_max * p_hit.y, self.phi_max * p_hit.x, 0.0);
+        let dpdv = (self.theta_max - self.theta_min)
+            * Vector3f::new(
+                p_hit.z * cos_phi,
+                p_hit.z * sin_phi,
+                -self.radius * theta.sin(),
+            );
+
+        // Normal vector derivatives
+
+        let d2pdu2 = -self.phi_max * self.phi_max * Vector3f::new(p_hit.x, p_hit.y, 0.0);
+        let d2pduv = (self.theta_max - self.theta_min)
+            * p_hit.z
+            * self.phi_max
+            * Vector3f::new(-sin_phi, cos_phi, 0.0);
+        let d2pdv2 =
+            -(self.theta_max - self.theta_min) * (self.theta_max * self.theta_min) * p_hit.to_vec();
+
+        let e1 = dpdu.dot(dpdu);
+        let f1 = dpdu.dot(dpdv);
+        let g1 = dpdv.dot(dpdv);
+        let normal = dpdu.cross(dpdv).normalise();
+        let e2 = normal.dot(d2pdu2);
+        let f2 = normal.dot(d2pduv);
+        let g2 = normal.dot(d2pdv2);
+
+        let inv_egf2 = 1.0 / (e1 * g1 - f1 * f1);
+        let dndu = Normal3f::from_vector(
+            (f2 * f1 - e2 * g1) * inv_egf2 * dpdu + (e2 * f1 - f2 * e1) * inv_egf2 * dpdv,
+        );
+        let dndv = Normal3f::from_vector(
+            (g2 * f1 - f2 * g1) * inv_egf2 * dpdu + (f2 * f1 - g2 * e1) * inv_egf2 * dpdv,
+        );
+
+        let intersection = self.object_to_world
+            * SurfaceInteraction::new(
+                p_hit,
+                Vector3f::ZERO,
+                Point2f::new(u, v),
+                -ray.direction,
+                PartialDerivatives {
+                    dpdu,
+                    dpdv,
+                    dndu,
+                    dndv,
+                },
+                ray.time,
+            )
+            .with_shape(self as &dyn SurfaceInteractable);
+
+        Some((t_shape_hit.value(), intersection))
+    }
+
+    fn does_intersect(&self, ray: Ray<(), Float>, _test_alpha: bool) -> bool {
+        // transform ray to object space
+        let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
+
+        let ox = EFloat::new_with_err(ray.origin.x, o_err.x);
+        let oy = EFloat::new_with_err(ray.origin.y, o_err.y);
+        let oz = EFloat::new_with_err(ray.origin.z, o_err.z);
+        let dx = EFloat::new_with_err(ray.direction.x, d_err.x);
+        let dy = EFloat::new_with_err(ray.direction.y, d_err.y);
+        let dz = EFloat::new_with_err(ray.direction.z, d_err.z);
+
+        let a = dx * dx + dy * dy + dz * dz;
+        let b = 2.0 * (dx * ox + dy * oy + dz * oz);
+        let c = ox * ox + oy * oy + oz * oz - EFloat::new(self.radius) * EFloat::new(self.radius);
+
+        let (t0, t1) = match EFloat::quadratic(a, b, c) {
+            Some(v) => v,
+            None => return false,
+        };
+
+        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= 0.0 {
+            return false;
+        }
+
+        let mut t_shape_hit = if t0.lower_bound() <= 0.0 {
+            if t1.upper_bound() > ray.t_max {
+                return false;
+            }
+            t1
+        } else {
+            t0
+        };
+
+        // compute sphere hit position
+        let mut p_hit = ray.at(t_shape_hit.value());
+        if p_hit.x == 0.0 && p_hit.y == 0.0 {
+            p_hit.x = 1e-5 * self.radius;
+        }
+
+        let mut phi = p_hit.y.atan2(p_hit.x);
+        if phi < 0.0 {
+            phi += 2.0 * PI
+        }
+
+        // test sphere intersection against clipping parameters
+        if (self.z_min > -self.radius && p_hit.z < self.z_min)
+            || (self.z_max < self.radius && p_hit.z > self.z_max)
+            || phi > self.phi_max
+        {
+            if t_shape_hit == t1 || t1.upper_bound() > ray.t_max {
+                return false;
+            }
+            t_shape_hit = t1;
+
+            p_hit = ray.at(t_shape_hit.value());
+            if p_hit.x == 0.0 && p_hit.y == 0.0 {
+                p_hit.x = 1e-5 * self.radius;
+            }
+
+            let mut phi = p_hit.y.atan2(p_hit.x);
+            if phi < 0.0 {
+                phi += 2.0 * PI
+            }
+
+            if (self.z_min > -self.radius && p_hit.z < self.z_min)
+                || (self.z_max < self.radius && p_hit.z > self.z_max)
+                || phi > self.phi_max
+            {
+                return false;
+            }
+        }
+
+        true
     }
 
     fn area(&self) -> Float {
