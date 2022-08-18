@@ -1,6 +1,6 @@
-use std::ops::Mul;
+use std::ops::{Mul, MulAssign};
 
-use crate::{Float, Normal3f, Point2f, Point3f, Transform, Vector3f};
+use crate::{transform::Applicable, Float, Normal3f, Point2f, Point3f, Transform, Vector3f};
 
 /// interaction at a point on a surface
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -173,6 +173,23 @@ impl<S: SurfaceInteractable, T> SurfaceInteraction<S, T> {
         this
     }
 
+    fn remove_params(&self) -> SurfaceInteraction<(), ()> {
+        SurfaceInteraction {
+            interaction: Interaction {
+                point: self.interaction.point,
+                time: self.interaction.time,
+                error: self.interaction.error,
+                dir: self.interaction.dir,
+                normal: self.interaction.normal,
+                medium_interface: (),
+            },
+            uv: self.uv,
+            derivatives: self.derivatives,
+            shape: Some(()),
+            shading: self.shading,
+        }
+    }
+
     /// Change the shading parameters associated with an interaction
     pub fn set_shading_geometry(
         &mut self,
@@ -200,10 +217,58 @@ impl<S: SurfaceInteractable, T> SurfaceInteraction<S, T> {
     }
 }
 
-impl<S: SurfaceInteractable, T> Mul<SurfaceInteraction<S, T>> for Transform {
+impl<S: SurfaceInteractable, T> Mul<Transform> for SurfaceInteraction<S, T> {
     type Output = SurfaceInteraction<S, T>;
 
-    fn mul(self, _rhs: SurfaceInteraction<S, T>) -> Self::Output {
-        todo!()
+    fn mul(self, rhs: Transform) -> Self::Output {
+        let (point, error) = rhs.apply_err((self.interaction.point, self.interaction.error));
+
+        SurfaceInteraction {
+            interaction: Interaction {
+                point,
+                time: self.interaction.time,
+                error,
+                dir: self.interaction.dir * rhs,
+                normal: self.interaction.normal.map(|n| rhs.apply(n)),
+                medium_interface: self.interaction.medium_interface,
+            },
+            uv: self.uv,
+            derivatives: PartialDerivatives {
+                dpdu: self.derivatives.dpdu * rhs,
+                dpdv: self.derivatives.dpdv * rhs,
+                dndu: self.derivatives.dndu * rhs,
+                dndv: self.derivatives.dndv * rhs,
+            },
+            shape: self.shape,
+            shading: Shading {
+                normal: (self.shading.normal * rhs).normalise(),
+                derivatives: PartialDerivatives {
+                    dpdu: self.shading.derivatives.dpdu * rhs,
+                    dpdv: self.shading.derivatives.dpdv * rhs,
+                    dndu: self.shading.derivatives.dndu * rhs,
+                    dndv: self.shading.derivatives.dndv * rhs,
+                },
+            },
+        }
+    }
+}
+
+impl<S: SurfaceInteractable, T> MulAssign<Transform> for SurfaceInteraction<S, T> {
+    fn mul_assign(&mut self, rhs: Transform) {
+        let res = self.remove_params() * rhs;
+        self.derivatives = res.derivatives;
+        self.interaction.dir = res.interaction.dir;
+        self.interaction.error = res.interaction.error;
+        self.interaction.normal = res.interaction.normal;
+        self.interaction.point = res.interaction.point;
+        self.interaction.time = res.interaction.time;
+        self.shading = res.shading;
+        self.uv = res.uv;
+    }
+}
+
+impl<S: SurfaceInteractable, T> Applicable<SurfaceInteraction<S, T>> for Transform {
+    fn apply(&self, other: SurfaceInteraction<S, T>) -> SurfaceInteraction<S, T> {
+        other * *self
     }
 }

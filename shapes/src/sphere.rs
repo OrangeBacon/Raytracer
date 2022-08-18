@@ -179,21 +179,21 @@ impl Shape for Sphere {
             (g2 * f1 - f2 * g1) * inv_egf2 * dpdu + (f2 * f1 - g2 * e1) * inv_egf2 * dpdv,
         );
 
-        let intersection = self.object_to_world
-            * SurfaceInteraction::new(
-                p_hit,
-                Vector3f::ZERO,
-                Point2f::new(u, v),
-                -ray.direction,
-                PartialDerivatives {
-                    dpdu,
-                    dpdv,
-                    dndu,
-                    dndv,
-                },
-                ray.time,
-            )
-            .with_shape(self as &dyn SurfaceInteractable);
+        let intersection = SurfaceInteraction::new(
+            p_hit,
+            Vector3f::ZERO,
+            Point2f::new(u, v),
+            -ray.direction,
+            PartialDerivatives {
+                dpdu,
+                dpdv,
+                dndu,
+                dndv,
+            },
+            ray.time,
+        )
+        .with_shape(self as &dyn SurfaceInteractable)
+            * self.object_to_world;
 
         Some((t_shape_hit.value(), intersection))
     }
