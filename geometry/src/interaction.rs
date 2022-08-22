@@ -4,7 +4,7 @@ use crate::{transform::Applicable, Float, Normal3f, Point2f, Point3f, Transform,
 
 /// interaction at a point on a surface
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Interaction<T = ()> {
+pub struct Interaction<T> {
     /// location of the interaction
     pub point: Point3f,
 
@@ -55,7 +55,7 @@ pub trait SurfaceInteractable {
 
 /// Interaction between a ray and a generic point on a surface
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct SurfaceInteraction<S: SurfaceInteractable, T = ()> {
+pub struct SurfaceInteraction<S: SurfaceInteractable, T> {
     pub interaction: Interaction<T>,
     pub uv: Point2f,
     pub derivatives: PartialDerivatives,

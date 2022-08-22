@@ -67,7 +67,7 @@ impl Shape for Sphere {
         &self,
         ray: Ray<(), Float>,
         _test_alpha: bool,
-    ) -> Option<(Float, SurfaceInteraction<&dyn SurfaceInteractable>)> {
+    ) -> Option<(Float, SurfaceInteraction<&dyn SurfaceInteractable, ()>)> {
         // transform ray to object space
         let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
 

@@ -1,22 +1,22 @@
 use std::ops::{Mul, MulAssign};
 
 use crate::{
-    lerp, Bounds3, Bounds3f, Float, Interval, Matrix4x4, Point3f, Quaternion, Ray, RayDifferential,
-    Transform, Vector3f, Number,
+    lerp, Bounds3, Bounds3f, Float, Interval, Matrix4x4, Number, Point3f, Quaternion, Ray,
+    RayDifferential, Transform, Vector3, Vector3f,
 };
 
 /// Two transformations interpolated between two points in time
 /// Assumes that both transformations are affine.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct AnimatedTransform {
+pub struct AnimatedTransform<T: Number> {
     start: Transform,
     end: Transform,
-    start_time: Float,
-    end_time: Float,
+    start_time: T,
+    end_time: T,
     is_animated: bool,
 
-    translation: [Vector3f; 2],
-    rotation: [Quaternion; 2],
+    translation: [Vector3<T>; 2],
+    rotation: [Quaternion<T>; 2],
     scale: [Matrix4x4; 2],
 
     has_rotation: bool,
@@ -28,23 +28,18 @@ pub struct AnimatedTransform {
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Default)]
 struct DerivativeTerm(Float, Float, Float, Float);
 
-impl AnimatedTransform {
+impl<T: Number> AnimatedTransform<T> {
     /// Create a new animated transform from two affine transformations
     /// Returns none if unable to interpolate between start and end
-    pub fn new(
-        start: Transform,
-        start_time: Float,
-        end: Transform,
-        end_time: Float,
-    ) -> Option<Self> {
+    pub fn new(start: Transform, start_time: T, end: Transform, end_time: T) -> Option<Self> {
         let (t0, r0, s0) = Self::decompose(start.mat())?;
         let (t1, mut r1, s1) = Self::decompose(end.mat())?;
 
-        if r0.dot(&r1) < 0.0 {
+        if r0.dot(&r1) < T::ZERO {
             r1 = -r1;
         }
 
-        let has_rotation = r0.dot(&r1) < 0.9995;
+        let has_rotation = r0.dot(&r1) < T::ONE - T::LARGE_EPSILON;
 
         let c = if has_rotation {
             calculate_derivative_terms([t0, t1], [r0, r1], [s0, s1])
@@ -67,7 +62,7 @@ impl AnimatedTransform {
     }
 
     /// Decompose a matrix into its component translation, rotation and scale
-    fn decompose(mat: &Matrix4x4) -> Option<(Vector3f, Quaternion, Matrix4x4)> {
+    fn decompose(mat: &Matrix4x4) -> Option<(Vector3<T>, Quaternion<T>, Matrix4x4)> {
         let translate = Vector3f::new(mat[0][3], mat[1][3], mat[2][3]);
 
         // Get the rotation and scale without any translation
@@ -114,12 +109,12 @@ impl AnimatedTransform {
         let rotate_quaternion = Transform::from_mat(&rotate)?.to_quaternion();
         let scale = rotate.inverse()? * mat;
 
-        Some((translate, rotate_quaternion, scale))
+        Some((translate.cast(), rotate_quaternion, scale))
     }
 
     /// Interpolate between the two transforms, saturating when t is outside (start, end) time
     /// so it does not extrapolate.
-    pub fn interpolate(&self, t: Float) -> Transform {
+    pub fn interpolate(&self, t: T) -> Transform {
         if !self.is_animated || t < self.start_time {
             return self.start;
         }
@@ -129,20 +124,20 @@ impl AnimatedTransform {
 
         let dt = (t - self.start_time) / (self.end_time - self.start_time);
 
-        let trans = (1.0 - dt) * self.translation[0] + dt * self.translation[1];
+        let trans = self.translation[0] * (T::ONE - dt) + self.translation[1] * dt;
         let rotate = self.rotation[0].slerp(dt, &self.rotation[1]);
 
         let mut scale = Matrix4x4::IDENTITY;
         for i in 0..3 {
             for j in 0..3 {
-                scale[i][j] = lerp(dt, self.scale[0][i][j], self.scale[1][i][j]);
+                scale[i][j] = lerp(dt.f32(), self.scale[0][i][j], self.scale[1][i][j]);
             }
         }
 
         let scale =
             Transform::from_mat(&scale).expect("Affine scale matrix should always have an inverse");
 
-        Transform::translation(trans) * rotate.to_transform() * scale
+        Transform::translation(trans.cast()) * rotate.to_transform() * scale
     }
 
     /// Get the overall bounds of a box while it is transformed by this transformation
@@ -165,7 +160,7 @@ impl AnimatedTransform {
     fn bound_point_motion(&self, point: Point3f) -> Bounds3f {
         let mut bounds = Bounds3f::new(point * self.start, point * self.end);
         let cos_theta = self.rotation[0].dot(&self.rotation[1]);
-        let theta = cos_theta.clamp(-1.0, 1.0).acos();
+        let theta = cos_theta.clamp(-T::ONE, T::ONE).acos();
 
         for c in 0..3 {
             let (count, zeros): (_, [_; 4]) = Interval::new(0.0, 1.0).find_zeros(
@@ -174,12 +169,12 @@ impl AnimatedTransform {
                 self.c[2][c].eval(point),
                 self.c[3][c].eval(point),
                 self.c[4][c].eval(point),
-                theta,
+                theta.f32(),
             );
             let zeros = &zeros[0..count];
 
             for &zero in zeros {
-                let pz = point * self.interpolate(lerp(zero, self.start_time, self.end_time));
+                let pz = point * self.interpolate(lerp(T::cast(zero), self.start_time, self.end_time));
                 bounds = bounds.union_point(pz);
             }
         }
@@ -194,30 +189,30 @@ impl DerivativeTerm {
     }
 }
 
-impl<T: Copy, F: Number> Mul<AnimatedTransform> for Ray<T, F> {
+impl<T: Copy, F: Number> Mul<AnimatedTransform<F>> for Ray<T, F> {
     type Output = Ray<T, F>;
 
-    fn mul(self, rhs: AnimatedTransform) -> Self::Output {
-        self * rhs.interpolate(self.time.f32())
-    }
-}
-
-impl<T: Copy, F: Number> MulAssign<AnimatedTransform> for Ray<T, F> {
-    fn mul_assign(&mut self, rhs: AnimatedTransform) {
-        *self = *self * rhs
-    }
-}
-
-impl Mul<AnimatedTransform> for RayDifferential {
-    type Output = RayDifferential;
-
-    fn mul(self, rhs: AnimatedTransform) -> Self::Output {
+    fn mul(self, rhs: AnimatedTransform<F>) -> Self::Output {
         self * rhs.interpolate(self.time)
     }
 }
 
-impl MulAssign<AnimatedTransform> for RayDifferential {
-    fn mul_assign(&mut self, rhs: AnimatedTransform) {
+impl<T: Copy, F: Number> MulAssign<AnimatedTransform<F>> for Ray<T, F> {
+    fn mul_assign(&mut self, rhs: AnimatedTransform<F>) {
+        *self = *self * rhs
+    }
+}
+
+impl<F: Number> Mul<AnimatedTransform<F>> for RayDifferential {
+    type Output = RayDifferential;
+
+    fn mul(self, rhs: AnimatedTransform<F>) -> Self::Output {
+        self * rhs.interpolate(F::cast(self.time))
+    }
+}
+
+impl<F: Number> MulAssign<AnimatedTransform<F>> for RayDifferential {
+    fn mul_assign(&mut self, rhs: AnimatedTransform<F>) {
         *self = *self * rhs
     }
 }
@@ -229,9 +224,9 @@ impl MulAssign<AnimatedTransform> for RayDifferential {
 /// are the results returned by this function.
 /// This was calculated using a computer algebra system and the result copied from
 /// https://github.com/mmp/pbrt-v3/blob/aaa552a4b9cbf9dccb71450f47b268e0ed6370e2/src/core/transform.cpp#L414
-fn calculate_derivative_terms(
-    translation: [Vector3f; 2],
-    rotation: [Quaternion; 2],
+fn calculate_derivative_terms<T: Number>(
+    translation: [Vector3<T>; 2],
+    rotation: [Quaternion<T>; 2],
     scale: [Matrix4x4; 2],
 ) -> [[DerivativeTerm; 3]; 5] {
     let mut c1: [DerivativeTerm; 3] = Default::default();
@@ -241,23 +236,23 @@ fn calculate_derivative_terms(
     let mut c5: [DerivativeTerm; 3] = Default::default();
 
     let cos_theta = rotation[0].dot(&rotation[1]);
-    let theta = cos_theta.clamp(-1.0, 1.0).acos();
+    let theta = cos_theta.clamp(-T::ONE, T::ONE).acos().f32();
     let qperp = (rotation[1] - rotation[0] * cos_theta).normalise();
 
-    let t0x = translation[0].x;
-    let t0y = translation[0].y;
-    let t0z = translation[0].z;
-    let t1x = translation[1].x;
-    let t1y = translation[1].y;
-    let t1z = translation[1].z;
-    let q0x = rotation[0].vec.x;
-    let q0y = rotation[0].vec.y;
-    let q0z = rotation[0].vec.z;
-    let q0w = rotation[0].w;
-    let qperpx = qperp.vec.x;
-    let qperpy = qperp.vec.y;
-    let qperpz = qperp.vec.z;
-    let qperpw = qperp.w;
+    let t0x = translation[0].x.f32();
+    let t0y = translation[0].y.f32();
+    let t0z = translation[0].z.f32();
+    let t1x = translation[1].x.f32();
+    let t1y = translation[1].y.f32();
+    let t1z = translation[1].z.f32();
+    let q0x = rotation[0].vec.x.f32();
+    let q0y = rotation[0].vec.y.f32();
+    let q0z = rotation[0].vec.z.f32();
+    let q0w = rotation[0].w.f32();
+    let qperpx = qperp.vec.x.f32();
+    let qperpy = qperp.vec.y.f32();
+    let qperpz = qperp.vec.z.f32();
+    let qperpw = qperp.w.f32();
     let s000 = scale[0][0][0];
     let s001 = scale[0][0][1];
     let s002 = scale[0][0][2];

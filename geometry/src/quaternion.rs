@@ -1,10 +1,10 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use crate::{Float, Matrix4x4, Transform, Vector3f, ConstZero, Vector3, Number};
+use crate::{ConstZero, Matrix4x4, Number, Transform, Vector3, Vector3f};
 
 /// Quaternion (4 component rotation)
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Quaternion<F: Number = Float> {
+pub struct Quaternion<F: Number> {
     pub vec: Vector3<F>,
     pub w: F,
 }
@@ -95,7 +95,7 @@ impl Transform {
     /// rotation component.  See [`here`] for where the implementation was taken from
     ///
     /// [`here`]: https://github.com/mmp/pbrt-v3/blob/aaa552a4b9cbf9dccb71450f47b268e0ed6370e2/src/core/quaternion.cpp#L61
-    pub fn to_quaternion(&self) -> Quaternion {
+    pub fn to_quaternion<T: Number>(&self) -> Quaternion<T> {
         let m = self.mat();
         let trace = m[0][0] + m[1][1] + m[2][2];
 
@@ -111,7 +111,7 @@ impl Transform {
                 (m[1][0] - m[0][1]) * s,
             );
 
-            Quaternion { vec, w }
+            Quaternion { vec: vec.cast(), w: T::cast(w) }
         } else {
             // Compute largest of x, y, or z, then remaining components
             let nxt = [1, 2, 0];
@@ -135,7 +135,7 @@ impl Transform {
             q[k] = (m[k][i] + m[i][k]) * s;
             let vec = Vector3f::from_array(q);
 
-            Quaternion { vec, w }
+            Quaternion { vec: vec.cast(), w: T::cast(w) }
         }
     }
 }

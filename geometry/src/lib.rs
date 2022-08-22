@@ -74,8 +74,8 @@ pub use interval::Interval;
 pub use interaction::*;
 
 /// Linearly interpolate between two floats
-pub fn lerp(t: Float, a: Float, b: Float) -> Float {
-    (1.0 - t) * a + t * b
+pub fn lerp<T: Number>(t: T, a: T, b: T) -> T {
+    (T::ONE - t) * a + t * b
 }
 
 /// Solve a quadratic equation ax^2 + bx + c = 0

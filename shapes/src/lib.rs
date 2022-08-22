@@ -30,7 +30,7 @@ pub trait Shape: Deref<Target = ShapeData> + DerefMut + SurfaceInteractable {
         &self,
         ray: Ray<(), Float>,
         test_alpha: bool,
-    ) -> Option<(Float, SurfaceInteraction<&dyn SurfaceInteractable>)>;
+    ) -> Option<(Float, SurfaceInteraction<&dyn SurfaceInteractable, ()>)>;
 
     /// Find whether self and a ray intersect
     fn does_intersect(&self, ray: Ray<(), Float>, test_alpha: bool) -> bool {
