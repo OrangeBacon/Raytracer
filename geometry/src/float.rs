@@ -2,16 +2,14 @@
 
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use crate::{Float, Number};
-
-const EPSILON: Float = Float::EPSILON * 0.5;
+use crate::Number;
 
 /// Convert a floating point value into its bit representation.
 /// # Safety
 /// Assumes that the bit representation of the input is a valid value
 /// of the output type.
 #[inline]
-pub unsafe fn float_to_bits(f: Float) -> <Float as Number>::Bits {
+pub unsafe fn float_to_bits<T: Number>(f: T) -> T::Bits {
     std::mem::transmute_copy(&f)
 }
 
@@ -20,78 +18,78 @@ pub unsafe fn float_to_bits(f: Float) -> <Float as Number>::Bits {
 /// Assumes that the bit representation of the input is a valid value
 /// of the output type.
 #[inline]
-pub unsafe fn bits_to_float(f: <Float as Number>::Bits) -> Float {
+pub unsafe fn bits_to_float<T: Number>(f: T::Bits) -> T {
     std::mem::transmute_copy(&f)
 }
 
 /// Calculate the next float after the input
-pub fn next_float_up(v: Float) -> Float {
-    if v.is_infinite() && v > 0.0 {
+pub fn next_float_up<T: Number>(v: T) -> T {
+    if !v.is_finite() && v > T::ZERO {
         return v;
     }
-    if v == -0.0 {
-        return 0.0;
+    if v == -T::ZERO {
+        return T::ZERO;
     }
 
     let mut bits = unsafe { float_to_bits(v) };
-    if v >= 0.0 {
-        bits += 1;
+    if v >= T::ZERO {
+        bits = T::bit_add(bits, 1);
     } else {
-        bits -= 1;
+        bits = T::bit_add(bits, -1);
     }
     unsafe { bits_to_float(bits) }
 }
 
 /// Calculate the next float before the input
-pub fn next_float_down(v: Float) -> Float {
-    if v.is_infinite() && v < 0.0 {
+pub fn next_float_down<T: Number>(v: T) -> T {
+    if !v.is_finite() && v < T::ZERO {
         return v;
     }
-    if v == 0.0 {
-        return -0.0;
+    if v == T::ZERO {
+        return -T::ZERO;
     }
 
     let mut bits = unsafe { float_to_bits(v) };
-    if v > 0.0 {
-        bits -= 1;
+    if v > T::ZERO {
+        bits = T::bit_add(bits, -1);
     } else {
-        bits += 1;
+        bits = T::bit_add(bits, 1);
     }
     unsafe { bits_to_float(bits) }
 }
 
 /// Gamma floating point error bound
-pub fn gamma(n: i32) -> Float {
-    (n as Float * EPSILON) / (1.0 - n as Float * EPSILON)
+pub fn gamma<T: Number>(n: i32) -> T {
+    (T::cast(n) * T::EPSILON) / (T::ONE - T::cast(n) * T::EPSILON)
 }
 
 /// Float that tracks its error due to floating point inaccuracies
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct EFloat {
-    value: Float,
-    low: Float,
-    high: Float,
+pub struct EFloat<T: Number> {
+    value: T,
+    low: T,
+    high: T,
 
     #[cfg(debug_assertions)]
     ld: f64,
 }
 
-impl EFloat {
+impl<T: Number> EFloat<T> {
     /// Create a new Error float with 0 error
-    pub fn new(v: Float) -> Self {
+    pub fn new(v: T) -> Self {
         Self {
             value: v,
             low: v,
             high: v,
             #[cfg(debug_assertions)]
-            ld: v as _,
+            ld: v.f64(),
         }
         .assert_correct()
     }
 
     /// Create a new Error float with a given error bound
-    pub fn new_with_err(v: Float, err: Float) -> Self {
-        if err == 0.0 {
+    pub fn new_with_err(v: T, err: T) -> Self {
+        if err == T::ZERO {
             return Self::new(v);
         }
 
@@ -101,18 +99,18 @@ impl EFloat {
             high: next_float_up(v + err),
 
             #[cfg(debug_assertions)]
-            ld: v as _,
+            ld: v.f64(),
         }
         .assert_correct()
     }
 
     /// The lower bound of the error stored in the float
-    pub fn lower_bound(&self) -> Float {
+    pub fn lower_bound(&self) -> T {
         self.low
     }
 
     /// The upper bound of the error stored in the float
-    pub fn upper_bound(&self) -> Float {
+    pub fn upper_bound(&self) -> T {
         self.high
     }
 
@@ -128,15 +126,15 @@ impl EFloat {
 
         #[cfg(debug_assertions)]
         if self.value.is_finite() && !self.value.is_nan() {
-            debug_assert!(self.low as f64 <= self.ld);
-            debug_assert!(self.ld <= self.high as f64);
+            debug_assert!(self.low.f64() <= self.ld);
+            debug_assert!(self.ld <= self.high.f64());
         }
 
         *self
     }
 
     /// The absolute value of the error
-    pub fn absolute_error(&self) -> Float {
+    pub fn absolute_error(&self) -> T {
         next_float_up(
             (self.high - self.value)
                 .abs()
@@ -145,12 +143,12 @@ impl EFloat {
     }
 
     #[cfg(debug_assertions)]
-    pub fn relative_error(&self) -> Float {
-        ((self.ld - self.value as f64) / self.ld).abs() as _
+    pub fn relative_error(&self) -> f64 {
+        ((self.ld - self.value.f64()) / self.ld).abs()
     }
 
     /// Get the contained floating point value, discarding the error bounds
-    pub fn value(&self) -> Float {
+    pub fn value(&self) -> T {
         self.value
     }
 
@@ -169,9 +167,9 @@ impl EFloat {
 
     /// Absolute value of the float, including dealing with the bounds
     pub fn abs(&self) -> Self {
-        if self.low >= 0.0 {
+        if self.low >= T::ZERO {
             *self // All above zero so nothing changes
-        } else if self.high <= 0.0 {
+        } else if self.high <= T::ZERO {
             Self {
                 // All bellow zero so negate
                 value: -self.value,
@@ -186,7 +184,7 @@ impl EFloat {
             // Interval approx equal zero
             Self {
                 value: self.value.abs(),
-                low: 0.0,
+                low: T::ZERO,
                 high: self.high.max(-self.low),
 
                 #[cfg(debug_assertions)]
@@ -199,22 +197,22 @@ impl EFloat {
     /// Solve a quadratic equation ax^2 + bx + c = 0
     /// If no real solutions are found, returns None.  If both solutions are the
     /// same, that solution will be both return values.
-    pub fn quadratic(a: EFloat, b: EFloat, c: EFloat) -> Option<(EFloat, EFloat)> {
-        let discriminant = b.value * b.value - 4.0 * a.value * c.value;
-        if discriminant < 0.0 {
+    pub fn quadratic(a: Self, b: Self, c: Self) -> Option<(Self, Self)> {
+        let discriminant = b.value * b.value - T::cast(4) * a.value * c.value;
+        if discriminant < T::ZERO {
             return None;
         }
         let root = discriminant.sqrt();
-        let root = EFloat::new_with_err(root, EPSILON * root);
+        let root = EFloat::new_with_err(root, T::EPSILON * (T::ONE / T::ZERO) * root);
 
-        let q = if b.value < 0.0 {
-            -0.5 * (b - root)
+        let q = if b.value < T::ZERO {
+            (b - root) * -(T::ONE / T::TWO)
         } else {
-            -0.5 * (b + root)
+            (b + root) * -(T::ONE / T::TWO)
         };
 
-        let t0: EFloat = q / a;
-        let t1: EFloat = c / q;
+        let t0 = q / a;
+        let t1 = c / q;
 
         if t0.value() > t1.value() {
             Some((t1, t0))
@@ -224,7 +222,7 @@ impl EFloat {
     }
 }
 
-impl Add for EFloat {
+impl<T: Number> Add for EFloat<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -240,13 +238,13 @@ impl Add for EFloat {
     }
 }
 
-impl AddAssign for EFloat {
+impl<T: Number> AddAssign for EFloat<T> {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs
     }
 }
 
-impl Sub for EFloat {
+impl<T: Number> Sub for EFloat<T> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -262,13 +260,13 @@ impl Sub for EFloat {
     }
 }
 
-impl SubAssign for EFloat {
+impl<T: Number> SubAssign for EFloat<T> {
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs
     }
 }
 
-impl Mul for EFloat {
+impl<T: Number> Mul for EFloat<T> {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -293,19 +291,19 @@ impl Mul for EFloat {
     }
 }
 
-impl MulAssign for EFloat {
+impl<T: Number> MulAssign for EFloat<T> {
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs
     }
 }
 
-impl Div for EFloat {
+impl<T: Number> Div for EFloat<T> {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        let (low, high) = if rhs.low < 0.0 && rhs.high > 0.0 {
+        let (low, high) = if rhs.low < T::ZERO && rhs.high > T::ZERO {
             // denominator is approx 0 so say infinite error
-            (-Float::INFINITY, Float::INFINITY)
+            (-T::INFINITY, T::INFINITY)
         } else {
             let div = [
                 self.low / rhs.low,
@@ -331,13 +329,13 @@ impl Div for EFloat {
     }
 }
 
-impl DivAssign for EFloat {
+impl<T: Number> DivAssign for EFloat<T> {
     fn div_assign(&mut self, rhs: Self) {
         *self = *self / rhs
     }
 }
 
-impl Neg for EFloat {
+impl<T: Number> Neg for EFloat<T> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
@@ -353,57 +351,57 @@ impl Neg for EFloat {
     }
 }
 
-impl<F: Number> Add<F> for EFloat {
-    type Output = EFloat;
+impl<F: Number> Add<F> for EFloat<F> {
+    type Output = Self;
 
     fn add(self, rhs: F) -> Self::Output {
-        self + EFloat::new(rhs.f32())
+        self + EFloat::new(rhs)
     }
 }
 
-impl<F: Number> AddAssign<F> for EFloat {
+impl<F: Number> AddAssign<F> for EFloat<F> {
     fn add_assign(&mut self, rhs: F) {
         *self = *self + rhs
     }
 }
 
-impl<F: Number> Sub<F> for EFloat {
-    type Output = EFloat;
+impl<F: Number> Sub<F> for EFloat<F> {
+    type Output = Self;
 
     fn sub(self, rhs: F) -> Self::Output {
-        self - EFloat::new(rhs.f32())
+        self - EFloat::new(rhs)
     }
 }
 
-impl<F: Number> SubAssign<F> for EFloat {
+impl<F: Number> SubAssign<F> for EFloat<F> {
     fn sub_assign(&mut self, rhs: F) {
         *self = *self - rhs
     }
 }
 
-impl<F: Number> Mul<F> for EFloat {
-    type Output = EFloat;
+impl<F: Number> Mul<F> for EFloat<F> {
+    type Output = Self;
 
     fn mul(self, rhs: F) -> Self::Output {
-        self * EFloat::new(rhs.f32())
+        self * EFloat::new(rhs)
     }
 }
 
-impl<F: Number> MulAssign<F> for EFloat {
+impl<F: Number> MulAssign<F> for EFloat<F> {
     fn mul_assign(&mut self, rhs: F) {
         *self = *self * rhs
     }
 }
 
-impl<F: Number> Div<F> for EFloat {
-    type Output = EFloat;
+impl<F: Number> Div<F> for EFloat<F> {
+    type Output = Self;
 
     fn div(self, rhs: F) -> Self::Output {
-        self / EFloat::new(rhs.f32())
+        self / EFloat::new(rhs)
     }
 }
 
-impl<F: Number> DivAssign<F> for EFloat {
+impl<F: Number> DivAssign<F> for EFloat<F> {
     fn div_assign(&mut self, rhs: F) {
         *self = *self / rhs
     }
@@ -411,35 +409,35 @@ impl<F: Number> DivAssign<F> for EFloat {
 
 macro_rules! number_impls {
     ($lhs:ty) => {
-        impl Add<EFloat> for $lhs {
-            type Output = EFloat;
+        impl Add<EFloat<$lhs>> for $lhs {
+            type Output = EFloat<$lhs>;
 
-            fn add(self, rhs: EFloat) -> Self::Output {
-                EFloat::new(self as Float) + rhs
+            fn add(self, rhs: EFloat<$lhs>) -> Self::Output {
+                EFloat::new(self) + rhs
             }
         }
 
-        impl Sub<EFloat> for $lhs {
-            type Output = EFloat;
+        impl Sub<EFloat<$lhs>> for $lhs {
+            type Output = EFloat<$lhs>;
 
-            fn sub(self, rhs: EFloat) -> Self::Output {
-                EFloat::new(self as Float) - rhs
+            fn sub(self, rhs: EFloat<$lhs>) -> Self::Output {
+                EFloat::new(self) - rhs
             }
         }
 
-        impl Mul<EFloat> for $lhs {
-            type Output = EFloat;
+        impl Mul<EFloat<$lhs>> for $lhs {
+            type Output = EFloat<$lhs>;
 
-            fn mul(self, rhs: EFloat) -> Self::Output {
-                EFloat::new(self as Float) * rhs
+            fn mul(self, rhs: EFloat<$lhs>) -> Self::Output {
+                EFloat::new(self) * rhs
             }
         }
 
-        impl Div<EFloat> for $lhs {
-            type Output = EFloat;
+        impl Div<EFloat<$lhs>> for $lhs {
+            type Output = EFloat<$lhs>;
 
-            fn div(self, rhs: EFloat) -> Self::Output {
-                EFloat::new(self as Float) / rhs
+            fn div(self, rhs: EFloat<$lhs>) -> Self::Output {
+                EFloat::new(self) / rhs
             }
         }
     };

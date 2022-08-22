@@ -71,7 +71,7 @@ pub struct RayDifferentials<F: Number = Float> {
 
 /// Ray with differential information
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct RayDifferential<T = (), F: Number = Float> {
+pub struct RayDifferential<T, F: Number> {
     pub main: Ray<T, F>,
     pub differentials: Option<RayDifferentials<F>>,
 }

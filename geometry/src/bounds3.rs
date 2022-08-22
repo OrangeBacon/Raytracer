@@ -190,7 +190,7 @@ impl Bounds3f {
                 std::mem::swap(&mut t_near, &mut t_far);
             }
 
-            t_far *= 1.0 + 2.0 * gamma(3);
+            t_far *= 1.0 + 2.0 * gamma::<Float>(3);
             t0 = t0.max(t_near);
             t1 = t1.min(t_far);
             if t0 > t1 {
@@ -209,8 +209,8 @@ impl Bounds3f {
         let ty_min = (self[is_neg[1] as usize].y - ray.origin.y) * inv.y;
         let mut ty_max = (self[1 - is_neg[1] as usize].y - ray.origin.y) * inv.y;
 
-        t_max *= 1.0 + 2.0 * gamma(3);
-        ty_max *= 1.0 + 2.0 * gamma(3);
+        t_max *= 1.0 + 2.0 * gamma::<Float>(3);
+        ty_max *= 1.0 + 2.0 * gamma::<Float>(3);
 
         if t_min > ty_max || ty_min > t_max {
             return false;
@@ -220,7 +220,7 @@ impl Bounds3f {
 
         let tz_min = (self[is_neg[2] as usize].z - ray.origin.z) * inv.z;
         let mut tz_max = (self[1 - is_neg[2] as usize].z - ray.origin.z) * inv.z;
-        tz_max *= 1.0 + 2.0 * gamma(3);
+        tz_max *= 1.0 + 2.0 * gamma::<Float>(3);
 
         if t_min > tz_max || tz_min > t_max {
             return false;

@@ -1,7 +1,7 @@
 use std::{
     cmp::Ordering,
     fmt::Debug,
-    ops::{Add, Div, Mul, Neg, Sub},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 /// any type that has a const default value
@@ -13,6 +13,7 @@ pub trait ConstZero {
 pub trait Number:
     Debug
     + Copy
+    + Default
     + PartialEq
     + PartialOrd
     + Add<Output = Self>
@@ -20,6 +21,10 @@ pub trait Number:
     + Mul<Output = Self>
     + Div<Output = Self>
     + Neg<Output = Self>
+    + AddAssign<Self>
+    + SubAssign<Self>
+    + MulAssign<Self>
+    + DivAssign<Self>
 {
     /// The Bit representation of the type
     type Bits;
@@ -45,11 +50,17 @@ pub trait Number:
     /// Infinity or Self::MAX if there is no representable infinity
     const INFINITY: Self;
 
+    /// Machine epsilon value
+    const EPSILON: Self;
+
     /// 0.0005
     const LARGE_EPSILON: Self;
 
     /// Is this type a NaN value, always false if type is not floating
     fn is_nan(&self) -> bool;
+
+    /// Is this number not infinity
+    fn is_finite(&self) -> bool;
 
     /// Absolute value of the input
     fn abs(&self) -> Self;
@@ -81,6 +92,26 @@ pub trait Number:
     /// Clamp the value between two other values
     fn clamp(&self, min: Self, max: Self) -> Self;
 
+    /// Largest of the input and self
+    #[inline]
+    fn max(&self, rhs: Self) -> Self {
+        if *self > rhs {
+            *self
+        } else {
+            rhs
+        }
+    }
+
+    /// Smallest of the input and self
+    #[inline]
+    fn min(&self, rhs: Self) -> Self {
+        if *self < rhs {
+            *self
+        } else {
+            rhs
+        }
+    }
+
     /// Sine of the number (radians)
     fn sin(&self) -> Self;
 
@@ -89,6 +120,15 @@ pub trait Number:
 
     /// Inverse cos of the number (radians)
     fn acos(&self) -> Self;
+
+    /// Add a value to the [`Self::Bits`] type
+    fn bit_add(lhs: Self::Bits, rhs: i32) -> Self::Bits;
+
+    /// Convert a number in degrees to radians
+    fn to_radians(&self) -> Self;
+
+    /// Four quadrant inverse tangent of rhs / self
+    fn atan2(&self, rhs: Self) -> Self;
 }
 
 /// Marker trait for integers
@@ -109,11 +149,17 @@ macro_rules! NumberFloat {
             const MAX: Self = <$type>::MAX;
             const PI: Self = std::$name::consts::PI;
             const INFINITY: Self = <$type>::INFINITY;
+            const EPSILON: Self = <$type>::EPSILON;
             const LARGE_EPSILON: Self = 0.0005;
 
             #[inline]
             fn is_nan(&self) -> bool {
                 <$type>::is_nan(*self)
+            }
+
+            #[inline]
+            fn is_finite(&self) -> bool {
+                <$type>::is_finite(*self)
             }
 
             #[inline]
@@ -146,7 +192,17 @@ macro_rules! NumberFloat {
                 <$type>::clamp(*self, min, max)
             }
 
-            NumberFloat! { @fns($type) sin, cos, acos, ceil, floor, sqrt, abs }
+            #[inline]
+            fn bit_add(lhs: Self::Bits, rhs: i32) -> Self::Bits {
+                lhs + rhs as Self::Bits
+            }
+
+            #[inline]
+            fn atan2(&self, rhs: Self) -> Self {
+                <$type>::atan2(*self, rhs)
+            }
+
+            NumberFloat! { @fns($type) sin, cos, acos, ceil, floor, sqrt, abs, to_radians }
         }
     };
     (($type:ty, $name:ident, $bits:ty), $(($other_type:ty, $other_name:ident, $other_bits:ty)),+ $(,)?) => {
@@ -176,11 +232,17 @@ macro_rules! NumberInteger {
             const MAX: Self = <$type>::MAX;
             const PI: Self = std::f64::consts::PI as _;
             const INFINITY: Self = Self::MAX;
+            const EPSILON: Self = 0;
             const LARGE_EPSILON: Self = 0;
 
             #[inline]
             fn is_nan(&self) -> bool {
                 false
+            }
+
+            #[inline]
+            fn is_finite(&self) -> bool {
+                true
             }
 
             #[inline]
@@ -228,7 +290,20 @@ macro_rules! NumberInteger {
                 <$type as Ord>::clamp(*self, min, max)
             }
 
-            NumberInteger! { @fns($type) sqrt, sin, cos, acos }
+            #[inline]
+            fn bit_add(lhs: Self::Bits, rhs: i32) -> Self::Bits {
+                lhs + rhs as Self::Bits
+            }
+
+            #[inline]
+            fn atan2(&self, rhs: Self) -> Self {
+                debug_assert!(self.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
+                debug_assert!(rhs.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
+
+                (*self as f64).atan2(rhs as f64) as Self
+            }
+
+            NumberInteger! { @fns($type) sqrt, sin, cos, acos, to_radians }
         }
     };
     (($type:ty, $name:ident), $(($other_type:ty, $other_name:ident)),+ $(,)?) => {

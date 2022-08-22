@@ -1,21 +1,19 @@
 #![allow(unused)]
 
-mod transform_set;
 mod options;
+mod transform_set;
 
-use std::{
-    path::Path,
-    str::Chars,
-};
+use std::{path::Path, str::Chars};
 
 use anyhow::Result;
+use geometry::{Number, Float};
 
 use crate::pbrt::transform_set::TransformSet;
 
 pub fn parse_pbrt(file_name: impl AsRef<Path>) -> Result<Vec<()>> {
     let mut files = vec![std::fs::read_to_string(file_name)?];
 
-    let mut parser = Parser::new(&mut files);
+    let mut parser = Parser::<Float>::new(&mut files);
 
     parser.parse()
 }
@@ -109,12 +107,12 @@ impl<'a> Tokeniser<'a> {
     }
 }
 
-struct Parser<'a> {
+struct Parser<'a, T: Number> {
     files: &'a mut [String],
-    transforms: TransformSet,
+    transforms: TransformSet<T>,
 }
 
-impl<'a> Parser<'a> {
+impl<'a, T: Number> Parser<'a, T> {
     fn new(files: &'a mut [String]) -> Self {
         Self {
             files,

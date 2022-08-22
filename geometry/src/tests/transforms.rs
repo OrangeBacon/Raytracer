@@ -1,7 +1,6 @@
-use crate::{tests::rng::Rng, AnimatedTransform, Bounds3f, Point3f, Transform, Vector3f};
+use crate::{tests::rng::Rng, AnimatedTransform, Bounds3f, Float, Point3f, Transform, Vector3f};
 
 #[test]
-#[ignore]
 fn random_transform_interpolation() {
     let mut rng = Rng::new(1);
 
@@ -43,18 +42,18 @@ fn random_transform_interpolation() {
     }
 }
 
-fn random_transform(rng: &mut Rng) -> Transform {
+fn random_transform(rng: &mut Rng) -> Transform<Float> {
     let mut r = || -10.0 + 20.0 * rng.float();
     let mut transform = Transform::IDENTITY;
 
     for _ in 0..10 {
         match r() as i32 {
             -10..=-4 => {
-                // transform = transform * Transform::scale(Vector3f::new(r(), r(), r()).abs())
+                transform = transform * Transform::scale(Vector3f::new(r(), r(), r()).abs())
             }
-            // -3..=3 => transform = transform * Transform::translation(Vector3f::new(r(), r(), r())),
+            -3..=3 => transform = transform * Transform::translation(Vector3f::new(r(), r(), r())),
             _ => {
-                transform = transform * Transform::rotate(Vector3f::new(r(), r(), r()), r() * 20.0);
+                // transform = transform * Transform::rotate(Vector3f::new(r(), r(), r()), r() * 20.0);
             }
         }
     }

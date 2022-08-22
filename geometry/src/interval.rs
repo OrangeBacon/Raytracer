@@ -3,29 +3,29 @@ use std::{
     ops::{Add, Index, Mul, Sub},
 };
 
-use crate::{number::Number, Float};
+use crate::number::Number;
 
 /// class to simplify calculations with intervals of real numbers
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Interval {
-    low: Float,
-    high: Float,
+pub struct Interval<T: Number> {
+    low: T,
+    high: T,
     _remove_constructors: PhantomData<()>,
 }
 
-impl Default for Interval {
+impl<T: Number> Default for Interval<T> {
     fn default() -> Self {
         Self {
-            low: 0.0,
-            high: 0.0,
+            low: T::ZERO,
+            high: T::ZERO,
             _remove_constructors: PhantomData,
         }
     }
 }
 
-impl Interval {
+impl<T: Number> Interval<T> {
     /// Create a new interval between two points
-    pub fn new(v0: Float, v1: Float) -> Self {
+    pub fn new(v0: T, v1: T) -> Self {
         debug_assert!(!v0.is_nan());
         debug_assert!(!v1.is_nan());
 
@@ -37,7 +37,7 @@ impl Interval {
     }
 
     /// Create a new interval where the bounds are equal
-    pub fn new_eq(val: Float) -> Self {
+    pub fn new_eq(val: T) -> Self {
         Self {
             low: val,
             high: val,
@@ -48,19 +48,19 @@ impl Interval {
     /// Calculate the sin of the interval, output is undefined when the interval is
     /// outside of the bounds [0, 2pi]
     pub fn sin(&self) -> Self {
-        debug_assert!(self.low >= 0.0);
-        debug_assert!(self.high <= 2.0001 * Float::PI);
+        debug_assert!(self.low >= T::ZERO);
+        debug_assert!(self.high <= T::cast(2.0001) * T::PI);
         let mut sin_low = self.low.sin();
         let mut sin_high = self.high.sin();
 
         if sin_low > sin_high {
             std::mem::swap(&mut sin_low, &mut sin_high);
         }
-        if self.low < Float::PI / 2.0 && self.high > Float::PI / 2.0 {
-            sin_high = 1.0;
+        if self.low < T::PI / T::TWO && self.high > T::PI / T::TWO {
+            sin_high = T::ONE;
         }
-        if self.low < (3.0 / 2.0) * Float::PI && self.high > (3.0 / 2.0) * Float::PI {
-            sin_low = -1.0;
+        if self.low < T::cast(3.0 / 2.0) * T::PI && self.high > T::cast(3.0 / 2.0) * T::PI {
+            sin_low = -T::ONE;
         }
 
         Interval::new(sin_low, sin_high)
@@ -69,8 +69,8 @@ impl Interval {
     /// Calculate the cos of the interval, output is undefined when the interval is
     /// outside of the bounds [0, 2pi]
     pub fn cos(&self) -> Self {
-        debug_assert!(self.low >= 0.0);
-        debug_assert!(self.high <= 2.0001 * Float::PI);
+        debug_assert!(self.low >= T::ZERO);
+        debug_assert!(self.high <= T::cast(2.0001) * T::PI);
 
         let mut cos_low = self.low.cos();
         let mut cos_high = self.high.cos();
@@ -78,8 +78,8 @@ impl Interval {
         if cos_low > cos_high {
             std::mem::swap(&mut cos_low, &mut cos_high);
         }
-        if self.low < Float::PI && self.high > Float::PI {
-            cos_low = -1.0;
+        if self.low < T::PI && self.high > T::PI {
+            cos_low = -T::ONE;
         }
 
         Interval::new(cos_low, cos_high)
@@ -88,29 +88,29 @@ impl Interval {
     /// Find up to N motion derivative zeros within the this interval
     pub fn find_zeros<const N: usize>(
         &self,
-        c1: Float,
-        c2: Float,
-        c3: Float,
-        c4: Float,
-        c5: Float,
-        theta: Float,
-    ) -> (usize, [Float; N]) {
+        c1: T,
+        c2: T,
+        c3: T,
+        c4: T,
+        c5: T,
+        theta: T,
+    ) -> (usize, [T; N]) {
         #[derive(Clone, Copy)]
-        struct Params([Float; 5]);
-        impl Index<usize> for Params {
-            type Output = Float;
+        struct Params<T: Number>([T; 5]);
+        impl<T: Number> Index<usize> for Params<T> {
+            type Output = T;
 
             fn index(&self, index: usize) -> &Self::Output {
                 &self.0[index - 1]
             }
         }
 
-        fn inner<const N: usize>(
-            interval: Interval,
-            c: Params,
-            theta: Float,
+        fn inner<const N: usize, T: Number>(
+            interval: Interval<T>,
+            c: Params<T>,
+            theta: T,
             depth: i32,
-            res: &mut [Float; N],
+            res: &mut [T; N],
             result_count: &mut usize,
         ) {
             if depth < 0 || *result_count == N {
@@ -119,16 +119,16 @@ impl Interval {
 
             let n = Interval::new_eq;
             let range = n(c[1])
-                + (n(c[2]) + n(c[3]) * interval) * (n(2.0 * theta) * interval).cos()
-                + (n(c[4]) + n(c[5]) * interval) * (n(2.0 * theta) * interval).sin();
+                + (n(c[2]) + n(c[3]) * interval) * (n(T::TWO * theta) * interval).cos()
+                + (n(c[4]) + n(c[5]) * interval) * (n(T::TWO * theta) * interval).sin();
 
-            if range.low > 0.0 || range.high < 0.0 || range.low == range.high {
+            if range.low > T::ZERO || range.high < T::ZERO || range.low == range.high {
                 return;
             }
 
             if depth > 0 {
                 // split interval and check both parts
-                let mid = (interval.low + interval.high) * 0.5;
+                let mid = (interval.low + interval.high) * (T::ONE / T::TWO);
                 inner(
                     Interval::new(interval.low, mid),
                     c,
@@ -147,28 +147,30 @@ impl Interval {
                 );
             } else {
                 // refine zero using newton's method
-                let mut t_newton = (interval.low + interval.high) * 0.5;
+                let mut t_newton = (interval.low + interval.high) * (T::ONE / T::TWO);
                 for _ in 0..4 {
                     let f_newton = c[1]
-                        + (c[2] + c[3] * t_newton) * (2.0 * theta * t_newton).cos()
-                        + (c[4] + c[5] * t_newton) * (2.0 * theta * t_newton).sin();
-                    let f_prime_newton = (c[3] + 2.0 * (c[4] + c[5] * t_newton) * theta)
-                        * (2.0 * t_newton * theta).cos()
-                        + (c[5] - 2.0 * (c[2] + c[3] * t_newton) * theta)
-                            * (2.0 * t_newton * theta).sin();
-                    if f_newton == 0.0 || f_prime_newton == 0.0 {
+                        + (c[2] + c[3] * t_newton) * (T::TWO * theta * t_newton).cos()
+                        + (c[4] + c[5] * t_newton) * (T::TWO * theta * t_newton).sin();
+                    let f_prime_newton = (c[3] + T::TWO * (c[4] + c[5] * t_newton) * theta)
+                        * (T::TWO * t_newton * theta).cos()
+                        + (c[5] - T::TWO * (c[2] + c[3] * t_newton) * theta)
+                            * (T::TWO * t_newton * theta).sin();
+                    if f_newton == T::ZERO || f_prime_newton == T::ZERO {
                         return;
                     }
                     t_newton -= f_newton / f_prime_newton;
                 }
-                if t_newton >= interval.low - 1e-3 && t_newton < interval.high + 1e-3 {
+                if t_newton >= interval.low - T::cast(1e-3)
+                    && t_newton < interval.high + T::cast(1e-3)
+                {
                     res[*result_count] = t_newton;
                     *result_count += 1;
                 }
             }
         }
 
-        let mut result = [0.0; N];
+        let mut result = [T::ZERO; N];
         let mut result_count = 0;
         inner(
             *self,
@@ -184,26 +186,26 @@ impl Interval {
 
 // NOTE: CPU rounding method should be round down for low bound, round up for high bound
 // this is not done currently/at all
-impl Add<Interval> for Interval {
+impl<T: Number> Add<Interval<T>> for Interval<T> {
     type Output = Self;
 
-    fn add(self, rhs: Interval) -> Self {
+    fn add(self, rhs: Interval<T>) -> Self {
         Self::new(self.low + rhs.low, self.high + rhs.high)
     }
 }
 
-impl Sub<Interval> for Interval {
+impl<T: Number> Sub<Interval<T>> for Interval<T> {
     type Output = Self;
 
-    fn sub(self, rhs: Interval) -> Self {
+    fn sub(self, rhs: Interval<T>) -> Self {
         Self::new(self.low - rhs.high, self.high - rhs.low)
     }
 }
 
-impl Mul<Interval> for Interval {
+impl<T: Number> Mul<Interval<T>> for Interval<T> {
     type Output = Self;
 
-    fn mul(self, rhs: Interval) -> Self {
+    fn mul(self, rhs: Interval<T>) -> Self {
         let min = (self.low * rhs.low)
             .min(self.high * rhs.low)
             .min(self.low * rhs.high)

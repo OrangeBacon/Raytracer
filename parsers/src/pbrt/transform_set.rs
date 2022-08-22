@@ -1,15 +1,15 @@
 use std::ops::{Index, IndexMut};
 
-use geometry::{Float, Matrix4x4, Point3f, Transform, Vector3f};
+use geometry::{Float, Matrix4x4, Number, Point3f, Transform, Vector3, Vector3f, Point3};
 
 /// Set of transformations for multiple points in time
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct TransformSet {
-    transforms: [Transform; Self::MAX_TRANSFORMS],
+pub struct TransformSet<T: Number> {
+    transforms: [Transform<T>; 2],
     active_transforms: usize,
 }
 
-impl TransformSet {
+impl<T: Number> TransformSet<T> {
     /// The number of transformations included
     const MAX_TRANSFORMS: usize = 2;
 
@@ -21,13 +21,11 @@ impl TransformSet {
 
     /// All possible transforms
     const ALL_TRANSFORM: usize = (1 << Self::MAX_TRANSFORMS) - 1;
-}
 
-impl TransformSet {
     /// Create a new transform set with all transforms being the identity
     pub fn new() -> Self {
         Self {
-            transforms: [Transform::IDENTITY; Self::MAX_TRANSFORMS],
+            transforms: [Transform::IDENTITY; 2],
             active_transforms: Self::ALL_TRANSFORM,
         }
     }
@@ -41,7 +39,7 @@ impl TransformSet {
     }
 
     /// run a function over all enabled transforms
-    fn for_active(&mut self, f: impl Fn(&mut Transform)) {
+    fn for_active(&mut self, f: impl Fn(&mut Transform<T>)) {
         for (idx, t) in self.transforms.iter_mut().enumerate() {
             if (self.active_transforms & (1 << idx)) != 0 {
                 f(t);
@@ -55,22 +53,22 @@ impl TransformSet {
     }
 
     /// Translate active transforms by (dx, dy, dz)
-    pub fn translate(&mut self, dx: Float, dy: Float, dz: Float) {
-        self.for_active(|t| *t *= Transform::translation(Vector3f::new(dx, dy, dz)))
+    pub fn translate(&mut self, dx: T, dy: T, dz: T) {
+        self.for_active(|t| *t *= Transform::translation(Vector3::new(dx, dy, dz)))
     }
 
     /// Rotate active transforms by angle degrees around axis (ax, ay, az)
-    pub fn rotate(&mut self, angle: Float, ax: Float, ay: Float, az: Float) {
-        self.for_active(|t| *t *= Transform::rotate(Vector3f::new(ax, ay, az), angle))
+    pub fn rotate(&mut self, angle: T, ax: T, ay: T, az: T) {
+        self.for_active(|t| *t *= Transform::rotate(Vector3::new(ax, ay, az), angle))
     }
 
     /// Scale active transforms by (sx, sy, sz)
-    pub fn scale(&mut self, sx: Float, sy: Float, sz: Float) {
-        self.for_active(|t| *t *= Transform::scale(Vector3f::new(sx, sy, sz)))
+    pub fn scale(&mut self, sx: T, sy: T, sz: T) {
+        self.for_active(|t| *t *= Transform::scale(Vector3::new(sx, sy, sz)))
     }
 
     /// Set the active transforms to be a projection matrix, looking from pos to look.
-    pub fn look_at(&mut self, pos: Point3f, look: Point3f, up: Vector3f) {
+    pub fn look_at(&mut self, pos: Point3<T>, look: Point3<T>, up: Vector3<T>) {
         self.for_active(|t| {
             *t = Transform::look_at(pos, look, up).unwrap_or_else(|| {
                 panic!("Unable to create look at transform with pos: {pos:?}, look: {look:?}, up: {up:?}")
@@ -79,7 +77,7 @@ impl TransformSet {
     }
 
     /// Post multiply the active transforms by the given matrix
-    pub fn concat(&mut self, transform: [Float; 16]) {
+    pub fn concat(&mut self, transform: [T; 16]) {
         let mat = Matrix4x4::from_array(&transform);
         let transform = Transform::from_mat(&mat)
             .unwrap_or_else(|| panic!("Unable to create multiplicative transform {mat:?}"));
@@ -87,7 +85,7 @@ impl TransformSet {
     }
 
     /// Set all active transforms to the given matrix
-    pub fn set_transform(&mut self, transform: [Float; 16]) {
+    pub fn set_transform(&mut self, transform: [T; 16]) {
         let mat = Matrix4x4::from_array(&transform);
         let transform = Transform::from_mat(&mat)
             .unwrap_or_else(|| panic!("Unable to create multiplicative transform {mat:?}"));
@@ -120,15 +118,15 @@ impl TransformSet {
     }
 }
 
-impl Index<usize> for TransformSet {
-    type Output = Transform;
+impl<T: Number> Index<usize> for TransformSet<T> {
+    type Output = Transform<T>;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.transforms[index]
     }
 }
 
-impl IndexMut<usize> for TransformSet {
+impl<T: Number> IndexMut<usize> for TransformSet<T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.transforms[index]
     }

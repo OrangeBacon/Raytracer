@@ -1,4 +1,4 @@
-use crate::{Matrix4x4, tests::rng::Rng};
+use crate::{Matrix4x4, tests::rng::Rng, Float};
 
 #[test]
 fn mat_inv() {
@@ -9,7 +9,7 @@ fn mat_inv() {
         let mat = Matrix4x4::from_array(&data);
 
         if let Some(inv) = mat.inverse() {
-            for (row, ident) in (mat * inv).data.into_iter().zip(Matrix4x4::IDENTITY.data) {
+            for (row, ident) in (mat * inv).data.into_iter().zip(Matrix4x4::<Float>::IDENTITY.data) {
                 for (element, ident) in row.into_iter().zip(ident) {
                     assert!(element.abs() <= ident + 0.02)
                 }
