@@ -16,6 +16,7 @@ pub struct Cylinder<T: Number> {
 }
 
 impl<T: Number> Cylinder<T> {
+    /// Create a new cylinder instance
     pub fn new(
         object_to_world: Transform<T>,
         world_to_object: Transform<T>,
@@ -25,12 +26,7 @@ impl<T: Number> Cylinder<T> {
         phi_max: T,
     ) -> Self {
         Self {
-            data: ShapeData {
-                object_to_world,
-                world_to_object,
-                reverse_orientation,
-                transform_swaps_handedness: object_to_world.swaps_handedness(),
-            },
+            data: ShapeData::new(object_to_world, world_to_object, reverse_orientation),
             radius,
             z_min: z.min_component(),
             z_max: z.max_component(),

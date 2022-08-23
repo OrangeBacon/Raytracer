@@ -1,10 +1,12 @@
 mod cylinder;
-mod sphere;
+mod disk;
 mod quadric;
+mod sphere;
 
 use std::ops::{Deref, DerefMut};
 
 pub use cylinder::Cylinder;
+pub use disk::Disk;
 pub use sphere::Sphere;
 
 use geometry::{Bounds3, Number, Ray, SurfaceInteractable, SurfaceInteraction, Transform};
@@ -42,4 +44,20 @@ pub trait Shape<T: Number>: Deref<Target = ShapeData<T>> + DerefMut + SurfaceInt
 
     /// Get the surface area of a shape
     fn area(&self) -> T;
+}
+
+impl<T: Number> ShapeData<T> {
+    /// Create a new shape data from transform matrices
+    fn new(
+        object_to_world: Transform<T>,
+        world_to_object: Transform<T>,
+        reverse_orientation: bool,
+    ) -> Self {
+        Self {
+            object_to_world,
+            world_to_object,
+            reverse_orientation,
+            transform_swaps_handedness: object_to_world.swaps_handedness(),
+        }
+    }
 }

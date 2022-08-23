@@ -36,12 +36,7 @@ impl<T: Number> Sphere<T> {
         let z_min = z.min_component().clamp(-radius, radius);
         let z_max = z.max_component().clamp(-radius, radius);
         Self {
-            data: ShapeData {
-                object_to_world,
-                world_to_object,
-                reverse_orientation,
-                transform_swaps_handedness: object_to_world.swaps_handedness(),
-            },
+            data: ShapeData::new(object_to_world, world_to_object, reverse_orientation),
             radius,
             z_min,
             z_max,
