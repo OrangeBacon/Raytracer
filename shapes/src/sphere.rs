@@ -1,8 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
 use geometry::{
-    Bounds3, ConstZero, EFloat, Normal3, Number, PartialDerivatives, Point2, Point3, Ray,
-    SurfaceInteractable, SurfaceInteraction, Transform, Vector2, Vector3,
+    Bounds3, ConstZero, Number, PartialDerivatives, Point2, Point3, Ray, SurfaceInteractable,
+    SurfaceInteraction, Transform, Vector2, Vector3,
 };
 
 use crate::{Shape, ShapeData};
@@ -65,34 +65,7 @@ impl<T: Number> Shape<T> for Sphere<T> {
         ray: Ray<(), T>,
         _test_alpha: bool,
     ) -> Option<(T, SurfaceInteraction<&dyn SurfaceInteractable, (), T>)> {
-        // transform ray to object space
-        let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
-
-        let ox = EFloat::new_with_err(ray.origin.x, o_err.x);
-        let oy = EFloat::new_with_err(ray.origin.y, o_err.y);
-        let oz = EFloat::new_with_err(ray.origin.z, o_err.z);
-        let dx = EFloat::new_with_err(ray.direction.x, d_err.x);
-        let dy = EFloat::new_with_err(ray.direction.y, d_err.y);
-        let dz = EFloat::new_with_err(ray.direction.z, d_err.z);
-
-        let a = dx * dx + dy * dy + dz * dz;
-        let b = (dx * ox + dy * oy + dz * oz) * T::TWO;
-        let c = ox * ox + oy * oy + oz * oz - EFloat::new(self.radius) * EFloat::new(self.radius);
-
-        let (t0, t1) = EFloat::quadratic(a, b, c)?;
-
-        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= T::ZERO {
-            return None;
-        }
-
-        let mut t_shape_hit = if t0.lower_bound() <= T::ZERO {
-            if t1.upper_bound() > ray.t_max {
-                return None;
-            }
-            t1
-        } else {
-            t0
-        };
+        let (mut t_shape_hit, t1) = self.quadric_coefficients(self.radius, ray)?;
 
         // compute sphere hit position
         let mut p_hit = ray.at(t_shape_hit.value());
@@ -159,21 +132,7 @@ impl<T: Number> Shape<T> for Sphere<T> {
         let d2pdv2 =
             p_hit.to_vec() * -(self.theta_max - self.theta_min) * (self.theta_max * self.theta_min);
 
-        let e1 = dpdu.dot(dpdu);
-        let f1 = dpdu.dot(dpdv);
-        let g1 = dpdv.dot(dpdv);
-        let normal = dpdu.cross(dpdv).normalise();
-        let e2 = normal.dot(d2pdu2);
-        let f2 = normal.dot(d2pduv);
-        let g2 = normal.dot(d2pdv2);
-
-        let inv_egf2 = T::ONE / (e1 * g1 - f1 * f1);
-        let dndu = Normal3::from_vector(
-            dpdu * (f2 * f1 - e2 * g1) * inv_egf2 + dpdv * (e2 * f1 - f2 * e1) * inv_egf2,
-        );
-        let dndv = Normal3::from_vector(
-            dpdu * (g2 * f1 - f2 * g1) * inv_egf2 + dpdv * (f2 * f1 - g2 * e1) * inv_egf2,
-        );
+        let (dndu, dndv) = self.derive_normal(dpdu, dpdv, d2pdu2, d2pduv, d2pdv2);
 
         let intersection = SurfaceInteraction::new(
             p_hit,
@@ -196,35 +155,9 @@ impl<T: Number> Shape<T> for Sphere<T> {
 
     fn does_intersect(&self, ray: Ray<(), T>, _test_alpha: bool) -> bool {
         // transform ray to object space
-        let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
-
-        let ox = EFloat::new_with_err(ray.origin.x, o_err.x);
-        let oy = EFloat::new_with_err(ray.origin.y, o_err.y);
-        let oz = EFloat::new_with_err(ray.origin.z, o_err.z);
-        let dx = EFloat::new_with_err(ray.direction.x, d_err.x);
-        let dy = EFloat::new_with_err(ray.direction.y, d_err.y);
-        let dz = EFloat::new_with_err(ray.direction.z, d_err.z);
-
-        let a = dx * dx + dy * dy + dz * dz;
-        let b = (dx * ox + dy * oy + dz * oz) * T::TWO;
-        let c = ox * ox + oy * oy + oz * oz - EFloat::new(self.radius) * EFloat::new(self.radius);
-
-        let (t0, t1) = match EFloat::quadratic(a, b, c) {
-            Some(v) => v,
+        let (mut t_shape_hit, t1) = match self.quadric_coefficients(self.radius, ray) {
+            Some(a) => a,
             None => return false,
-        };
-
-        if t0.upper_bound() > ray.t_max || t1.lower_bound() <= T::ZERO {
-            return false;
-        }
-
-        let mut t_shape_hit = if t0.lower_bound() <= T::ZERO {
-            if t1.upper_bound() > ray.t_max {
-                return false;
-            }
-            t1
-        } else {
-            t0
         };
 
         // compute sphere hit position

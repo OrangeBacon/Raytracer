@@ -1,7 +1,10 @@
+mod cylinder;
 mod sphere;
+mod quadric;
 
 use std::ops::{Deref, DerefMut};
 
+pub use cylinder::Cylinder;
 pub use sphere::Sphere;
 
 use geometry::{Bounds3, Number, Ray, SurfaceInteractable, SurfaceInteraction, Transform};
