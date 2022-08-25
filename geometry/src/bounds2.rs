@@ -133,10 +133,10 @@ impl<T: Number> Bounds2<T> {
     pub fn offset(&self, point: Point2<T>) -> Vector2<T> {
         let mut o = point - self.min;
         if self.max.x > self.min.x {
-            o.x = o.x / (self.max.x - self.min.x)
+            o.x /= self.max.x - self.min.x
         }
         if self.max.y > self.min.y {
-            o.y = o.y / (self.max.y - self.min.y)
+            o.y /= self.max.y - self.min.y
         }
 
         o
@@ -219,10 +219,10 @@ impl<T: Integer> Iterator for Bounds2Iter<T> {
 
         let point = self.point;
 
-        self.point.x = self.point.x + T::ONE;
+        self.point.x += T::ONE;
         if self.point.x >= self.bounds.max.x {
             self.point.x = self.bounds.min.x;
-            self.point.y = self.point.y + T::ONE;
+            self.point.y += T::ONE;
         }
 
         Some(point)

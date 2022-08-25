@@ -136,13 +136,13 @@ impl<T: Number> Bounds3<T> {
     pub fn offset(&self, point: Point3<T>) -> Vector3<T> {
         let mut o = point - self.min;
         if self.max.x > self.min.x {
-            o.x = o.x / (self.max.x - self.min.x)
+            o.x /= self.max.x - self.min.x
         }
         if self.max.y > self.min.y {
-            o.y = o.y / (self.max.y - self.min.y)
+            o.y /= self.max.y - self.min.y
         }
         if self.max.z > self.min.z {
-            o.z = o.z / (self.max.z - self.min.z)
+            o.z /= self.max.z - self.min.z
         }
 
         o

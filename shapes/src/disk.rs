@@ -31,7 +31,7 @@ impl<T: Number> Disk<T> {
             height,
             radius,
             inner_radius,
-            phi_max,
+            phi_max: phi_max.clamp(T::ZERO, T::cast(360)).to_radians(),
         }
     }
 }

@@ -1,3 +1,4 @@
+mod cone;
 mod cylinder;
 mod disk;
 mod quadric;
@@ -5,6 +6,7 @@ mod sphere;
 
 use std::ops::{Deref, DerefMut};
 
+pub use cone::Cone;
 pub use cylinder::Cylinder;
 pub use disk::Disk;
 pub use sphere::Sphere;
