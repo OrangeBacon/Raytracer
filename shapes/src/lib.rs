@@ -1,6 +1,8 @@
 mod cone;
 mod cylinder;
 mod disk;
+mod hyperboloid;
+mod paraboloid;
 mod quadric;
 mod sphere;
 
@@ -9,12 +11,15 @@ use std::ops::{Deref, DerefMut};
 pub use cone::Cone;
 pub use cylinder::Cylinder;
 pub use disk::Disk;
+pub use hyperboloid::Hyperboloid;
+pub use paraboloid::Paraboloid;
 pub use sphere::Sphere;
 
 use geometry::{Bounds3, Number, Ray, SurfaceInteractable, SurfaceInteraction, Transform};
 
 /// Data that should be stored by all shapes.
 /// TODO: Transform cache + references, don't copy 4 mat4x4 with each shape
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
 pub struct ShapeData<T: Number> {
     pub object_to_world: Transform<T>,
     pub world_to_object: Transform<T>,

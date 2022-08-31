@@ -7,6 +7,8 @@ use geometry::{
 
 use crate::{Shape, ShapeData};
 
+/// A disk with inner and outer radii centred on the z axis
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
 pub struct Disk<T: Number> {
     data: ShapeData<T>,
     height: T,

@@ -7,6 +7,8 @@ use geometry::{
 
 use crate::{Shape, ShapeData};
 
+/// A cylinder centred on the z axis
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
 pub struct Cylinder<T: Number> {
     data: ShapeData<T>,
     radius: T,

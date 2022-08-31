@@ -129,6 +129,9 @@ pub trait Number:
 
     /// Four quadrant inverse tangent of rhs / self
     fn atan2(&self, rhs: Self) -> Self;
+
+    /// This number to the power of the argument
+    fn pow(&self, exp: Self) -> Self;
 }
 
 /// Marker trait for integers
@@ -200,6 +203,11 @@ macro_rules! NumberFloat {
             #[inline]
             fn atan2(&self, rhs: Self) -> Self {
                 <$type>::atan2(*self, rhs)
+            }
+
+            #[inline]
+            fn pow(&self, exp: Self) -> Self {
+                <$type>::powf(*self, exp)
             }
 
             NumberFloat! { @fns($type) sin, cos, acos, ceil, floor, sqrt, abs, to_radians }
@@ -301,6 +309,14 @@ macro_rules! NumberInteger {
                 debug_assert!(rhs.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
 
                 (*self as f64).atan2(rhs as f64) as Self
+            }
+
+            #[inline]
+            fn pow(&self, exp: Self) -> Self {
+                debug_assert!(self.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
+                debug_assert!(exp.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
+
+                (*self as f64).pow(exp as f64) as Self
             }
 
             NumberInteger! { @fns($type) sqrt, sin, cos, acos, to_radians }
