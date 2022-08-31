@@ -54,7 +54,7 @@ impl<T: Number> Hyperboloid<T> {
             pp += (this.point2 - this.point1) * T::TWO;
             let xy1 = pp.as_point2().to_vec().length_square();
             let xy2 = this.point2.as_point2().to_vec().length_square();
-            this.ah = (T::ONE / xy1 - (pp.z - pp.z) / (xy1 * this.point2.z * this.point2.z))
+            this.ah = (T::ONE / xy1 - (pp.z * pp.z) / (xy1 * this.point2.z * this.point2.z))
                 / (T::ONE - (xy2 * pp.z * pp.z) / (this.point2.z * this.point2.z));
             this.ch = (this.ah * xy2 - T::ONE) / (this.point2.z * this.point2.z);
 

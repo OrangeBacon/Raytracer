@@ -5,6 +5,8 @@ mod hyperboloid;
 mod paraboloid;
 mod quadric;
 mod sphere;
+mod triangle;
+mod triangle_mesh;
 
 use std::ops::{Deref, DerefMut};
 
@@ -14,6 +16,8 @@ pub use disk::Disk;
 pub use hyperboloid::Hyperboloid;
 pub use paraboloid::Paraboloid;
 pub use sphere::Sphere;
+pub use triangle::Triangle;
+pub use triangle_mesh::TriangleMesh;
 
 use geometry::{Bounds3, Number, Ray, SurfaceInteractable, SurfaceInteraction, Transform};
 
