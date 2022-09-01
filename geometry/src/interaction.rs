@@ -1,4 +1,7 @@
-use std::ops::{Mul, MulAssign};
+use std::{
+    fmt::Debug,
+    ops::{Mul, MulAssign},
+};
 
 use crate::{transform::Applicable, Normal3, Number, Point2, Point3, Transform, Vector3};
 
@@ -47,7 +50,7 @@ pub struct Shading<T: Number> {
 
 /// Small portion of the shape interface representing the parts that are used
 /// in a surface interaction.  Only exists to fix recursive cargo dependencies
-pub trait SurfaceInteractable {
+pub trait SurfaceInteractable: Debug {
     /// Does the shape's transform reverse its orientation.
     /// Equal to shape.reverse_orientation ^ shape.transform.swaps_handedness()
     fn reverses_orientation(&self) -> bool;

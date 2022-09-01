@@ -25,6 +25,7 @@ pub trait Number:
     + SubAssign<Self>
     + MulAssign<Self>
     + DivAssign<Self>
+    + 'static
 {
     /// The Bit representation of the type
     type Bits;
