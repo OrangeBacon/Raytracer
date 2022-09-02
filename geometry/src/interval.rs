@@ -128,7 +128,7 @@ impl<T: Number> Interval<T> {
 
             if depth > 0 {
                 // split interval and check both parts
-                let mid = (interval.low + interval.high) * (T::ONE / T::TWO);
+                let mid = (interval.low + interval.high) * (T::HALF);
                 inner(
                     Interval::new(interval.low, mid),
                     c,
@@ -147,7 +147,7 @@ impl<T: Number> Interval<T> {
                 );
             } else {
                 // refine zero using newton's method
-                let mut t_newton = (interval.low + interval.high) * (T::ONE / T::TWO);
+                let mut t_newton = (interval.low + interval.high) * (T::HALF);
                 for _ in 0..4 {
                     let f_newton = c[1]
                         + (c[2] + c[3] * t_newton) * (T::TWO * theta * t_newton).cos()

@@ -206,9 +206,9 @@ impl<T: Number> EFloat<T> {
         let root = EFloat::new_with_err(root, T::EPSILON * (T::ONE / T::ZERO) * root);
 
         let q = if b.value < T::ZERO {
-            (b - root) * -(T::ONE / T::TWO)
+            (b - root) * -(T::HALF)
         } else {
-            (b + root) * -(T::ONE / T::TWO)
+            (b + root) * -(T::HALF)
         };
 
         let t0 = q / a;

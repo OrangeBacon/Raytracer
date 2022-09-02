@@ -445,7 +445,7 @@ impl<F: Number, T: Debug> Shape<F> for Triangle<F, T> {
         let p1 = self.mesh.positions()[self.mesh.indices()[self.idx + 1]];
         let p2 = self.mesh.positions()[self.mesh.indices()[self.idx + 2]];
 
-        (F::ONE / F::TWO) * (p1 - p0).cross(p2 - p0).length()
+        (F::HALF) * (p1 - p0).cross(p2 - p0).length()
     }
 }
 

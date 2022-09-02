@@ -104,7 +104,7 @@ impl<F: Number> Transform<F> {
             // 4w^2 = m[0][0] + m[1][1] + m[2][2] + m[3][3] (but m[3][3] == 1)
             let s = (trace + F::ONE).sqrt();
             let w = s / F::TWO;
-            let s = (F::ONE / F::TWO) / s;
+            let s = (F::HALF) / s;
             let vec = Vector3::new(
                 (m[2][1] - m[1][2]) * s,
                 (m[0][2] - m[2][0]) * s,
@@ -129,9 +129,9 @@ impl<F: Number> Transform<F> {
             let j = nxt[i];
             let k = nxt[j];
             let mut s = ((m[i][i] - (m[j][j] + m[k][k])) + F::ONE).sqrt();
-            q[i] = s * (F::ONE / F::TWO);
+            q[i] = s * (F::HALF);
             if s != F::ZERO {
-                s = (F::ONE / F::TWO) / s
+                s = (F::HALF) / s
             }
             let w = (m[k][j] - m[j][k]) * s;
             q[j] = (m[j][i] + m[i][j]) * s;

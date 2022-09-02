@@ -39,6 +39,9 @@ pub trait Number:
     /// The two value for the type
     const TWO: Self;
 
+    /// Self::ONE / Self::TWO
+    const HALF: Self;
+
     /// The smallest value for this type
     const MIN: Self;
 
@@ -56,6 +59,9 @@ pub trait Number:
 
     /// 0.0005
     const LARGE_EPSILON: Self;
+
+    /// square root of 2, ~= 1.414
+    const SQRT_2: Self;
 
     /// Is this type a NaN value, always false if type is not floating
     fn is_nan(&self) -> bool;
@@ -122,6 +128,18 @@ pub trait Number:
     /// Inverse cos of the number (radians)
     fn acos(&self) -> Self;
 
+    /// Base 2 logarithm of the number
+    fn log2(&self) -> Self;
+
+    /// Base 10 logarithm of the number
+    fn log10(&self) -> Self;
+
+    /// Natural logarithm of the number
+    fn ln(&self) -> Self;
+
+    /// Round to the nearest integer
+    fn round(&self) -> Self;
+
     /// Add a value to the [`Self::Bits`] type
     fn bit_add(lhs: Self::Bits, rhs: i32) -> Self::Bits;
 
@@ -133,6 +151,9 @@ pub trait Number:
 
     /// This number to the power of the argument
     fn pow(&self, exp: Self) -> Self;
+
+    /// Returns the logarithm of the number in a given base
+    fn log(&self, base: Self) -> Self;
 }
 
 /// Marker trait for integers
@@ -155,6 +176,8 @@ macro_rules! NumberFloat {
             const INFINITY: Self = <$type>::INFINITY;
             const EPSILON: Self = <$type>::EPSILON;
             const LARGE_EPSILON: Self = 0.0005;
+            const HALF: Self = 0.5;
+            const SQRT_2: Self = std::$name::consts::SQRT_2;
 
             #[inline]
             fn is_nan(&self) -> bool {
@@ -211,7 +234,12 @@ macro_rules! NumberFloat {
                 <$type>::powf(*self, exp)
             }
 
-            NumberFloat! { @fns($type) sin, cos, acos, ceil, floor, sqrt, abs, to_radians }
+            #[inline]
+            fn log(&self, base: Self) -> Self {
+                <$type>::log(*self, base)
+            }
+
+            NumberFloat! { @fns($type) sin, cos, acos, ceil, floor, sqrt, abs, to_radians, log2, log10, ln, round }
         }
     };
     (($type:ty, $name:ident, $bits:ty), $(($other_type:ty, $other_name:ident, $other_bits:ty)),+ $(,)?) => {
@@ -243,6 +271,8 @@ macro_rules! NumberInteger {
             const INFINITY: Self = Self::MAX;
             const EPSILON: Self = 0;
             const LARGE_EPSILON: Self = 0;
+            const HALF: Self = 0.5 as _;
+            const SQRT_2: Self = std::f64::consts::SQRT_2 as _;
 
             #[inline]
             fn is_nan(&self) -> bool {
@@ -266,6 +296,11 @@ macro_rules! NumberInteger {
 
             #[inline]
             fn ceil(&self) -> Self {
+                *self
+            }
+
+            #[inline]
+            fn round(&self) -> Self {
                 *self
             }
 
@@ -306,21 +341,29 @@ macro_rules! NumberInteger {
 
             #[inline]
             fn atan2(&self, rhs: Self) -> Self {
-                debug_assert!(self.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
-                debug_assert!(rhs.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
+                debug_assert!(self.abs() < Self::TWO.pow(f64::MANTISSA_DIGITS as _));
+                debug_assert!(rhs.abs() < Self::TWO.pow(f64::MANTISSA_DIGITS as _));
 
                 (*self as f64).atan2(rhs as f64) as Self
             }
 
             #[inline]
             fn pow(&self, exp: Self) -> Self {
-                debug_assert!(self.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
-                debug_assert!(exp.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
+                debug_assert!(self.abs() < Self::TWO.pow(f64::MANTISSA_DIGITS as _));
+                debug_assert!(exp.abs() < Self::TWO.pow(f64::MANTISSA_DIGITS as _));
 
                 (*self as f64).pow(exp as f64) as Self
             }
 
-            NumberInteger! { @fns($type) sqrt, sin, cos, acos, to_radians }
+            #[inline]
+            fn log(&self, base: Self) -> Self {
+                debug_assert!(self.abs() < Self::TWO.pow(f64::MANTISSA_DIGITS as _));
+                debug_assert!(base.abs() < Self::TWO.pow(f64::MANTISSA_DIGITS as _));
+
+                (*self as f64).log(base as f64) as Self
+            }
+
+            NumberInteger! { @fns($type) sqrt, sin, cos, acos, to_radians, log2, log10, ln }
         }
     };
     (($type:ty, $name:ident), $(($other_type:ty, $other_name:ident)),+ $(,)?) => {
@@ -330,7 +373,7 @@ macro_rules! NumberInteger {
         $(
             #[inline]
             fn $name(&self) -> Self {
-                debug_assert!(self.abs() < (Self::ONE + Self::ONE).pow(f64::MANTISSA_DIGITS as _));
+                debug_assert!(self.abs() < Self::TWO.pow(f64::MANTISSA_DIGITS as _));
 
                 (*self as f64).$name() as Self
             }

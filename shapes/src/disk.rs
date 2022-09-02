@@ -136,7 +136,7 @@ impl<T: Number> Shape<T> for Disk<T> {
 
     fn area(&self) -> T {
         self.phi_max
-            * (T::ONE / T::TWO)
+            * (T::HALF)
             * (self.radius * self.radius - self.inner_radius * self.inner_radius)
     }
 }

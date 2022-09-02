@@ -1,4 +1,5 @@
 mod cone;
+mod curve;
 mod cylinder;
 mod disk;
 mod hyperboloid;
@@ -11,6 +12,9 @@ mod triangle_mesh;
 use std::ops::{Deref, DerefMut};
 
 pub use cone::Cone;
+pub use curve::Curve;
+pub use curve::CurveCommon;
+pub use curve::CurveType;
 pub use cylinder::Cylinder;
 pub use disk::Disk;
 pub use hyperboloid::Hyperboloid;

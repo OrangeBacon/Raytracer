@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
 };
 
-use crate::{number::Number, Float, Point2, Vector3, ConstZero};
+use crate::{number::Number, ConstZero, Float, Point2, Vector3};
 
 /// Three dimensional cartesian coordinate
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -179,6 +179,20 @@ impl<T: Number> Add<Vector3<T>> for Point3<T> {
 impl<T: Number> AddAssign<Vector3<T>> for Point3<T> {
     fn add_assign(&mut self, rhs: Vector3<T>) {
         *self = *self + rhs
+    }
+}
+
+impl<T: Number> Add<T> for Point3<T> {
+    type Output = Point3<T>;
+
+    fn add(self, rhs: T) -> Self::Output {
+        Point3::new(self.x + rhs, self.y + rhs, self.z + rhs)
+    }
+}
+
+impl<T: Number> AddAssign<T> for Point3<T> {
+    fn add_assign(&mut self, rhs: T) {
+        *self = *self + rhs;
     }
 }
 

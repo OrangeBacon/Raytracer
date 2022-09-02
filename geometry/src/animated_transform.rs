@@ -86,7 +86,7 @@ impl<T: Number> AnimatedTransform<T> {
             let r_inv = rotate.transpose().inverse()?;
             for i in 0..4 {
                 for j in 0..4 {
-                    r_next[i][j] = (T::ONE / T::TWO) * (rotate[i][j] + r_inv[i][j])
+                    r_next[i][j] = (T::HALF) * (rotate[i][j] + r_inv[i][j])
                 }
             }
 
