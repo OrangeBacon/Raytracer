@@ -6,8 +6,8 @@ use std::{
 };
 
 use geometry::{
-    Bounds3, ConstZero, Normal3, Number, PartialDerivatives, Point2, Ray, SurfaceInteractable,
-    SurfaceInteraction, Transform, Vector3,
+    gamma, Bounds3, ConstZero, Normal3, Number, PartialDerivatives, Point2, Ray,
+    SurfaceInteractable, SurfaceInteraction, Transform, Vector3,
 };
 
 use crate::{triangle_mesh::TriangleMesh, Shape, ShapeData};
@@ -180,6 +180,24 @@ impl<F: Number, T: Debug> Shape<F> for Triangle<F, T> {
         let b2 = e2 * inv_det;
         let t = scaled * inv_det;
 
+        // ensure triangle is greater than 0
+        let max_zt = Vector3::new(p0t.z, p1t.z, p2t.z).abs().max_component();
+        let delta_z = max_zt * gamma(3);
+
+        let max_xt = Vector3::new(p0t.x, p1t.x, p2t.x).abs().max_component();
+        let max_yt = Vector3::new(p0t.y, p1t.y, p2t.y).abs().max_component();
+        let delta_x = (max_xt + max_zt) * gamma(5);
+        let delta_y = (max_yt + max_zt) * gamma(5);
+
+        let delta_e = F::TWO * (max_xt * max_yt * gamma(2) + delta_y * max_xt + delta_x * max_yt);
+        let max_e = Vector3::new(e0, e1, e2).abs().max_component();
+        let delta_t = F::cast(3)
+            * (max_e * max_zt * gamma(3) + delta_e * max_zt + delta_z * max_e)
+            * inv_det.abs();
+        if t <= delta_t {
+            return None;
+        }
+
         // compute partial derivatives
         let uv = self.uvs();
         let duv02 = uv[0] - uv[2];
@@ -225,9 +243,12 @@ impl<F: Number, T: Debug> Shape<F> for Triangle<F, T> {
             }
         }
 
+        let p_error =
+            ((p0 * b0).abs() + (p1 * b1).abs() + (p2 * b1).abs()).to_vec() * gamma::<F>(7);
+
         let mut isect = SurfaceInteraction::new(
             p_hit,
-            Vector3::ZERO,
+            p_error,
             uv_hit,
             -ray.direction,
             PartialDerivatives {

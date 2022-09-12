@@ -1,8 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
 use geometry::{
-    Bounds3, ConstZero, Number, PartialDerivatives, Point2, Point3, Ray, SurfaceInteractable,
-    SurfaceInteraction, Transform, Vector2, Vector3,
+    gamma, Bounds3, ConstZero, Number, PartialDerivatives, Point2, Point3, Ray,
+    SurfaceInteractable, SurfaceInteraction, Transform, Vector2, Vector3,
 };
 
 use crate::{Shape, ShapeData};
@@ -60,6 +60,9 @@ impl<T: Number> Shape<T> for Cylinder<T> {
         let (mut t_shape_hit, t1) = self.quadric_coefficients(self.radius, ray)?;
 
         let mut p_hit = ray.at(t_shape_hit.value());
+        let hit_rad = (p_hit.x * p_hit.x + p_hit.y * p_hit.y).sqrt();
+        p_hit.x *= self.radius / hit_rad;
+        p_hit.y *= self.radius / hit_rad;
         let mut phi = p_hit.y.atan2(p_hit.x);
         if phi < T::ZERO {
             phi += T::TWO * T::PI;
@@ -74,6 +77,9 @@ impl<T: Number> Shape<T> for Cylinder<T> {
                 return None;
             }
             p_hit = ray.at(t_shape_hit.value());
+            let hit_rad = (p_hit.x * p_hit.x + p_hit.y * p_hit.y).sqrt();
+            p_hit.x *= self.radius / hit_rad;
+            p_hit.y *= self.radius / hit_rad;
             phi = p_hit.y.atan2(p_hit.x);
             if phi < T::ZERO {
                 phi += T::TWO * T::PI;
@@ -91,9 +97,11 @@ impl<T: Number> Shape<T> for Cylinder<T> {
 
         let (dndu, dndv) = self.derive_normal(dpdu, dpdv, d2pdu2, Vector3::ZERO, Vector3::ZERO);
 
+        let p_error = Vector3::new(p_hit.x, p_hit.y, T::ZERO).abs() * gamma::<T>(3);
+
         let intersection = SurfaceInteraction::new(
             p_hit,
-            Vector3::ZERO,
+            p_error,
             Point2::new(u, v),
             -ray.direction,
             PartialDerivatives {

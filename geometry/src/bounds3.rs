@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::{float::gamma, number::Number, ConstZero, Float, Point3, Ray, Vector3, Vector3f};
+use crate::{float::gamma, number::Number, ConstZero, Float, Point3, Ray, Vector3};
 
 /// 3D Axis aligned bounding box
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -173,16 +173,14 @@ impl<T: Number> Bounds3<T> {
     pub fn distance(&self, point: Point3<T>) -> T {
         self.distance_squared(point).sqrt()
     }
-}
 
-impl Bounds3f {
     /// Calculate the intersection point between the bounds and a given ray
-    pub fn intersect_p<U>(&self, ray: Ray<U, Float>) -> Option<(Float, Float)> {
-        let mut t0: Float = 0.0;
+    pub fn intersect_p<U>(&self, ray: Ray<U, T>) -> Option<(T, T)> {
+        let mut t0 = T::ZERO;
         let mut t1 = ray.t_max;
 
         for i in 0..3 {
-            let inv_ray_dir = 1.0 / ray.direction[i];
+            let inv_ray_dir = T::ONE / ray.direction[i];
             let mut t_near = (self.min[i] - ray.origin[i]) / inv_ray_dir;
             let mut t_far = (self.max[i] - ray.origin[i]) / inv_ray_dir;
 
@@ -190,7 +188,7 @@ impl Bounds3f {
                 std::mem::swap(&mut t_near, &mut t_far);
             }
 
-            t_far *= 1.0 + 2.0 * gamma::<Float>(3);
+            t_far *= T::ONE + T::TWO * gamma(3);
             t0 = t0.max(t_near);
             t1 = t1.min(t_far);
             if t0 > t1 {
@@ -203,14 +201,14 @@ impl Bounds3f {
 
     /// Calculate the intersection point between the bounds and a given ray
     /// given the inverse of the ray directions pre-computed
-    pub fn intersect_inv<T>(&self, ray: Ray<T, Float>, inv: Vector3f, is_neg: [bool; 3]) -> bool {
+    pub fn intersect_inv<U>(&self, ray: Ray<U, T>, inv: Vector3<T>, is_neg: [bool; 3]) -> bool {
         let mut t_min = (self[is_neg[0] as usize].x - ray.origin.x) * inv.x;
         let mut t_max = (self[1 - is_neg[0] as usize].x - ray.origin.x) * inv.x;
         let ty_min = (self[is_neg[1] as usize].y - ray.origin.y) * inv.y;
         let mut ty_max = (self[1 - is_neg[1] as usize].y - ray.origin.y) * inv.y;
 
-        t_max *= 1.0 + 2.0 * gamma::<Float>(3);
-        ty_max *= 1.0 + 2.0 * gamma::<Float>(3);
+        t_max *= T::ONE + T::TWO * gamma(3);
+        ty_max *= T::ONE + T::TWO * gamma(3);
 
         if t_min > ty_max || ty_min > t_max {
             return false;
@@ -220,7 +218,7 @@ impl Bounds3f {
 
         let tz_min = (self[is_neg[2] as usize].z - ray.origin.z) * inv.z;
         let mut tz_max = (self[1 - is_neg[2] as usize].z - ray.origin.z) * inv.z;
-        tz_max *= 1.0 + 2.0 * gamma::<Float>(3);
+        tz_max *= T::ONE + T::TWO * gamma(3);
 
         if t_min > tz_max || tz_min > t_max {
             return false;
@@ -228,7 +226,7 @@ impl Bounds3f {
         t_min = t_min.max(tz_min);
         t_max = t_max.min(tz_max);
 
-        t_min < ray.t_max && t_max > 0.0
+        t_min < ray.t_max && t_max > T::ZERO
     }
 }
 

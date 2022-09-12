@@ -81,20 +81,17 @@ pub fn lerp<T: Number>(t: T, a: T, b: T) -> T {
 /// Solve a quadratic equation ax^2 + bx + c = 0
 /// If no real solutions are found, returns None.  If both solutions are the
 /// same, that solution will be both return values.
-pub fn quadratic(a: Float, b: Float, c: Float) -> Option<(Float, Float)> {
-    let a = a as f64;
-    let b = b as f64;
-    let c = c as f64;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
+pub fn quadratic<T: Number>(a: T, b: T, c: T) -> Option<(T, T)> {
+    let discriminant = b * b - T::cast(4) * a * c;
+    if discriminant < T::ZERO {
         return None;
     }
     let root = discriminant.sqrt();
 
-    let q = if b < 0.0 {
-        -0.5 * (b - root)
+    let q = if b < T::ZERO {
+        -T::HALF * (b - root)
     } else {
-        -0.5 * (b + root)
+        -T::HALF * (b + root)
     };
 
     let t0 = q / a;
@@ -105,9 +102,9 @@ pub fn quadratic(a: Float, b: Float, c: Float) -> Option<(Float, Float)> {
 
 /// Solve equation Ax = B where A is a 2x2 matrix and B is a 2 element vector
 /// returns x as (x1, x2) if solution found, otherwise None
-pub fn solve_2x2_system(a: [[Float; 2]; 2], b: [Float; 2]) -> Option<(Float, Float)> {
+pub fn solve_2x2_system<T: Number>(a: [[T; 2]; 2], b: [T; 2]) -> Option<(T, T)> {
     let det = a[0][0] * a[1][1] - a[0][1] * a[1][0];
-    if det.abs() < 1e-10 {
+    if det.abs() < T::cast(1e-10) {
         return None;
     }
 
@@ -119,4 +116,29 @@ pub fn solve_2x2_system(a: [[Float; 2]; 2], b: [Float; 2]) -> Option<(Float, Flo
     }
 
     Some((x0, x1))
+}
+
+pub fn offset_ray_origin<T: Number>(
+    point: Point3<T>,
+    error: Vector3<T>,
+    normal: Normal3<T>,
+    w: Vector3<T>,
+) -> Point3<T> {
+    let d = normal.to_vector().abs().dot(error);
+    let mut offset = normal.to_vector() * d;
+    if normal.to_vector().dot(w) < T::ZERO {
+        offset = -offset;
+    }
+    let mut po = point + offset;
+
+    for i in 0..3 {
+        if offset[i] > T::ZERO {
+            po[i] = next_float_up(po[i]);
+        } else if offset[i] < T::ZERO {
+            po[i] = next_float_down(po[i]);
+        }
+
+    }
+
+    po
 }

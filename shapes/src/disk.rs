@@ -63,7 +63,7 @@ impl<T: Number> Shape<T> for Disk<T> {
             return None;
         }
 
-        let p_hit = ray.at(t_shape_hit);
+        let mut p_hit = ray.at(t_shape_hit);
         let dist2 = p_hit.x * p_hit.x + p_hit.y * p_hit.y;
         if dist2 > self.radius * self.radius || dist2 < self.inner_radius * self.inner_radius {
             return None;
@@ -84,6 +84,8 @@ impl<T: Number> Shape<T> for Disk<T> {
         let dpdu = Vector3::new(-self.phi_max * p_hit.y, self.phi_max * p_hit.x, T::ZERO);
         let dpdv =
             Vector3::new(p_hit.x, p_hit.y, T::ZERO) * (self.inner_radius - self.radius) / r_hit;
+
+        p_hit.z = self.height;
 
         let intersection = SurfaceInteraction::new(
             p_hit,

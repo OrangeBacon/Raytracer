@@ -507,12 +507,21 @@ impl<T, F: Number> Mul<Transform<F>> for Ray<T, F> {
     type Output = Self;
 
     fn mul(self, rhs: Transform<F>) -> Self::Output {
-        let origin = self.origin * rhs;
+        let (mut origin, o_err) = rhs.apply_err(self.origin);
         let direction = self.direction * rhs;
+
+        let length_square = direction.length_square();
+        let mut t_max = self.t_max;
+        if length_square > F::ZERO {
+            let dt = direction.abs().dot(o_err) / length_square;
+            origin += direction * dt;
+            t_max -= dt;
+        }
 
         Ray {
             origin,
             direction,
+            t_max,
             ..self
         }
     }

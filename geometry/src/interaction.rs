@@ -3,7 +3,10 @@ use std::{
     ops::{Mul, MulAssign},
 };
 
-use crate::{transform::Applicable, Normal3, Number, Point2, Point3, Transform, Vector3};
+use crate::{
+    offset_ray_origin, transform::Applicable, Normal3, Number, Point2, Point3, Ray, Transform,
+    Vector3,
+};
 
 /// interaction at a point on a surface
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -102,6 +105,59 @@ impl<T, F: Number> Interaction<T, F> {
     /// Is the interaction on a surface
     pub fn is_surface(&self) -> bool {
         self.normal.is_some()
+    }
+
+    /// Spawn a ray at the intersection point
+    pub fn spawn_ray(&self, direction: Vector3<F>) -> Ray<(), F> {
+        let origin = offset_ray_origin(
+            self.point,
+            self.error,
+            self.normal.unwrap_or_default(),
+            direction,
+        );
+        Ray {
+            origin,
+            direction,
+            t_max: F::INFINITY,
+            time: self.time,
+            material: (),
+        }
+    }
+
+    /// Spawn a ray ending just before a given point
+    pub fn spawn_ray_to(&self, point: Point3<F>) -> Ray<(), F> {
+        let origin = offset_ray_origin(
+            self.point,
+            self.error,
+            self.normal.unwrap_or_default(),
+            point - self.point,
+        );
+        let dir = point - origin;
+        Ray {
+            origin,
+            direction: dir,
+            t_max: F::ONE - F::cast(0.0001),
+            time: self.time,
+            material: (),
+        }
+    }
+
+    /// Spawn a ray ending just before a given surface interaction
+    pub fn spawn_ray_intersect<U>(&self, isect: Interaction<U, F>) -> Ray<(), F> {
+        let origin = offset_ray_origin(
+            self.point,
+            self.error,
+            self.normal.unwrap_or_default(),
+            isect.point - self.point,
+        );
+        let dir = isect.point - origin;
+        Ray {
+            origin,
+            direction: dir,
+            t_max: F::ONE - F::cast(0.0001),
+            time: self.time,
+            material: (),
+        }
     }
 }
 

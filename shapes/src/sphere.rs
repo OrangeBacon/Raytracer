@@ -1,8 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
 use geometry::{
-    Bounds3, ConstZero, Number, PartialDerivatives, Point2, Point3, Ray, SurfaceInteractable,
-    SurfaceInteraction, Transform, Vector2, Vector3,
+    gamma, Bounds3, ConstZero, Number, PartialDerivatives, Point2, Point3, Ray,
+    SurfaceInteractable, SurfaceInteraction, Transform, Vector2, Vector3,
 };
 
 use crate::{Shape, ShapeData};
@@ -65,6 +65,7 @@ impl<T: Number> Shape<T> for Sphere<T> {
 
         // compute sphere hit position
         let mut p_hit = ray.at(t_shape_hit.value());
+        p_hit *= self.radius / p_hit.distance(Point3::ZERO);
         if p_hit.x == T::ZERO && p_hit.y == T::ZERO {
             p_hit.x = T::cast(1e-5) * self.radius;
         }
@@ -85,6 +86,7 @@ impl<T: Number> Shape<T> for Sphere<T> {
             t_shape_hit = t1;
 
             p_hit = ray.at(t_shape_hit.value());
+            p_hit *= self.radius / p_hit.distance(Point3::ZERO);
             if p_hit.x == T::ZERO && p_hit.y == T::ZERO {
                 p_hit.x = T::cast(1e-5) * self.radius;
             }
@@ -130,9 +132,11 @@ impl<T: Number> Shape<T> for Sphere<T> {
 
         let (dndu, dndv) = self.derive_normal(dpdu, dpdv, d2pdu2, d2pduv, d2pdv2);
 
+        let p_error = p_hit.to_vec().abs() * gamma::<T>(5);
+
         let intersection = SurfaceInteraction::new(
             p_hit,
-            Vector3::ZERO,
+            p_error,
             Point2::new(u, v),
             -ray.direction,
             PartialDerivatives {

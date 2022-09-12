@@ -1,6 +1,6 @@
 use std::{
     marker::PhantomData,
-    ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign, IndexMut},
 };
 
 use crate::{number::Number, ConstZero, Float, Point2, Vector3};
@@ -149,6 +149,12 @@ impl<T: Number> Index<usize> for Point3<T> {
     #[inline]
     fn index(&self, index: usize) -> &Self::Output {
         [&self.x, &self.y, &self.z][index]
+    }
+}
+
+impl<T: Number> IndexMut<usize> for Point3<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        [&mut self.x, &mut self.y, &mut self.z][index]
     }
 }
 
