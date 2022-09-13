@@ -4,4 +4,5 @@ members = [
     "main",
     "shapes",
     "parsers",
+    "colour",
 ]
