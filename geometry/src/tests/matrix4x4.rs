@@ -1,4 +1,4 @@
-use crate::{Matrix4x4, tests::rng::Rng, Float};
+use crate::{Matrix4x4, Float, Rng};
 
 #[test]
 fn mat_inv() {

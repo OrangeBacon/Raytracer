@@ -11,6 +11,7 @@ mod point2;
 mod point3;
 mod quaternion;
 mod ray;
+mod rng;
 mod transform;
 mod vector2;
 mod vector3;
@@ -72,6 +73,8 @@ pub use animated_transform::AnimatedTransform;
 pub use interval::Interval;
 
 pub use interaction::*;
+
+pub use rng::Rng;
 
 /// Linearly interpolate between two floats
 pub fn lerp<T: Number>(t: T, a: T, b: T) -> T {
@@ -137,7 +140,6 @@ pub fn offset_ray_origin<T: Number>(
         } else if offset[i] < T::ZERO {
             po[i] = next_float_down(po[i]);
         }
-
     }
 
     po

@@ -1,4 +1,4 @@
-use crate::{tests::rng::Rng, AnimatedTransform, Bounds3f, Float, Point3f, Transform, Vector3f};
+use crate::{AnimatedTransform, Bounds3f, Float, Point3f, Transform, Vector3f, Rng};
 
 #[test]
 fn random_transform_interpolation() {
