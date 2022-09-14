@@ -63,6 +63,9 @@ pub trait Number:
     /// square root of 2, ~= 1.414
     const SQRT_2: Self;
 
+    /// The largest floating point value that is less than one
+    const ONE_MINUS_EPSILON: Self;
+
     /// Is this type a NaN value, always false if type is not floating
     fn is_nan(&self) -> bool;
 
@@ -181,6 +184,7 @@ macro_rules! NumberFloat {
             const LARGE_EPSILON: Self = 0.0005;
             const HALF: Self = 0.5;
             const SQRT_2: Self = std::$name::consts::SQRT_2;
+            const ONE_MINUS_EPSILON: Self = 1.0 - <$type>::EPSILON;
 
             #[inline]
             fn is_nan(&self) -> bool {
@@ -276,6 +280,7 @@ macro_rules! NumberInteger {
             const LARGE_EPSILON: Self = 0;
             const HALF: Self = 0.5 as _;
             const SQRT_2: Self = std::f64::consts::SQRT_2 as _;
+            const ONE_MINUS_EPSILON: Self = (1.0 - f64::EPSILON) as _;
 
             #[inline]
             fn is_nan(&self) -> bool {
