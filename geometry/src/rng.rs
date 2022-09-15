@@ -1,12 +1,15 @@
+use std::num::Wrapping;
+
 use crate::Number;
 
-const STATE: u64 = 0x853c49e6748fea9b;
-const STREAM: u64 = 0xda3e39cb94b95bdb;
-const MULTIPLY: u64 = 0x5851f42d4c957f2d;
+const STATE: Wrapping<u64> = Wrapping(0x853c49e6748fea9b);
+const STREAM: Wrapping<u64> = Wrapping(0xda3e39cb94b95bdb);
+const MULTIPLY: Wrapping<u64> = Wrapping(0x5851f42d4c957f2d);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rng {
-    state: u64,
-    inc: u64,
+    state: Wrapping<u64>,
+    inc: Wrapping<u64>,
 }
 
 impl Default for Rng {
@@ -27,9 +30,9 @@ impl Rng {
     }
 
     /// Set the seed of the random number generator
-    fn set_sequence(&mut self, index: u64) {
-        self.state = 0;
-        self.inc = (index << 1) | 1;
+    pub fn set_sequence(&mut self, index: u64) {
+        self.state = Wrapping(0);
+        self.inc = (Wrapping(index) << 1) | Wrapping(1);
         self.uniform_u32();
         self.state += STATE;
         self.uniform_u32();
@@ -39,9 +42,9 @@ impl Rng {
     pub fn uniform_u32(&mut self) -> u32 {
         let old = self.state;
         self.state = old * MULTIPLY + self.inc;
-        let shift = (((old >> 18) ^ old) >> 27) as u32;
-        let rot = (old >> 59) as u32;
-        (shift >> rot) | (shift << ((!rot + 1) & 31))
+        let shift = Wrapping((((old >> 18) ^ old) >> 27).0 as u32);
+        let rot = Wrapping((old >> 59).0 as u32);
+        ((shift >> rot.0 as usize) | (shift << ((!rot + Wrapping(1)) & Wrapping(31)).0 as usize)).0
     }
 
     /// Generate a new uniformly distributed random u32 in the range [0, limit)

@@ -1,10 +1,10 @@
-use geometry::{ConstZero, Number, Point2};
+use geometry::{ConstZero, Number, Point2, Point2i};
 
 /// A n object to get locations to send rays within a pixel
 pub trait Sampler<T: Number> {
     /// Start sampling at a given pixel location.  Must call the free function
     /// start pixel in the implementation of this method.
-    fn start_pixel(&mut self, point: Point2<i32>) {
+    fn start_pixel(&mut self, point: Point2i) {
         start_pixel(self, point)
     }
 
@@ -15,7 +15,7 @@ pub trait Sampler<T: Number> {
     fn two(&mut self) -> Point2<T>;
 
     /// Initialise a camera sample
-    fn camera_sample(&mut self, _point: Point2<i32>) {
+    fn camera_sample(&mut self, _point: Point2i) {
         todo!()
     }
 
@@ -39,7 +39,7 @@ pub trait Sampler<T: Number> {
     }
 
     /// Clone this sampler, but set the random seed to the given seed
-    fn clone_seed(&mut self, seed: i32) -> Self;
+    fn clone_seed(&mut self, seed: u64) -> Self;
 
     /// Get the generic sampler data
     fn sample_data(&mut self) -> &mut SamplerData<T>;
@@ -51,7 +51,7 @@ pub struct SamplerData<T: Number> {
     pub samples_per_pixel: usize,
 
     /// Location of the current pixel
-    pub(super) current_pixel: Point2<i32>,
+    pub(super) current_pixel: Point2i,
 
     /// Number of samples generated in the current pixel
     pub(super) current_pixel_sample_index: usize,
@@ -124,7 +124,7 @@ impl<T: Number> SamplerData<T> {
 }
 
 /// Start sampling at a given pixel location.
-pub fn start_pixel<T: Sampler<F> + ?Sized, F: Number>(this: &mut T, point: Point2<i32>) {
+pub fn start_pixel<T: Sampler<F> + ?Sized, F: Number>(this: &mut T, point: Point2i) {
     let this = this.sample_data();
     this.current_pixel = point;
     this.current_pixel_sample_index = 0;
