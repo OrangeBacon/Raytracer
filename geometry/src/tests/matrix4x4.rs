@@ -5,7 +5,7 @@ fn mat_inv() {
     let mut rng = Rng::new(4); // chosen by totally fair dice roll
 
     for _ in 0..1000 {
-        let data = [(); 16].map(|_| rng.float());
+        let data = [(); 16].map(|_| rng.uniform_float::<Float>());
         let mat = Matrix4x4::from_array(&data);
 
         if let Some(inv) = mat.inverse() {

@@ -1,4 +1,4 @@
-use crate::{AnimatedTransform, Bounds3f, Float, Point3f, Transform, Vector3f, Rng};
+use crate::{AnimatedTransform, Bounds3f, Float, Point3f, Rng, Transform, Vector3f};
 
 #[test]
 fn random_transform_interpolation() {
@@ -12,7 +12,7 @@ fn random_transform_interpolation() {
 
         for _ in 0..5 {
             // get random bounding box, moving through the random transform
-            let mut r = || -10.0 + 20.0 * rng.float();
+            let mut r = || -10.0 + 20.0 * rng.uniform_float::<Float>();
             let bounds = Bounds3f::new(Point3f::new(r(), r(), r()), Point3f::new(r(), r(), r()));
             let motion = animation.motion_bounds(bounds);
 
@@ -36,14 +36,14 @@ fn random_transform_interpolation() {
                 assert!(tb.min.z >= motion.min.z);
                 assert!(tb.max.z <= motion.max.z);
 
-                t += 1.0e-3 * rng.float();
+                t += 1.0e-3 * rng.uniform_float::<Float>();
             }
         }
     }
 }
 
 fn random_transform(rng: &mut Rng) -> Transform<Float> {
-    let mut r = || -10.0 + 20.0 * rng.float();
+    let mut r = || -10.0 + 20.0 * rng.uniform_float::<Float>();
     let mut transform = Transform::IDENTITY;
 
     for _ in 0..10 {
@@ -64,7 +64,7 @@ fn random_transform(rng: &mut Rng) -> Transform<Float> {
 #[test]
 fn rotate() {
     let mut rng = Rng::new(3);
-    let mut r = || -10.0 + 20.0 * rng.float();
+    let mut r = || -10.0 + 20.0 * rng.uniform_float::<Float>();
 
     for _ in 0..200 {
         let t = Transform::rotate(Vector3f::new(r(), r(), r()), 90.0);
