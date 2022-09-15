@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// interaction at a point on a surface
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct Interaction<T, F: Number> {
     /// location of the interaction
     pub point: Point3<F>,
@@ -32,7 +32,7 @@ pub struct Interaction<T, F: Number> {
 }
 
 /// Parametric partial derivatives of a point
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct PartialDerivatives<T: Number> {
     // Partial derivatives of a point in the tangent plane to the interaction
     pub dpdu: Vector3<T>,
@@ -43,7 +43,7 @@ pub struct PartialDerivatives<T: Number> {
     pub dndv: Normal3<T>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 /// Different partial derivatives and normals for particular points in the geometry of a shape.
 /// Used in bump mapping and other different surfaces.
 pub struct Shading<T: Number> {
@@ -60,7 +60,7 @@ pub trait SurfaceInteractable: Debug {
 }
 
 /// Interaction between a ray and a generic point on a surface
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct SurfaceInteraction<S: SurfaceInteractable, T, F: Number> {
     pub interaction: Interaction<T, F>,
     pub uv: Point2<F>,

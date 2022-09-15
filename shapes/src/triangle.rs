@@ -13,7 +13,7 @@ use geometry::{
 use crate::{triangle_mesh::TriangleMesh, Shape, ShapeData};
 
 /// A Single triangle referencing a triangle mesh
-#[derive(Debug, Clone, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct Triangle<F: Number, T: Debug> {
     data: ShapeData<F>,
     mesh: Arc<TriangleMesh<F, T>>,

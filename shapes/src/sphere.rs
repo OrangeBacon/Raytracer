@@ -13,7 +13,7 @@ use crate::{Shape, ShapeData};
 /// y = r sin theta sin phi;
 /// z = r cos theta;
 /// only renders the portion of the sphere between z_min and z_max
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct Sphere<T: Number> {
     data: ShapeData<T>,
     radius: T,

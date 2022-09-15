@@ -6,7 +6,7 @@ use std::{
 use crate::number::Number;
 
 /// class to simplify calculations with intervals of real numbers
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Interval<T: Number> {
     low: T,
     high: T,

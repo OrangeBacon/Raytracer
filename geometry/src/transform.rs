@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// A 3d transformation matrix representing an affine transformation
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Transform<T: Number> {
     mat: Matrix4x4<T>,
     inv: Matrix4x4<T>,

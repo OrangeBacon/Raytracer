@@ -105,9 +105,7 @@ impl<T: Number> SamplerData<T> {
         }
 
         self.array_one_offset += 1;
-        let res = &self.sample_array_one[self.array_one_offset - 1]
-            [self.current_pixel_sample_index * count..];
-        res
+        &self.sample_array_one[self.array_one_offset - 1][self.current_pixel_sample_index * count..]
     }
 
     /// Get an array of 2D samples of length specified from request_two_array
@@ -117,9 +115,7 @@ impl<T: Number> SamplerData<T> {
         }
 
         self.array_two_offset += 1;
-        let res = &self.sample_array_two[self.array_two_offset - 1]
-            [self.current_pixel_sample_index * count..];
-        res
+        &self.sample_array_two[self.array_two_offset - 1][self.current_pixel_sample_index * count..]
     }
 }
 

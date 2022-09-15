@@ -8,7 +8,7 @@ use geometry::{
 use crate::{Shape, ShapeData};
 
 /// A hyperboloid
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct Hyperboloid<T: Number> {
     data: ShapeData<T>,
     point1: Point3<T>,

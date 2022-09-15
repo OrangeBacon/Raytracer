@@ -3,7 +3,7 @@ use std::ops::Deref;
 use crate::{ConstZero, Float, Number, Point3, Vector3};
 
 /// Ray with an origin and a direction from the origin
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ray<T, F: Number> {
     pub origin: Point3<F>,
     pub direction: Vector3<F>,
@@ -61,7 +61,7 @@ impl<T, F: Number> Ray<T, F> {
 }
 
 /// Information about two rays
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct RayDifferentials<F: Number = Float> {
     pub rx_origin: Point3<F>,
     pub ry_origin: Point3<F>,
@@ -70,7 +70,7 @@ pub struct RayDifferentials<F: Number = Float> {
 }
 
 /// Ray with differential information
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RayDifferential<T, F: Number> {
     pub main: Ray<T, F>,
     pub differentials: Option<RayDifferentials<F>>,

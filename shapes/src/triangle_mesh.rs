@@ -3,7 +3,7 @@ use std::sync::Arc;
 use geometry::{Normal3, Number, Point2, Point3, Transform, Vector3};
 
 /// Container for individual triangle vertex data
-#[derive(Debug, Clone, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct TriangleMesh<F: Number, T> {
     object_to_world: Transform<F>,
 

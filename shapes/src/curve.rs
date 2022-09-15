@@ -11,7 +11,7 @@ use geometry::{
 use crate::{Shape, ShapeData};
 
 /// A segment of a cubic bezier curve
-#[derive(Debug, Clone, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct Curve<T: Number> {
     data: ShapeData<T>,
     common: Arc<CurveCommon<T>>,
@@ -29,7 +29,7 @@ pub enum CurveType {
 }
 
 /// Data common between multiple curve segments to save memory
-#[derive(Debug, Clone, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct CurveCommon<T: Number> {
     ty: CurveType,
     control_points: [Point3<T>; 4],
@@ -123,7 +123,7 @@ impl<T: Number> Curve<T> {
             let split = Self::subdivide(control_points);
             let points = [
                 &split[0..=3].try_into().ok()?,
-                &split[4..=7].try_into().ok()?,
+                &split[3..=6].try_into().ok()?,
             ];
 
             return self

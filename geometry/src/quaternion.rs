@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 use crate::{ConstZero, Matrix4x4, Number, Transform, Vector3};
 
 /// Quaternion (4 component rotation)
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Quaternion<F: Number> {
     pub vec: Vector3<F>,
     pub w: F,

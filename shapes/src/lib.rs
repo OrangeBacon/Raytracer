@@ -27,7 +27,7 @@ use geometry::{Bounds3, Number, Ray, SurfaceInteractable, SurfaceInteraction, Tr
 
 /// Data that should be stored by all shapes.
 /// TODO: Transform cache + references, don't copy 4 mat4x4 with each shape
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct ShapeData<T: Number> {
     pub object_to_world: Transform<T>,
     pub world_to_object: Transform<T>,

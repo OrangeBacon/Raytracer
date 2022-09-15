@@ -3,7 +3,7 @@ use std::ops::{Index, IndexMut, Mul, MulAssign};
 use crate::Number;
 
 /// 4 by 4 floating point matrix
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Matrix4x4<T: Number> {
     pub data: [[T; 4]; 4],
 }

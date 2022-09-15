@@ -3,7 +3,7 @@ use std::ops::{Index, IndexMut};
 use geometry::{Float, Matrix4x4, Number, Point3f, Transform, Vector3, Vector3f, Point3};
 
 /// Set of transformations for multiple points in time
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct TransformSet<T: Number> {
     transforms: [Transform<T>; 2],
     active_transforms: usize,
