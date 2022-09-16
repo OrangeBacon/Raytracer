@@ -16,6 +16,7 @@ mod transform;
 mod vector2;
 mod vector3;
 
+mod low_discrepancy;
 #[cfg(test)]
 mod tests;
 
@@ -75,6 +76,8 @@ pub use interval::Interval;
 pub use interaction::*;
 
 pub use rng::Rng;
+
+pub use low_discrepancy::*;
 
 /// Linearly interpolate between two floats
 pub fn lerp<T: Number>(t: T, a: T, b: T) -> T {

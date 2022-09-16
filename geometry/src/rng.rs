@@ -72,4 +72,14 @@ impl Rng {
             data.swap(idx, self.uniform_u32_limit(data.len() as _) as _)
         }
     }
+
+    /// Shuffle blocks of data of length n_dimensions within the given data
+    pub fn shuffle_dims<T: Copy>(&mut self, data: &mut [T], n_dimensions: usize) {
+        for i in 0..data.len() {
+            let other = i + self.uniform_u32_limit((data.len() - i) as _) as usize;
+            for j in 0..n_dimensions {
+                data.swap(n_dimensions * i + j, n_dimensions * other + j);
+            }
+        }
+    }
 }

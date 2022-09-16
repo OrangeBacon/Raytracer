@@ -34,7 +34,7 @@ impl<T: Number> PixelSamplerImpl<T> for StratifiedSampler {
     fn start_pixel(&mut self, data: &mut PixelSamplerData<T>, _point: Point2i) {
         for sample in &mut data.samples_one {
             stratified_sample_one(sample, &mut data.rng, self.jitter_samples);
-            shuffle(sample, 1, &mut data.rng)
+            data.rng.shuffle_dims(sample, 1)
         }
 
         for sample in &mut data.samples_two {
@@ -45,17 +45,21 @@ impl<T: Number> PixelSamplerImpl<T> for StratifiedSampler {
                 &mut data.rng,
                 self.jitter_samples,
             );
-            shuffle(sample, 1, &mut data.rng)
+            data.rng.shuffle_dims(sample, 1)
         }
 
         for i in 0..data.samples_one_array_sizes.len() {
             for j in 0..data.samples_per_pixel {
                 let count = data.samples_one_array_sizes[i];
                 stratified_sample_one(
-                    &mut data.data.sample_array_one[i][j * count..count],
+                    &mut data.data.sample_array_one[i][j * count..(j + 1) * count],
                     &mut data.rng,
                     self.jitter_samples,
-                )
+                );
+                data.rng.shuffle_dims(
+                    &mut data.data.sample_array_one[i][j * count..(j + 1) * count],
+                    1,
+                );
             }
         }
 
@@ -63,7 +67,7 @@ impl<T: Number> PixelSamplerImpl<T> for StratifiedSampler {
             for j in 0..data.samples_per_pixel {
                 let count = data.samples_two_array_sizes[i];
                 latin_hypercube(
-                    &mut data.data.sample_array_two[i][j * count..count],
+                    &mut data.data.sample_array_two[i][j * count..(j + 1) * count],
                     count,
                     2,
                     &mut data.rng,
@@ -111,16 +115,6 @@ fn stratified_sample_two<T: Number>(
     }
 }
 
-/// Shuffle blocks of data of length n_dimensions within the given data
-fn shuffle<T: Copy>(data: &mut [T], n_dimensions: usize, rng: &mut Rng) {
-    for i in 0..data.len() {
-        let other = i + rng.uniform_u32_limit((data.len() - i) as _) as usize;
-        for j in 0..n_dimensions {
-            data.swap(n_dimensions * i + j, n_dimensions * other + j);
-        }
-    }
-}
-
 /// Create a number of samples of arbitrary dimension using latin hypercube sampling
 fn latin_hypercube<T: Number>(
     samples: &mut [Point2<T>],
@@ -147,7 +141,7 @@ fn latin_hypercube<T: Number>(
         for j in 0..n_samples {
             let other = j + rng.uniform_u32_limit((n_samples - j) as _) as usize;
 
-            // All this below is in reality just a mem::swap if you treat 
+            // All this below is in reality just a mem::swap if you treat
             // [Point2<T>; N] == [[T; 2]; N] == [T; N * 2], but below does it without
             // having to assume anything about the layout of Point2<T>
             let idx = n_dimensions * j + i;

@@ -5,4 +5,5 @@ members = [
     "shapes",
     "parsers",
     "colour",
+    "proc",
 ]
