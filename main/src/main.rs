@@ -16,6 +16,7 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::Result;
 use clap::Parser;
 use glam::DVec3;
+use lang::Scanner;
 use parsers::parse_pbrt;
 use rand::Rng;
 
@@ -38,6 +39,11 @@ fn main() -> Result<()> {
 
     if args.scene.extension().map(|s| s == "pbrt").unwrap_or(false) {
         parse_pbrt(&args.scene)?;
+        return Ok(());
+    }
+
+    if args.scene.extension().map(|s| s == "msl").unwrap_or(false) {
+        Scanner::new(&std::fs::read_to_string(args.scene)?).print_tokens();
         return Ok(());
     }
 
