@@ -1,6 +1,6 @@
-use proc::{primes, radical_inverse, scrambled_radical_inverse};
+use proc::{radical_inverse, scrambled_radical_inverse};
 
-use crate::{Number, Rng};
+use geometry::{Number};
 
 /// Calculate the radical inverse of a number in the given base, works for any
 /// base where the base can be chosen at compile time.
@@ -37,30 +37,6 @@ pub fn inverse_radical_inverse<const BASE: u64>(mut inverse: u64, n_digits: usiz
     }
 
     index
-}
-
-/// The first 1000 prime numbers
-const PRIMES: [usize; 1000] = primes!(1000);
-
-/// Compute the radical inverse permutation tables
-pub fn radical_inverse_permutations(rng: &mut Rng) -> Vec<usize> {
-    let mut size = 0;
-    for prime in PRIMES {
-        size += prime;
-    }
-
-    let mut index = 0;
-    let mut permutations = Vec::with_capacity(size);
-    for i in 0..PRIMES.len() {
-        for j in 0..PRIMES[i] {
-            permutations[index + j] = j;
-        }
-        rng.shuffle_dims(&mut permutations[index..index + PRIMES[i]], 1);
-
-        index += PRIMES[i];
-    }
-
-    permutations
 }
 
 /// Compute the scrambled base n radical inverse of a given number.

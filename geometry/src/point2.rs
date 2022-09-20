@@ -1,9 +1,9 @@
 use std::{
     marker::PhantomData,
-    ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign},
 };
 
-use crate::{number::Number, Float, Vector2, ConstZero};
+use crate::{number::Number, ConstZero, Float, Vector2};
 
 /// Two dimensional cartesian coordinate
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -22,7 +22,7 @@ impl<T: Number> Default for Point2<T> {
     }
 }
 
-impl<T:Number> ConstZero for Point2<T> {
+impl<T: Number> ConstZero for Point2<T> {
     const ZERO: Self = Self {
         x: T::ZERO,
         y: T::ZERO,
@@ -136,6 +136,12 @@ impl<T: Number> Index<usize> for Point2<T> {
     #[inline]
     fn index(&self, index: usize) -> &Self::Output {
         [&self.x, &self.y][index]
+    }
+}
+
+impl<T: Number> IndexMut<usize> for Point2<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        [&mut self.x, &mut self.y][index]
     }
 }
 

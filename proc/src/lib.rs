@@ -1,3 +1,4 @@
+use geometry::Rng;
 use proc_macro::TokenStream;
 
 /// Calculate the radical inverse of a number.  Should be used through
@@ -45,7 +46,7 @@ fn n_primes(count: usize) -> Vec<usize> {
 
     'main: while res.len() < count {
         for i in 2..=((current as f64).sqrt().ceil() as usize) {
-            if current % i == 0 {
+            if current % i == 0 && current != i {
                 current += 1;
                 continue 'main;
             }
@@ -56,21 +57,6 @@ fn n_primes(count: usize) -> Vec<usize> {
     }
 
     res
-}
-
-/// Get a compile-time array of [usize; Count] prime numbers.
-#[proc_macro]
-pub fn primes(item: TokenStream) -> TokenStream {
-    let count = item
-        .into_iter()
-        .next()
-        .expect("Expected number of primes to generate");
-    let count = count
-        .to_string()
-        .parse::<usize>()
-        .expect("Unable to parse count as number");
-
-    format!("{:?}", n_primes(count)).parse().unwrap()
 }
 
 #[proc_macro]
@@ -104,4 +90,60 @@ pub fn scrambled_radical_inverse(item: TokenStream) -> TokenStream {
     let lines = lines.join("");
 
     lines.parse().unwrap()
+}
+
+/// Get a compile-time array of radical inverse permutations.
+#[proc_macro]
+pub fn radical_permutations(_item: TokenStream) -> TokenStream {
+    format!("{:?}", radical_inverse_permutations(&mut Rng::default()))
+        .parse()
+        .unwrap()
+}
+
+/// Compute the radical inverse permutation tables
+fn radical_inverse_permutations(rng: &mut Rng) -> Vec<usize> {
+    let primes = n_primes(1000);
+
+    let mut size = 0;
+    for prime in &primes {
+        size += prime;
+    }
+
+    let mut index = 0;
+    let mut permutations = vec![0; size];
+    for i in 0..primes.len() {
+        for j in 0..primes[i] {
+            permutations[index + j] = j;
+        }
+        rng.shuffle_dims(&mut permutations[index..index + primes[i]], 1);
+
+        index += primes[i];
+    }
+
+    permutations
+}
+
+/// Generate a list of the sums of all prime numbers below each prime number.
+/// 0 => primes below 2, 1 => primes below 3, 2 => primes below 5, ...
+#[proc_macro]
+pub fn prime_sums(item: TokenStream) -> TokenStream {
+    let count = item
+        .into_iter()
+        .next()
+        .expect("Expected number of primes to generate");
+    let count = count
+        .to_string()
+        .parse::<usize>()
+        .expect("Unable to parse count as number");
+
+    let primes = n_primes(count);
+
+    let prime_sums = primes
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(idx, _)| primes[0..idx].iter().sum())
+        .collect::<Vec<usize>>();
+
+    format!("{:?}", prime_sums).parse().unwrap()
 }

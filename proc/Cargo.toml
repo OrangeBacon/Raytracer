@@ -7,3 +7,4 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
+geometry = { path = "../geometry" }
