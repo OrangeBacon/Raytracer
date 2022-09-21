@@ -71,7 +71,7 @@ fn round_up_pow_2(x: usize) -> usize {
 }
 
 /// Create scrambled 1D sample values using grey code
-fn van_der_corput<T: Number>(
+pub fn van_der_corput<T: Number>(
     samples_per_pixel: usize,
     pixel_samples: usize,
     samples: &mut [T],
@@ -98,7 +98,7 @@ fn van_der_corput<T: Number>(
 }
 
 /// Create 2D samples using sobol2d sampling
-fn sobol_2d<T: Number>(
+pub fn sobol_2d<T: Number>(
     samples_per_pixel: usize,
     pixel_samples: usize,
     samples: &mut [Point2<T>],
@@ -129,37 +129,6 @@ fn sobol_2d<T: Number>(
     }
 
     rng.shuffle_dims(samples, samples_per_pixel);
-}
-
-/// Multiply a generator matrix by a bit vector a
-fn multiply_generator(lines: &[u32], mut a: u32) -> u32 {
-    let mut res = 0;
-
-    for &line in lines {
-        if a & 1 != 0 {
-            res ^= line
-        }
-
-        if a == 0 {
-            break;
-        }
-
-        a >>= 1;
-    }
-
-    res
-}
-
-/// Generate sample value from a generator matrix
-fn sample_generator_matrix<T: Number>(lines: &[u32], a: u32, scramble: u32) -> T {
-    T::ONE_MINUS_EPSILON.min(T::cast(
-        (multiply_generator(lines, a) ^ scramble) as f32 * 2.0f32.powi(-32),
-    ))
-}
-
-/// Compute the nth gray code number
-fn gray_code(n: u32) -> u32 {
-    (n >> 1) ^ n
 }
 
 /// Generate n sample values from a generator matrix in gray code ordering
