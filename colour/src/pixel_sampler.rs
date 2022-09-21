@@ -28,6 +28,10 @@ pub struct PixelSamplerData<T: Number> {
 /// Required functions for a pixel sampler implementation
 pub trait PixelSamplerImpl<T: Number>: Copy {
     fn start_pixel(&mut self, data: &mut PixelSamplerData<T>, point: Point2i);
+
+    fn round_count(&mut self, count: usize) -> usize {
+        count
+    }
 }
 
 impl<T: Number, U: PixelSamplerImpl<T>> PixelSampler<T, U> {
@@ -99,6 +103,10 @@ impl<T: Number, U: PixelSamplerImpl<T>> Sampler<T> for PixelSampler<T, U> {
 
     fn sample_data(&mut self) -> &mut SamplerData<T> {
         &mut self.data.data
+    }
+
+    fn round_count(&mut self, count: usize) -> usize {
+        self.implementation.round_count(count)
     }
 }
 
