@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use geometry::{Bounds3, ConstZero, EFloat, Number, Point2, Point3, Ray, Transform, Vector3};
 
-use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteraction};
 
 /// A hyperboloid
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
@@ -65,6 +65,14 @@ impl<T: Number> Hyperboloid<T> {
 }
 
 impl<T: Number> Shape<T> for Hyperboloid<T> {
+    fn data(&self) -> &ShapeData<T> {
+        &self.data
+    }
+
+    fn data_mut(&mut self) -> &mut ShapeData<T> {
+        &mut self.data
+    }
+
     fn object_bound(&self) -> geometry::Bounds3<T> {
         Bounds3::new(
             Point3::new(-self.r_max, -self.r_max, self.z_min),
@@ -76,7 +84,7 @@ impl<T: Number> Shape<T> for Hyperboloid<T> {
         &self,
         ray: Ray<(), T>,
         _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<&dyn SurfaceInteractable, (), T>)> {
+    ) -> Option<(T, SurfaceInteraction<(), T>)> {
         let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
 
         let ox = EFloat::new_with_err(ray.origin.x, o_err.x);
@@ -172,7 +180,7 @@ impl<T: Number> Shape<T> for Hyperboloid<T> {
             },
             ray.time,
         )
-        .with_shape(self as &dyn SurfaceInteractable)
+        .with_shape(*self)
             * self.object_to_world;
 
         Some((t_shape_hit.value(), intersection))
@@ -271,12 +279,6 @@ impl<T: Number> Shape<T> for Hyperboloid<T> {
                         - p1.z * p1.z
                         + T::TWO * p1.z * p2.z
                         - p2.z * p2.z))
-    }
-}
-
-impl<T: Number> SurfaceInteractable for Hyperboloid<T> {
-    fn reverses_orientation(&self) -> bool {
-        self.reverse_orientation ^ self.transform_swaps_handedness
     }
 }
 

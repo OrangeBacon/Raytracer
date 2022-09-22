@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use geometry::{Bounds3, ConstZero, EFloat, Number, Point2, Point3, Ray, Transform, Vector3};
 
-use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteraction};
 
 /// A Cone centred on the z axis
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
@@ -33,6 +33,14 @@ impl<T: Number> Cone<T> {
 }
 
 impl<T: Number> Shape<T> for Cone<T> {
+    fn data(&self) -> &ShapeData<T> {
+        &self.data
+    }
+
+    fn data_mut(&mut self) -> &mut ShapeData<T> {
+        &mut self.data
+    }
+
     fn object_bound(&self) -> Bounds3<T> {
         Bounds3::new(
             Point3::new(-self.radius, -self.radius, T::ZERO),
@@ -44,7 +52,7 @@ impl<T: Number> Shape<T> for Cone<T> {
         &self,
         ray: Ray<(), T>,
         _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<&dyn SurfaceInteractable, (), T>)> {
+    ) -> Option<(T, SurfaceInteraction<(), T>)> {
         let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
 
         let ox = EFloat::new_with_err(ray.origin.x, o_err.x);
@@ -137,7 +145,7 @@ impl<T: Number> Shape<T> for Cone<T> {
             },
             ray.time,
         )
-        .with_shape(self as &dyn SurfaceInteractable)
+        .with_shape(*self)
             * self.object_to_world;
 
         Some((t_shape_hit.value(), intersection))
@@ -224,11 +232,5 @@ impl<T: Number> Deref for Cone<T> {
 impl<T: Number> DerefMut for Cone<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
-    }
-}
-
-impl<T: Number> SurfaceInteractable for Cone<T> {
-    fn reverses_orientation(&self) -> bool {
-        self.reverse_orientation ^ self.transform_swaps_handedness
     }
 }

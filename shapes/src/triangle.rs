@@ -8,8 +8,7 @@ use std::{
 use geometry::{gamma, Bounds3, ConstZero, Normal3, Number, Point2, Ray, Transform, Vector3};
 
 use crate::{
-    triangle_mesh::TriangleMesh, PartialDerivatives, Shape, ShapeData, SurfaceInteractable,
-    SurfaceInteraction,
+    triangle_mesh::TriangleMesh, PartialDerivatives, Shape, ShapeData, SurfaceInteraction,
 };
 
 /// A Single triangle referencing a triangle mesh
@@ -80,7 +79,15 @@ impl<F: Number, T: Debug> Triangle<F, T> {
     }
 }
 
-impl<F: Number, T: Debug> Shape<F> for Triangle<F, T> {
+impl<F: Number, T: Debug + 'static> Shape<F> for Triangle<F, T> {
+    fn data(&self) -> &ShapeData<F> {
+        &self.data
+    }
+
+    fn data_mut(&mut self) -> &mut ShapeData<F> {
+        &mut self.data
+    }
+
     fn object_bound(&self) -> Bounds3<F> {
         let p0 = self.mesh.positions()[self.mesh.indices()[self.idx]];
         let p1 = self.mesh.positions()[self.mesh.indices()[self.idx + 1]];
@@ -102,7 +109,7 @@ impl<F: Number, T: Debug> Shape<F> for Triangle<F, T> {
         &self,
         ray: Ray<(), F>,
         test_alpha: bool,
-    ) -> Option<(F, SurfaceInteraction<&dyn SurfaceInteractable, (), F>)> {
+    ) -> Option<(F, SurfaceInteraction<(), F>)> {
         let p0 = self.mesh.positions()[self.mesh.indices()[self.idx]];
         let p1 = self.mesh.positions()[self.mesh.indices()[self.idx + 1]];
         let p2 = self.mesh.positions()[self.mesh.indices()[self.idx + 2]];
@@ -234,7 +241,11 @@ impl<F: Number, T: Debug> Shape<F> for Triangle<F, T> {
                     },
                     ray.time,
                 )
-                .with_shape(self as &dyn SurfaceInteractable);
+                .with_shape(Triangle {
+                    data: self.data,
+                    mesh: Arc::clone(&self.mesh),
+                    idx: self.idx,
+                });
                 todo!(
                     "Implement textures here pls: {:?}, {:?}",
                     alpha,
@@ -259,7 +270,11 @@ impl<F: Number, T: Debug> Shape<F> for Triangle<F, T> {
             },
             ray.time,
         )
-        .with_shape(self as &dyn SurfaceInteractable);
+        .with_shape(Triangle {
+            data: self.data,
+            mesh: Arc::clone(&self.mesh),
+            idx: self.idx,
+        });
 
         let normal = dp02.cross(dp12).normalise().to_normal();
         isect.interaction.normal = Some(normal);
@@ -449,7 +464,11 @@ impl<F: Number, T: Debug> Shape<F> for Triangle<F, T> {
                     },
                     ray.time,
                 )
-                .with_shape(self as &dyn SurfaceInteractable);
+                .with_shape(Triangle {
+                    data: self.data,
+                    mesh: Arc::clone(&self.mesh),
+                    idx: self.idx,
+                });
                 todo!(
                     "Implement textures here pls: {:?}, {:?}",
                     alpha,
@@ -467,12 +486,6 @@ impl<F: Number, T: Debug> Shape<F> for Triangle<F, T> {
         let p2 = self.mesh.positions()[self.mesh.indices()[self.idx + 2]];
 
         (F::HALF) * (p1 - p0).cross(p2 - p0).length()
-    }
-}
-
-impl<F: Number, T: Debug> SurfaceInteractable for Triangle<F, T> {
-    fn reverses_orientation(&self) -> bool {
-        self.reverse_orientation ^ self.transform_swaps_handedness
     }
 }
 

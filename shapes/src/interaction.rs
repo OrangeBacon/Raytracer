@@ -4,9 +4,10 @@ use std::{
 };
 
 use geometry::{
-    offset_ray_origin, Applicable, Normal3, Number, Point2, Point3, Ray, Transform,
-    Vector3,
+    offset_ray_origin, Applicable, Normal3, Number, Point2, Point3, Ray, Transform, Vector3,
 };
+
+use crate::Shape;
 
 /// interaction at a point on a surface
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
@@ -51,21 +52,13 @@ pub struct Shading<T: Number> {
     pub derivatives: PartialDerivatives<T>,
 }
 
-/// Small portion of the shape interface representing the parts that are used
-/// in a surface interaction.  Only exists to fix recursive cargo dependencies
-pub trait SurfaceInteractable: Debug {
-    /// Does the shape's transform reverse its orientation.
-    /// Equal to shape.reverse_orientation ^ shape.transform.swaps_handedness()
-    fn reverses_orientation(&self) -> bool;
-}
-
 /// Interaction between a ray and a generic point on a surface
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
-pub struct SurfaceInteraction<S: SurfaceInteractable, T, F: Number> {
+#[derive(Debug, Default)]
+pub struct SurfaceInteraction<T, F: Number> {
     pub interaction: Interaction<T, F>,
     pub uv: Point2<F>,
     pub derivatives: PartialDerivatives<F>,
-    pub shape: Option<S>,
+    pub shape: Option<Box<dyn Shape<F>>>,
     pub shading: Shading<F>,
 }
 
@@ -161,20 +154,7 @@ impl<T, F: Number> Interaction<T, F> {
     }
 }
 
-/// SurfaceInteractable for &dyn SurfaceInteractable
-impl<T: SurfaceInteractable + ?Sized> SurfaceInteractable for &T {
-    fn reverses_orientation(&self) -> bool {
-        (*self).reverses_orientation()
-    }
-}
-
-impl SurfaceInteractable for () {
-    fn reverses_orientation(&self) -> bool {
-        false
-    }
-}
-
-impl<F: Number> SurfaceInteraction<(), (), F> {
+impl<F: Number> SurfaceInteraction<(), F> {
     /// Create a new surface interaction
     pub fn new(
         point: Point3<F>,
@@ -200,9 +180,9 @@ impl<F: Number> SurfaceInteraction<(), (), F> {
     }
 }
 
-impl<S: SurfaceInteractable, T, F: Number> SurfaceInteraction<S, T, F> {
+impl<T, F: Number> SurfaceInteraction<T, F> {
     /// Associate a medium interface with this surface interaction
-    pub fn with_medium<U>(self, medium: U) -> SurfaceInteraction<S, U, F> {
+    pub fn with_medium<U>(self, medium: U) -> SurfaceInteraction<U, F> {
         SurfaceInteraction {
             interaction: self.interaction.with_medium(medium),
             uv: self.uv,
@@ -213,12 +193,12 @@ impl<S: SurfaceInteractable, T, F: Number> SurfaceInteraction<S, T, F> {
     }
 
     /// Associate a shape with this surface interaction
-    pub fn with_shape<S2: SurfaceInteractable>(self, shape: S2) -> SurfaceInteraction<S2, T, F> {
+    pub fn with_shape<S2: Shape<F> + 'static>(self, shape: S2) -> SurfaceInteraction<T, F> {
         let mut this = SurfaceInteraction {
             interaction: self.interaction,
             uv: self.uv,
             derivatives: self.derivatives,
-            shape: Some(shape),
+            shape: Some(Box::new(shape)),
             shading: self.shading,
         };
 
@@ -232,7 +212,7 @@ impl<S: SurfaceInteractable, T, F: Number> SurfaceInteraction<S, T, F> {
         this
     }
 
-    fn remove_params(&self) -> SurfaceInteraction<(), (), F> {
+    fn remove_params(&self) -> SurfaceInteraction<(), F> {
         SurfaceInteraction {
             interaction: Interaction {
                 point: self.interaction.point,
@@ -244,7 +224,7 @@ impl<S: SurfaceInteractable, T, F: Number> SurfaceInteraction<S, T, F> {
             },
             uv: self.uv,
             derivatives: self.derivatives,
-            shape: Some(()),
+            shape: None,
             shading: self.shading,
         }
     }
@@ -276,8 +256,8 @@ impl<S: SurfaceInteractable, T, F: Number> SurfaceInteraction<S, T, F> {
     }
 }
 
-impl<S: SurfaceInteractable, T, F: Number> Mul<Transform<F>> for SurfaceInteraction<S, T, F> {
-    type Output = SurfaceInteraction<S, T, F>;
+impl<T, F: Number> Mul<Transform<F>> for SurfaceInteraction<T, F> {
+    type Output = SurfaceInteraction<T, F>;
 
     fn mul(self, rhs: Transform<F>) -> Self::Output {
         let (point, error) = rhs.apply_err((self.interaction.point, self.interaction.error));
@@ -312,7 +292,7 @@ impl<S: SurfaceInteractable, T, F: Number> Mul<Transform<F>> for SurfaceInteract
     }
 }
 
-impl<S: SurfaceInteractable, T, F: Number> MulAssign<Transform<F>> for SurfaceInteraction<S, T, F> {
+impl<T, F: Number> MulAssign<Transform<F>> for SurfaceInteraction<T, F> {
     fn mul_assign(&mut self, rhs: Transform<F>) {
         let res = self.remove_params() * rhs;
         self.derivatives = res.derivatives;
@@ -326,10 +306,8 @@ impl<S: SurfaceInteractable, T, F: Number> MulAssign<Transform<F>> for SurfaceIn
     }
 }
 
-impl<S: SurfaceInteractable, T, F: Number> Applicable<SurfaceInteraction<S, T, F>>
-    for Transform<F>
-{
-    fn apply(&self, other: SurfaceInteraction<S, T, F>) -> SurfaceInteraction<S, T, F> {
+impl<T, F: Number> Applicable<SurfaceInteraction<T, F>> for Transform<F> {
+    fn apply(&self, other: SurfaceInteraction<T, F>) -> SurfaceInteraction<T, F> {
         other * *self
     }
 }

@@ -4,7 +4,7 @@ use geometry::{
     gamma, Bounds3, ConstZero, Number, Point2, Point3, Ray, Transform, Vector2, Vector3,
 };
 
-use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteraction};
 
 /// 3D sphere, represented using spherical coordinates.
 /// x^2 + y^2 + z^2 = r^2;
@@ -48,6 +48,14 @@ impl<T: Number> Sphere<T> {
 }
 
 impl<T: Number> Shape<T> for Sphere<T> {
+    fn data(&self) -> &ShapeData<T> {
+        &self.data
+    }
+
+    fn data_mut(&mut self) -> &mut ShapeData<T> {
+        &mut self.data
+    }
+
     fn object_bound(&self) -> Bounds3<T> {
         Bounds3::new(
             Point3::new(-self.radius, -self.radius, self.z_min),
@@ -59,7 +67,7 @@ impl<T: Number> Shape<T> for Sphere<T> {
         &self,
         ray: Ray<(), T>,
         _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<&dyn SurfaceInteractable, (), T>)> {
+    ) -> Option<(T, SurfaceInteraction<(), T>)> {
         let (mut t_shape_hit, t1) = self.quadric_coefficients(self.radius, ray)?;
 
         // compute sphere hit position
@@ -146,7 +154,7 @@ impl<T: Number> Shape<T> for Sphere<T> {
             },
             ray.time,
         )
-        .with_shape(self as &dyn SurfaceInteractable)
+        .with_shape(*self)
             * self.object_to_world;
 
         Some((t_shape_hit.value(), intersection))
@@ -203,12 +211,6 @@ impl<T: Number> Shape<T> for Sphere<T> {
 
     fn area(&self) -> T {
         self.phi_max * self.radius * (self.z_max - self.z_min)
-    }
-}
-
-impl<T: Number> SurfaceInteractable for Sphere<T> {
-    fn reverses_orientation(&self) -> bool {
-        self.reverse_orientation ^ self.transform_swaps_handedness
     }
 }
 

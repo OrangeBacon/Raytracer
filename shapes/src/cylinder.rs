@@ -4,7 +4,7 @@ use geometry::{
     gamma, Bounds3, ConstZero, Number, Point2, Point3, Ray, Transform, Vector2, Vector3,
 };
 
-use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteraction};
 
 /// A cylinder centred on the z axis
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
@@ -37,6 +37,14 @@ impl<T: Number> Cylinder<T> {
 }
 
 impl<T: Number> Shape<T> for Cylinder<T> {
+    fn data(&self) -> &ShapeData<T> {
+        &self.data
+    }
+
+    fn data_mut(&mut self) -> &mut ShapeData<T> {
+        &mut self.data
+    }
+
     fn object_bound(&self) -> Bounds3<T> {
         Bounds3::new(
             Point3::new(-self.radius, -self.radius, self.z_min),
@@ -48,7 +56,7 @@ impl<T: Number> Shape<T> for Cylinder<T> {
         &self,
         ray: Ray<(), T>,
         _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<&dyn SurfaceInteractable, (), T>)> {
+    ) -> Option<(T, SurfaceInteraction<(), T>)> {
         // ignore z-axis for the quadric hit test
         let ray = {
             let mut ray = ray;
@@ -111,7 +119,7 @@ impl<T: Number> Shape<T> for Cylinder<T> {
             },
             ray.time,
         )
-        .with_shape(self as &dyn SurfaceInteractable)
+        .with_shape(*self)
             * self.object_to_world;
 
         Some((t_shape_hit.value(), intersection))
@@ -173,11 +181,5 @@ impl<T: Number> Deref for Cylinder<T> {
 impl<T: Number> DerefMut for Cylinder<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
-    }
-}
-
-impl<T: Number> SurfaceInteractable for Cylinder<T> {
-    fn reverses_orientation(&self) -> bool {
-        self.reverse_orientation ^ self.transform_swaps_handedness
     }
 }

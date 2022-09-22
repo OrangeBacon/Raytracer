@@ -7,7 +7,7 @@ use geometry::{
     lerp, Bounds3, ConstZero, Normal3, Number, Point2, Point3, Ray, Transform, Vector3,
 };
 
-use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteraction};
 
 /// A segment of a cubic bezier curve
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
@@ -98,7 +98,7 @@ impl<T: Number> Curve<T> {
         u0: T,
         u1: T,
         depth: i32,
-    ) -> Option<(T, SurfaceInteraction<&dyn SurfaceInteractable, (), T>)> {
+    ) -> Option<(T, SurfaceInteraction<(), T>)> {
         // compute bounding box of the curve segment
         let width = [
             lerp(u0, self.common.width[0], self.common.width[1]),
@@ -209,7 +209,7 @@ impl<T: Number> Curve<T> {
             },
             ray.time,
         )
-        .with_shape(self as &dyn SurfaceInteractable)
+        .with_shape(self.clone())
             * self.object_to_world;
 
         Some((pc.z / ray_length, isect))
@@ -242,6 +242,14 @@ impl<T: Number> CurveCommon<T> {
 }
 
 impl<T: Number> Shape<T> for Curve<T> {
+    fn data(&self) -> &ShapeData<T> {
+        &self.data
+    }
+
+    fn data_mut(&mut self) -> &mut ShapeData<T> {
+        &mut self.data
+    }
+
     fn object_bound(&self) -> Bounds3<T> {
         let control = [
             self.blossom([self.u_min, self.u_min, self.u_min]),
@@ -264,7 +272,7 @@ impl<T: Number> Shape<T> for Curve<T> {
         &self,
         ray: Ray<(), T>,
         _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<&dyn SurfaceInteractable, (), T>)> {
+    ) -> Option<(T, SurfaceInteraction<(), T>)> {
         let ray = ray * self.object_to_world;
 
         let control = [
@@ -319,12 +327,6 @@ impl<T: Number> Shape<T> for Curve<T> {
         }
 
         approx * average
-    }
-}
-
-impl<T: Number> SurfaceInteractable for Curve<T> {
-    fn reverses_orientation(&self) -> bool {
-        self.reverse_orientation ^ self.transform_swaps_handedness
     }
 }
 
