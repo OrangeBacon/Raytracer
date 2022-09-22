@@ -88,7 +88,7 @@ pub trait Number:
     fn order(&self, rhs: &Self) -> Ordering;
 
     /// Cast to self
-    fn cast<T: Number>(num: T) -> Self;
+    fn cast<T: Number>(x: T) -> Self;
 
     /// Cast to double
     fn f64(&self) -> f64;
