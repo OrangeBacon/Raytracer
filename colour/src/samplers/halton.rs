@@ -1,7 +1,7 @@
-use data::{RADICAL_INVERSE_PERMUTATIONS, PRIME_SUMS};
+use data::{PRIME_SUMS, RADICAL_INVERSE_PERMUTATIONS};
 use geometry::{Bounds2i, Number, Point2i};
 
-use crate::{
+use crate::samplers::{
     global_sampler::{GlobalSampler, GlobalSamplerData, GlobalSamplerImpl},
     low_discrepancy::{inverse_radical_inverse, radical_inverse, scrambled_radical_inverse},
 };
@@ -12,7 +12,7 @@ const MAX_RESOLUTION: i32 = 128;
 
 /// Sampler using the halton sequence
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
-pub struct HaltonSampler {
+pub struct Halton {
     base_scales: Point2i,
     base_exponents: Point2i,
     sample_stride: usize,
@@ -22,13 +22,13 @@ pub struct HaltonSampler {
     sample_at_pixel_centre: bool,
 }
 
-impl HaltonSampler {
+impl Halton {
     /// Create a new halton sampler
     pub fn new<T: Number>(
         samples_per_pixel: usize,
         sample_bounds: Bounds2i,
-    ) -> GlobalSampler<T, HaltonSampler> {
-        let mut this = HaltonSampler::default();
+    ) -> GlobalSampler<T, Halton> {
+        let mut this = Halton::default();
 
         let res = sample_bounds.max - sample_bounds.min;
         for i in 0..2 {
@@ -55,7 +55,7 @@ impl HaltonSampler {
     }
 }
 
-impl<T: Number> GlobalSamplerImpl<T> for HaltonSampler {
+impl<T: Number> GlobalSamplerImpl<T> for Halton {
     const ARRAY_START_DIM: usize = 5;
 
     fn get_index_for_sample(&mut self, data: &GlobalSamplerData<T>, sample_num: usize) -> usize {

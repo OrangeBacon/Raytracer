@@ -1,24 +1,21 @@
 use geometry::{log2usize, round_up_pow_2, Bounds2i, Number};
 
-use crate::global_sampler::{GlobalSampler, GlobalSamplerData, GlobalSamplerImpl};
+use crate::samplers::global_sampler::{GlobalSampler, GlobalSamplerData, GlobalSamplerImpl};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
-pub struct SobolSampler {
+pub struct Sobol {
     bounds: Bounds2i,
     resolution: usize,
     log2resolution: usize,
 }
 
-impl SobolSampler {
+impl Sobol {
     /// Create a new sobol sampler
-    pub fn new<T: Number>(
-        samples_per_pixel: usize,
-        bounds: Bounds2i,
-    ) -> GlobalSampler<T, SobolSampler> {
+    pub fn new<T: Number>(samples_per_pixel: usize, bounds: Bounds2i) -> GlobalSampler<T, Sobol> {
         let diagonal = bounds.diagonal();
         let resolution = round_up_pow_2(diagonal.x.max(diagonal.y) as _);
 
-        let sampler = SobolSampler {
+        let sampler = Sobol {
             bounds,
             resolution,
             log2resolution: log2usize(resolution),
@@ -28,7 +25,7 @@ impl SobolSampler {
     }
 }
 
-impl<T: Number> GlobalSamplerImpl<T> for SobolSampler {
+impl<T: Number> GlobalSamplerImpl<T> for Sobol {
     const ARRAY_START_DIM: usize = 5;
 
     fn get_index_for_sample(

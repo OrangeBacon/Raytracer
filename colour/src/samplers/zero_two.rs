@@ -1,25 +1,25 @@
-use geometry::{Number, Point2, Point2i, Rng, round_up_pow_2};
+use geometry::{round_up_pow_2, Number, Point2, Point2i, Rng};
 
-use crate::pixel_sampler::{PixelSampler, PixelSamplerData, PixelSamplerImpl};
+use crate::samplers::pixel_sampler::{PixelSampler, PixelSamplerData, PixelSamplerImpl};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
-pub struct ZeroTwoSampler;
+pub struct ZeroTwo;
 
-impl ZeroTwoSampler {
+impl ZeroTwo {
     /// Create a new (0, 2)-sequence sampler
     pub fn new<T: Number>(
         samples_per_pixel: usize,
         sampled_dimensions: usize,
-    ) -> PixelSampler<T, ZeroTwoSampler> {
+    ) -> PixelSampler<T, ZeroTwo> {
         PixelSampler::new(
             round_up_pow_2(samples_per_pixel),
             sampled_dimensions,
-            ZeroTwoSampler,
+            ZeroTwo,
         )
     }
 }
 
-impl<T: Number> PixelSamplerImpl<T> for ZeroTwoSampler {
+impl<T: Number> PixelSamplerImpl<T> for ZeroTwo {
     fn start_pixel(&mut self, data: &mut PixelSamplerData<T>, _point: Point2i) {
         // pixel samples
         for i in 0..data.samples_one.len() {

@@ -1,6 +1,6 @@
 use proc::{radical_inverse, scrambled_radical_inverse};
 
-use geometry::{Number};
+use geometry::Number;
 
 /// Calculate the radical inverse of a number in the given base, works for any
 /// base where the base can be chosen at compile time.

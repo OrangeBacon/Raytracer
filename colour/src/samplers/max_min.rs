@@ -1,21 +1,21 @@
 use geometry::{log2usize, Number, Point2};
 
-use crate::{
-    pixel_sampler::{PixelSampler, PixelSamplerImpl},
+use crate::samplers::{
+    pixel_sampler::{PixelSampler, PixelSamplerData, PixelSamplerImpl},
     zero_two::{sobol_2d, van_der_corput},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
-pub struct MaxMinDistSampler {
+pub struct MaxMinDist {
     matrix_index: usize,
 }
 
-impl MaxMinDistSampler {
+impl MaxMinDist {
     pub fn new<T: Number>(
         samples_per_pixel: usize,
         sampled_dimensions: usize,
-    ) -> PixelSampler<T, MaxMinDistSampler> {
-        let sampler = MaxMinDistSampler {
+    ) -> PixelSampler<T, MaxMinDist> {
+        let sampler = MaxMinDist {
             matrix_index: log2usize(samples_per_pixel) as usize,
         };
 
@@ -23,12 +23,8 @@ impl MaxMinDistSampler {
     }
 }
 
-impl<T: Number> PixelSamplerImpl<T> for MaxMinDistSampler {
-    fn start_pixel(
-        &mut self,
-        data: &mut crate::pixel_sampler::PixelSamplerData<T>,
-        _point: geometry::Point2i,
-    ) {
+impl<T: Number> PixelSamplerImpl<T> for MaxMinDist {
+    fn start_pixel(&mut self, data: &mut PixelSamplerData<T>, _point: geometry::Point2i) {
         let inv = T::ONE / T::cast(data.samples_per_pixel as i32);
 
         for i in 0..data.samples_per_pixel {

@@ -1,23 +1,23 @@
 use geometry::{Number, Point2, Point2i, Rng};
 
-use crate::pixel_sampler::{PixelSampler, PixelSamplerData, PixelSamplerImpl};
+use crate::samplers::pixel_sampler::{PixelSampler, PixelSamplerData, PixelSamplerImpl};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
-pub struct StratifiedSampler {
+pub struct Stratified {
     x_pixel_samples: usize,
     y_pixel_samples: usize,
     jitter_samples: bool,
 }
 
-impl StratifiedSampler {
+impl Stratified {
     /// Create a new stratified sampler
     pub fn new<T: Number>(
         x_pixel_samples: usize,
         y_pixel_samples: usize,
         jitter_samples: bool,
         sampled_dimensions: usize,
-    ) -> PixelSampler<T, StratifiedSampler> {
-        let sampler = StratifiedSampler {
+    ) -> PixelSampler<T, Stratified> {
+        let sampler = Stratified {
             x_pixel_samples,
             y_pixel_samples,
             jitter_samples,
@@ -30,7 +30,7 @@ impl StratifiedSampler {
     }
 }
 
-impl<T: Number> PixelSamplerImpl<T> for StratifiedSampler {
+impl<T: Number> PixelSamplerImpl<T> for Stratified {
     fn start_pixel(&mut self, data: &mut PixelSamplerData<T>, _point: Point2i) {
         for sample in &mut data.samples_one {
             stratified_sample_one(sample, &mut data.rng, self.jitter_samples);

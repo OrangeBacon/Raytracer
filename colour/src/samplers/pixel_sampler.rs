@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use geometry::{ConstZero, Number, Point2, Point2i, Rng};
 
-use crate::{
+use crate::samplers::{
     sampler::{set_sample_number, start_next_sample, start_pixel, SamplerData},
     Sampler,
 };
