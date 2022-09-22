@@ -1,11 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
 use geometry::{
-    gamma, Bounds3, ConstZero, Number, PartialDerivatives, Point2, Point3, Ray,
-    SurfaceInteractable, SurfaceInteraction, Transform, Vector2, Vector3,
+    gamma, Bounds3, ConstZero, Number, Point2, Point3, Ray, Transform, Vector2, Vector3,
 };
 
-use crate::{Shape, ShapeData};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
 
 /// 3D sphere, represented using spherical coordinates.
 /// x^2 + y^2 + z^2 = r^2;

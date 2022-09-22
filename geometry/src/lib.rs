@@ -2,7 +2,6 @@ mod animated_transform;
 mod bounds2;
 mod bounds3;
 mod float;
-mod interaction;
 mod interval;
 mod matrix4x4;
 mod normal3;
@@ -64,6 +63,7 @@ pub use bounds2::Bounds2i;
 
 pub use matrix4x4::Matrix4x4;
 
+pub use transform::Applicable;
 pub use transform::Transform;
 
 pub use quaternion::Quaternion;
@@ -71,8 +71,6 @@ pub use quaternion::Quaternion;
 pub use animated_transform::AnimatedTransform;
 
 pub use interval::Interval;
-
-pub use interaction::*;
 
 pub use rng::Rng;
 

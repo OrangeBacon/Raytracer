@@ -3,6 +3,7 @@ mod curve;
 mod cylinder;
 mod disk;
 mod hyperboloid;
+mod interaction;
 mod paraboloid;
 mod quadric;
 mod sphere;
@@ -18,12 +19,13 @@ pub use curve::CurveType;
 pub use cylinder::Cylinder;
 pub use disk::Disk;
 pub use hyperboloid::Hyperboloid;
+pub use interaction::*;
 pub use paraboloid::Paraboloid;
 pub use sphere::Sphere;
 pub use triangle::Triangle;
 pub use triangle_mesh::TriangleMesh;
 
-use geometry::{Bounds3, Number, Ray, SurfaceInteractable, SurfaceInteraction, Transform};
+use geometry::{Bounds3, Number, Ray, Transform};
 
 /// Data that should be stored by all shapes.
 /// TODO: Transform cache + references, don't copy 4 mat4x4 with each shape

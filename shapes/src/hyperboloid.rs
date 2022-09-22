@@ -1,11 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
-use geometry::{
-    Bounds3, ConstZero, EFloat, Number, PartialDerivatives, Point2, Point3, Ray,
-    SurfaceInteractable, SurfaceInteraction, Transform, Vector3,
-};
+use geometry::{Bounds3, ConstZero, EFloat, Number, Point2, Point3, Ray, Transform, Vector3};
 
-use crate::{Shape, ShapeData};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
 
 /// A hyperboloid
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]

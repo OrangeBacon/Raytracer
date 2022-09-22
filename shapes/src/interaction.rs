@@ -3,8 +3,8 @@ use std::{
     ops::{Mul, MulAssign},
 };
 
-use crate::{
-    offset_ray_origin, transform::Applicable, Normal3, Number, Point2, Point3, Ray, Transform,
+use geometry::{
+    offset_ray_origin, Applicable, Normal3, Number, Point2, Point3, Ray, Transform,
     Vector3,
 };
 

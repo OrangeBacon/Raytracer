@@ -4,11 +4,10 @@ use std::{
 };
 
 use geometry::{
-    lerp, Bounds3, ConstZero, Normal3, Number, PartialDerivatives, Point2, Point3, Ray,
-    SurfaceInteractable, SurfaceInteraction, Transform, Vector3,
+    lerp, Bounds3, ConstZero, Normal3, Number, Point2, Point3, Ray, Transform, Vector3,
 };
 
-use crate::{Shape, ShapeData};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
 
 /// A segment of a cubic bezier curve
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]

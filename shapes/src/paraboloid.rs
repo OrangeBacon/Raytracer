@@ -1,11 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
-use geometry::{
-    Bounds3, EFloat, Number, PartialDerivatives, Point2, Point3, Ray, SurfaceInteractable,
-    SurfaceInteraction, Transform, Vector2, Vector3,
-};
+use geometry::{Bounds3, EFloat, Number, Point2, Point3, Ray, Transform, Vector2, Vector3};
 
-use crate::{Shape, ShapeData};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
 
 /// A paraboloid centred on the z axis
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]

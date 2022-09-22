@@ -5,12 +5,12 @@ use std::{
     sync::Arc,
 };
 
-use geometry::{
-    gamma, Bounds3, ConstZero, Normal3, Number, PartialDerivatives, Point2, Ray,
-    SurfaceInteractable, SurfaceInteraction, Transform, Vector3,
-};
+use geometry::{gamma, Bounds3, ConstZero, Normal3, Number, Point2, Ray, Transform, Vector3};
 
-use crate::{triangle_mesh::TriangleMesh, Shape, ShapeData};
+use crate::{
+    triangle_mesh::TriangleMesh, PartialDerivatives, Shape, ShapeData, SurfaceInteractable,
+    SurfaceInteraction,
+};
 
 /// A Single triangle referencing a triangle mesh
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]

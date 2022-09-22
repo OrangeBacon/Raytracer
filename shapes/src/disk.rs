@@ -1,11 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
-use geometry::{
-    Bounds3, ConstZero, Normal3, Number, PartialDerivatives, Point2, Point3, Ray,
-    SurfaceInteractable, SurfaceInteraction, Transform, Vector3,
-};
+use geometry::{Bounds3, ConstZero, Normal3, Number, Point2, Point3, Ray, Transform, Vector3};
 
-use crate::{Shape, ShapeData};
+use crate::{PartialDerivatives, Shape, ShapeData, SurfaceInteractable, SurfaceInteraction};
 
 /// A disk with inner and outer radii centred on the z axis
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
