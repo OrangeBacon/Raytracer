@@ -1,4 +1,4 @@
-use geometry::{Number, Point2, Point2i, Rng};
+use geometry::{Number, Point2, Point2i, Rng, round_up_pow_2};
 
 use crate::pixel_sampler::{PixelSampler, PixelSamplerData, PixelSamplerImpl};
 
@@ -62,12 +62,6 @@ impl<T: Number> PixelSamplerImpl<T> for ZeroTwoSampler {
     fn round_count(&mut self, count: usize) -> usize {
         round_up_pow_2(count)
     }
-}
-
-/// Round a number up to the nearest power of 2.  Returns the input if it is
-/// a power of two.
-fn round_up_pow_2(x: usize) -> usize {
-    1 << (std::mem::size_of::<usize>() * 8 - (x - 1).leading_zeros() as usize)
 }
 
 /// Create scrambled 1D sample values using grey code

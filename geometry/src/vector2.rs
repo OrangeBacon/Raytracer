@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use crate::{number::Number, Float, ConstZero};
+use crate::{number::Number, Float, ConstZero, Point2};
 
 /// Two component numeric vector
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -57,6 +57,11 @@ impl<T: Number> Vector2<T> {
     /// Array of all components of the vector
     pub fn to_array(&self) -> [T; 2] {
         [self.x, self.y]
+    }
+
+    /// Convert this vector into a single point
+    pub fn to_point(&self) -> Point2<T> {
+        Point2::new(self.x, self.y)
     }
 
     /// Are any of the components of this vector NaN

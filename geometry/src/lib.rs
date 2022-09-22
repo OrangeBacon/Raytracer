@@ -144,3 +144,17 @@ pub fn offset_ray_origin<T: Number>(
 
     po
 }
+
+/// Integer base 2 logarithm of a number
+pub fn log2u32(num: u32) -> u32 {
+    31 - num.leading_zeros()
+}
+pub fn log2usize(num: usize) -> usize {
+    std::mem::size_of::<usize>() * 8 - num.leading_zeros() as usize
+}
+
+/// Round a number up to the nearest power of 2.  Returns the input if it is
+/// a power of two.
+pub fn round_up_pow_2(x: usize) -> usize {
+    1 << (std::mem::size_of::<usize>() * 8 - (x - 1).leading_zeros() as usize)
+}

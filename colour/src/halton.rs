@@ -1,18 +1,10 @@
+use data::{RADICAL_INVERSE_PERMUTATIONS, PRIME_SUMS};
 use geometry::{Bounds2i, Number, Point2i};
-use proc::{prime_sums, radical_permutations};
 
 use crate::{
     global_sampler::{GlobalSampler, GlobalSamplerData, GlobalSamplerImpl},
     low_discrepancy::{inverse_radical_inverse, radical_inverse, scrambled_radical_inverse},
 };
-
-/// Statically calculated random permutations of the radical inverse function
-/// for the first 1000 prime numbers
-static RADICAL_INVERSE_PERMUTATIONS: &[usize] = &radical_permutations!();
-
-/// The list of sums of prime numbers below the nth prime, i.e.
-/// sum(primes less than 0th prime) = 0, sum(primes less than 1st prime) = 2, ...
-static PRIME_SUMS: &[usize] = &prime_sums!(1000);
 
 /// Maximum number of points in one direction in one dimension to generate so that
 /// floating point precision is kept.

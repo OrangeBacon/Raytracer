@@ -131,6 +131,7 @@ checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 name = "colour"
 version = "0.1.0"
 dependencies = [
+ "data",
  "geometry",
  "proc",
 ]
@@ -200,6 +201,13 @@ checksum = "51887d4adc7b564537b15adcfb307936f8075dfcd5f00dde9a9f1d29383682bc"
 dependencies = [
  "cfg-if",
  "once_cell",
+]
+
+[[package]]
+name = "data"
+version = "0.1.0"
+dependencies = [
+ "proc",
 ]
 
 [[package]]

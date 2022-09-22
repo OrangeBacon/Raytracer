@@ -6,4 +6,5 @@ members = [
     "parsers",
     "colour",
     "proc",
+    "data",
 ]
