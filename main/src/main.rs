@@ -16,7 +16,7 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::Result;
 use clap::Parser;
 use glam::DVec3;
-use lang::Scanner;
+use lang::{Parser as MyParser, Scanner};
 use parsers::parse_pbrt;
 use rand::Rng;
 
@@ -43,7 +43,9 @@ fn main() -> Result<()> {
     }
 
     if args.scene.extension().map(|s| s == "msl").unwrap_or(false) {
-        Scanner::new(&std::fs::read_to_string(args.scene)?).print_tokens();
+        let file = std::fs::read_to_string(args.scene)?;
+        let scanner = Scanner::new(&file);
+        MyParser::new(scanner).print_ast();
         return Ok(());
     }
 

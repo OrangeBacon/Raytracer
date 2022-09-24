@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use crate::scanner::{NameId, Token};
 
 /// All top level items in a source file
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum TopLevel {
     FunctionDefinition(Prototype, Expression),
     ExternDecl(Prototype),

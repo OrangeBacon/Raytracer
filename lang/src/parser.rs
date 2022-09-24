@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-    ast::{Error, Expression, Prototype, TopLevel},
+    ast::{Error, Expression, Operator, Prototype, TopLevel},
     scanner::{NameId, Token, TokenVisitor},
     Scanner,
 };
@@ -23,9 +23,15 @@ pub struct Parser<'a> {
 enum Precedence {
     #[default]
     None,
+    Assignment,
+    Or,
+    And,
+    Equality,
     Comparison,
-    Multiply,
     Addition,
+    Multiply,
+    Unary,
+    Call,
     Primary,
 }
 
@@ -47,11 +53,21 @@ impl<'a> Parser<'a> {
             break Some(match self.scanner.peek()? {
                 Token::Def => self.def(),
                 Token::Extern => self.extern_(),
-                Token::Char(';') => continue, // skip top level semicolons
+                Token::Char(';') => {
+                    self.scanner.next(); // skip top level semicolons
+                    continue;
+                }
                 Token::Identifier(_) | Token::Number(_) | Token::Char(_) => {
                     TopLevel::Expression(self.precedence(Precedence::Comparison))
                 }
             });
+        }
+    }
+
+    /// Print all ast elements to stdout
+    pub fn print_ast(mut self) {
+        while let Some(node) = self.next() {
+            println!("{node:#?}");
         }
     }
 
@@ -79,7 +95,7 @@ impl<'a> Parser<'a> {
     fn def(&mut self) -> TopLevel {
         self.scanner.next(); // skip `def` token
         let proto = self.prototype();
-        let body = self.precedence(Precedence::Comparison);
+        let body = self.precedence(Precedence::None);
         TopLevel::FunctionDefinition(proto, body)
     }
 
@@ -109,11 +125,6 @@ impl<'a> Parser<'a> {
             } else {
                 break;
             }
-
-            match self.scanner.peek() {
-                Some(Token::Char(',')) => (),
-                _ => break,
-            }
         }
 
         if let Some(err) = self.consume(Token::Char(')')) {
@@ -138,13 +149,11 @@ impl<'a> Parser<'a> {
         };
 
         while let Some(peek) = self.scanner.peek() {
-            if precedence > peek.visit(TokPrecedence(self)).unwrap_or_default() {
+            if precedence > peek.visit(TokPrecedence).unwrap_or_default() {
                 break;
             }
 
-            let tok = self.scanner.next().unwrap();
-
-            let infix = tok.visit(Infix {
+            let infix = peek.visit(Infix {
                 parser: self,
                 lhs: expr,
             });
@@ -196,6 +205,14 @@ impl<'a, 'b> TokenVisitor<Expression> for Prefix<'a, 'b> {
     fn number(self, num: f64) -> Result<Expression, Prefix<'a, 'b>> {
         Ok(Expression::Number(num))
     }
+
+    fn char(self, char: char) -> Result<Expression, Self> {
+        if char == '(' {
+            Ok(self.0.precedence(Precedence::Comparison))
+        } else {
+            Err(self)
+        }
+    }
 }
 
 struct Infix<'a, 'b> {
@@ -204,30 +221,61 @@ struct Infix<'a, 'b> {
 }
 impl<'a, 'b> TokenVisitor<Expression> for Infix<'a, 'b> {
     fn char(self, char: char) -> Result<Expression, Infix<'a, 'b>> {
-        let prec = Token::Char(char)
-            .visit(TokPrecedence(self.parser))
-            .unwrap_or_default();
-        let prec = prec.next();
+        if char == '(' {
+            self.parser.scanner.next(); // consume the operator
 
-        match char {
-            '+' => todo!(),
-            '-' => todo!(),
-            '*' => todo!(),
-            '/' => todo!(),
-            '<' => todo!(),
-            '>' => todo!(),
-            _ => Err(self),
+            // parse function call
+            let mut args = vec![];
+            while let Some(_) = self.parser.scanner.peek() {
+                args.push(self.parser.precedence(Precedence::Comparison));
+                if self.parser.scanner.peek() == Some(Token::Char(')')) {
+                    break;
+                }
+            }
+
+            match self.parser.consume(Token::Char(')')) {
+                Some(err) => args.push(err),
+                None => (),
+            }
+
+            return Ok(Expression::Call {
+                callee: Box::new(self.lhs),
+                args,
+            });
         }
+
+        let operator = match char {
+            '+' => Operator::Add,
+            '-' => Operator::Subtract,
+            '*' => Operator::Multiply,
+            '/' => Operator::Divide,
+            '<' => Operator::LessThan,
+            '>' => Operator::GreaterThan,
+            _ => return Err(self),
+        };
+
+        self.parser.scanner.next(); // consume the operator
+
+        let prec = Token::Char(char).visit(TokPrecedence).unwrap_or_default();
+        let prec = prec.next();
+        let rhs = self.parser.precedence(prec);
+
+        Ok(Expression::Binary {
+            left: Box::new(self.lhs),
+            op: operator,
+            right: Box::new(rhs),
+        })
     }
 }
 
-struct TokPrecedence<'a, 'b>(&'b mut Parser<'a>);
-impl<'a, 'b> TokenVisitor<Precedence> for TokPrecedence<'a, 'b> {
-    fn char(self, char: char) -> Result<Precedence, TokPrecedence<'a, 'b>> {
+struct TokPrecedence;
+impl TokenVisitor<Precedence> for TokPrecedence {
+    fn char(self, char: char) -> Result<Precedence, TokPrecedence> {
         Ok(match char {
             '+' | '-' => Precedence::Addition,
             '*' | '/' => Precedence::Multiply,
             '<' | '>' => Precedence::Comparison,
+            '(' => Precedence::Call,
             _ => Precedence::None,
         })
     }
@@ -238,10 +286,16 @@ impl Precedence {
         use Precedence::*;
 
         match self {
-            None => Comparison,
-            Comparison => Multiply,
-            Multiply => Addition,
-            Addition => Primary,
+            None => Assignment,
+            Assignment => Or,
+            Or => And,
+            And => Equality,
+            Equality => Comparison,
+            Comparison => Addition,
+            Addition => Multiply,
+            Multiply => Unary,
+            Unary => Call,
+            Call => Primary,
             Primary => Primary,
         }
     }
