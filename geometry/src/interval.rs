@@ -1,6 +1,6 @@
 use std::{
     marker::PhantomData,
-    ops::{Add, Index, Mul, Sub},
+    ops::{Add, Mul, Sub},
 };
 
 use crate::number::Number;
@@ -86,101 +86,49 @@ impl<T: Number> Interval<T> {
     }
 
     /// Find up to N motion derivative zeros within the this interval
-    pub fn find_zeros<const N: usize>(
+    pub fn find_zeros(
         &self,
-        c1: T,
-        c2: T,
-        c3: T,
-        c4: T,
-        c5: T,
+        c: [T; 5],
         theta: T,
-    ) -> (usize, [T; N]) {
-        #[derive(Clone, Copy)]
-        struct Params<T: Number>([T; 5]);
-        impl<T: Number> Index<usize> for Params<T> {
-            type Output = T;
-
-            fn index(&self, index: usize) -> &Self::Output {
-                &self.0[index - 1]
-            }
+        zeros: &mut [T],
+        zero_count: &mut usize,
+        depth: usize,
+    ) {
+        let [c1, c2, c3, c4, c5] = c;
+        let range = Interval::new_eq(c1)
+            + (Interval::new_eq(c2) + Interval::new_eq(c3) * *self)
+                * (Interval::new_eq(T::TWO * theta) * *self).cos()
+            + (Interval::new_eq(c4) + Interval::new_eq(c5) * *self)
+                * (Interval::new_eq(T::TWO * theta) * *self).sin();
+        if range.low > T::ZERO || range.high < T::ZERO || range.low == range.high {
+            return;
         }
 
-        fn inner<const N: usize, T: Number>(
-            interval: Interval<T>,
-            c: Params<T>,
-            theta: T,
-            depth: i32,
-            res: &mut [T; N],
-            result_count: &mut usize,
-        ) {
-            if depth < 0 || *result_count == N {
-                return;
-            }
-
-            let n = Interval::new_eq;
-            let range = n(c[1])
-                + (n(c[2]) + n(c[3]) * interval) * (n(T::TWO * theta) * interval).cos()
-                + (n(c[4]) + n(c[5]) * interval) * (n(T::TWO * theta) * interval).sin();
-
-            if range.low > T::ZERO || range.high < T::ZERO || range.low == range.high {
-                return;
-            }
-
-            if depth > 0 {
-                // split interval and check both parts
-                let mid = (interval.low + interval.high) * (T::HALF);
-                inner(
-                    Interval::new(interval.low, mid),
-                    c,
-                    theta,
-                    depth - 1,
-                    res,
-                    result_count,
-                );
-                inner(
-                    Interval::new(mid, interval.high),
-                    c,
-                    theta,
-                    depth - 1,
-                    res,
-                    result_count,
-                );
-            } else {
-                // refine zero using newton's method
-                let mut t_newton = (interval.low + interval.high) * (T::HALF);
-                for _ in 0..4 {
-                    let f_newton = c[1]
-                        + (c[2] + c[3] * t_newton) * (T::TWO * theta * t_newton).cos()
-                        + (c[4] + c[5] * t_newton) * (T::TWO * theta * t_newton).sin();
-                    let f_prime_newton = (c[3] + T::TWO * (c[4] + c[5] * t_newton) * theta)
-                        * (T::TWO * t_newton * theta).cos()
-                        + (c[5] - T::TWO * (c[2] + c[3] * t_newton) * theta)
-                            * (T::TWO * t_newton * theta).sin();
-                    if f_newton == T::ZERO || f_prime_newton == T::ZERO {
-                        return;
-                    }
-                    t_newton -= f_newton / f_prime_newton;
+        if depth > 0 {
+            let mid = (self.low + self.high) * T::HALF;
+            Interval::new(self.low, mid).find_zeros(c, theta, zeros, zero_count, depth - 1);
+            Interval::new(mid, self.high).find_zeros(c, theta, zeros, zero_count, depth - 1);
+        } else {
+            // use Newton's method to refine zero
+            let mut t_newton = (self.low + self.high) * T::HALF;
+            for _ in 0..4 {
+                let f_newton = c1
+                    + (c2 + c3 * t_newton) * (T::TWO * theta * t_newton).cos()
+                    + (c4 + c5 * t_newton) * (T::TWO * theta * t_newton).sin();
+                let f_prime_newton = (c3 + T::TWO * (c4 + c5 * t_newton) * theta)
+                    * (T::TWO * t_newton * theta).cos()
+                    + (c5 - T::TWO * (c2 + c3 * t_newton) * theta)
+                        * (T::TWO * t_newton * theta).sin();
+                if f_newton == T::ZERO || f_prime_newton == T::ZERO {
+                    break;
                 }
-                if t_newton >= interval.low - T::cast(1e-3)
-                    && t_newton < interval.high + T::cast(1e-3)
-                {
-                    res[*result_count] = t_newton;
-                    *result_count += 1;
-                }
+                t_newton = t_newton - f_newton / f_prime_newton;
+            }
+            if t_newton >= self.low - T::cast(1e-3) && t_newton < self.high + T::cast(1e-3) {
+                zeros[*zero_count] = t_newton;
+                *zero_count += 1;
             }
         }
-
-        let mut result = [T::ZERO; N];
-        let mut result_count = 0;
-        inner(
-            *self,
-            Params([c1, c2, c3, c4, c5]),
-            theta,
-            8,
-            &mut result,
-            &mut result_count,
-        );
-        (result_count, result)
     }
 }
 

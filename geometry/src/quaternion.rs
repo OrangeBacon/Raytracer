@@ -54,7 +54,7 @@ impl<F: Number> Quaternion<F> {
         let mat = Matrix4x4::from_array(&[
             F::ONE - F::TWO * (yy + zz),
             F::TWO * (xy + ws.z),
-            F::TWO * xz - ws.y,
+            F::TWO * (xz - ws.y),
             F::ZERO,
             F::TWO * (xy - ws.z),
             F::ONE - F::TWO * (xx + zz),
@@ -104,17 +104,14 @@ impl<F: Number> Transform<F> {
             // 4w^2 = m[0][0] + m[1][1] + m[2][2] + m[3][3] (but m[3][3] == 1)
             let s = (trace + F::ONE).sqrt();
             let w = s / F::TWO;
-            let s = (F::HALF) / s;
+            let s = F::HALF / s;
             let vec = Vector3::new(
                 (m[2][1] - m[1][2]) * s,
                 (m[0][2] - m[2][0]) * s,
                 (m[1][0] - m[0][1]) * s,
             );
 
-            Quaternion {
-                vec: vec.cast(),
-                w: F::cast(w),
-            }
+            Quaternion { vec, w }
         } else {
             // Compute largest of x, y, or z, then remaining components
             let nxt = [1, 2, 0];
@@ -129,19 +126,17 @@ impl<F: Number> Transform<F> {
             let j = nxt[i];
             let k = nxt[j];
             let mut s = ((m[i][i] - (m[j][j] + m[k][k])) + F::ONE).sqrt();
-            q[i] = s * (F::HALF);
+            q[i] = s * F::HALF;
             if s != F::ZERO {
-                s = (F::HALF) / s
+                s = F::HALF / s;
             }
+
             let w = (m[k][j] - m[j][k]) * s;
             q[j] = (m[j][i] + m[i][j]) * s;
             q[k] = (m[k][i] + m[i][k]) * s;
             let vec = Vector3::from_array(q);
 
-            Quaternion {
-                vec: vec.cast(),
-                w: F::cast(w),
-            }
+            Quaternion { vec, w }
         }
     }
 }

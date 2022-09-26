@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut, Mul, MulAssign};
 
-use crate::Number;
+use crate::{Number, Quaternion, Transform, Vector3};
 
 /// 4 by 4 floating point matrix
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -167,6 +167,57 @@ impl<T: Number> Matrix4x4<T> {
         }
 
         res
+    }
+
+    /// Decompose a matrix into its component translation, rotation and scale
+    pub fn decompose(&self) -> Option<(Vector3<T>, Quaternion<T>, Matrix4x4<T>)> {
+        let translate = Vector3::new(self[0][3], self[1][3], self[2][3]);
+
+        // Get the rotation and scale without any translation
+        let mat = {
+            let mut mat = *self;
+            for i in 0..3 {
+                mat[i][3] = T::ZERO;
+                mat[3][i] = T::ZERO;
+            }
+            mat[3][3] = T::ONE;
+            mat
+        };
+
+        // polar decomposition of a matrix
+        // find the convergence of a series M(i+1) = 1/2 (M(i) + Inverse(Transpose(M(i))))
+        let mut norm;
+        let mut rotate = mat;
+        for _ in 0..=100 {
+            // calculate next item in series
+            let mut r_next = Matrix4x4::IDENTITY;
+            let r_inv = rotate.transpose().inverse()?;
+            for i in 0..4 {
+                for j in 0..4 {
+                    r_next[i][j] = T::HALF * (rotate[i][j] + r_inv[i][j])
+                }
+            }
+
+            // calculate difference between current and next for early exit
+            norm = T::ZERO;
+            for i in 0..3 {
+                let n = (rotate[i][0] - r_next[i][0]).abs()
+                    + (rotate[i][1] - r_next[i][1]).abs()
+                    + (rotate[i][2] - r_next[i][2]).abs();
+                norm = norm.max(n);
+            }
+
+            rotate = r_next;
+
+            if norm <= T::cast(0.0001) {
+                break;
+            }
+        }
+
+        let rotate_quaternion = Transform::from_mat(&rotate)?.to_quaternion();
+        let scale = rotate.inverse()? * mat;
+
+        Some((translate, rotate_quaternion, scale))
     }
 }
 

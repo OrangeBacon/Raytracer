@@ -633,17 +633,13 @@ impl<T: Number> Mul<Transform<T>> for Bounds3<T> {
     type Output = Bounds3<T>;
 
     fn mul(self, rhs: Transform<T>) -> Self::Output {
-        let m = |x| x * rhs;
+        let mut result = Bounds3::ZERO;
 
-        let ret = Bounds3::at_point(m(Point3::new(self.min.x, self.min.y, self.min.z)));
-        let ret = ret.union_point(m(Point3::new(self.max.x, self.min.y, self.min.z)));
-        let ret = ret.union_point(m(Point3::new(self.min.x, self.max.y, self.min.z)));
-        let ret = ret.union_point(m(Point3::new(self.max.x, self.min.y, self.max.z)));
-        let ret = ret.union_point(m(Point3::new(self.min.x, self.max.y, self.max.z)));
-        let ret = ret.union_point(m(Point3::new(self.max.x, self.max.y, self.min.z)));
-        let ret = ret.union_point(m(Point3::new(self.max.x, self.min.y, self.max.z)));
+        for corner in self.iter_corners() {
+            result = result.union_point(corner * rhs);
+        }
 
-        ret.union_point(m(Point3::new(self.max.x, self.max.y, self.max.z)))
+        result
     }
 }
 

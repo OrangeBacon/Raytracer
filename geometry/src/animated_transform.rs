@@ -32,8 +32,8 @@ impl<T: Number> AnimatedTransform<T> {
     /// Create a new animated transform from two affine transformations
     /// Returns none if unable to interpolate between start and end
     pub fn new(start: Transform<T>, start_time: T, end: Transform<T>, end_time: T) -> Option<Self> {
-        let (t0, r0, s0) = Self::decompose(start.mat())?;
-        let (t1, mut r1, s1) = Self::decompose(end.mat())?;
+        let (t0, r0, s0) = start.mat().decompose()?;
+        let (t1, mut r1, s1) = end.mat().decompose()?;
 
         if r0.dot(&r1) < T::ZERO {
             r1 = -r1;
@@ -59,57 +59,6 @@ impl<T: Number> AnimatedTransform<T> {
             has_rotation,
             c,
         })
-    }
-
-    /// Decompose a matrix into its component translation, rotation and scale
-    fn decompose(mat: &Matrix4x4<T>) -> Option<(Vector3<T>, Quaternion<T>, Matrix4x4<T>)> {
-        let translate = Vector3::new(mat[0][3], mat[1][3], mat[2][3]);
-
-        // Get the rotation and scale without any translation
-        let mat = {
-            let mut mat = *mat;
-            for i in 0..3 {
-                mat[i][3] = T::ZERO;
-                mat[3][i] = T::ZERO;
-            }
-            mat[3][3] = T::ONE;
-            mat
-        };
-
-        // polar decomposition of a matrix
-        // find the convergence of a series M(i+1) = 1/2 (M(i) + Inverse(Transpose(M(i))))
-        let mut norm;
-        let mut rotate = mat;
-        for _ in 0..=100 {
-            // calculate next item in series
-            let mut r_next = Matrix4x4::IDENTITY;
-            let r_inv = rotate.transpose().inverse()?;
-            for i in 0..4 {
-                for j in 0..4 {
-                    r_next[i][j] = (T::HALF) * (rotate[i][j] + r_inv[i][j])
-                }
-            }
-
-            // calculate difference between current and next for early exit
-            norm = T::ZERO;
-            for i in 0..3 {
-                let n = (rotate[i][0] - r_next[i][0])
-                    + (rotate[i][1] - r_next[i][1])
-                    + (rotate[i][2] - r_next[i][2]);
-                norm = norm.max(n);
-            }
-
-            rotate = r_next;
-
-            if norm < T::cast(0.0001) {
-                break;
-            }
-        }
-
-        let rotate_quaternion = Transform::from_mat(&rotate)?.to_quaternion();
-        let scale = rotate.inverse()? * mat;
-
-        Some((translate.cast(), rotate_quaternion, scale))
     }
 
     /// Interpolate between the two transforms, saturating when t is outside (start, end) time
@@ -163,29 +112,47 @@ impl<T: Number> AnimatedTransform<T> {
         let theta = cos_theta.clamp(-T::ONE, T::ONE).acos();
 
         for c in 0..3 {
-            let (count, zeros): (_, [_; 4]) = Interval::new(T::ZERO, T::ONE).find_zeros(
-                self.c[0][c].eval(point),
-                self.c[1][c].eval(point),
-                self.c[2][c].eval(point),
-                self.c[3][c].eval(point),
-                self.c[4][c].eval(point),
+            let mut zeros = [T::ZERO; 8];
+            let mut count = 0;
+            Interval::new(T::ZERO, T::ONE).find_zeros(
+                [
+                    self.c[0][c].eval(point),
+                    self.c[1][c].eval(point),
+                    self.c[2][c].eval(point),
+                    self.c[3][c].eval(point),
+                    self.c[4][c].eval(point),
+                ],
                 theta,
+                &mut zeros,
+                &mut count,
+                8,
             );
             let zeros = &zeros[0..count];
 
             for &zero in zeros {
-                let pz = point * self.interpolate(lerp(zero, self.start_time, self.end_time));
+                let pz = self.apply_point(lerp(zero, self.start_time, self.end_time), point);
                 bounds = bounds.union_point(pz);
             }
         }
 
         bounds
     }
+
+    /// Apply this transform at a given time to a point
+    pub fn apply_point(&self, time: T, point: Point3<T>) -> Point3<T> {
+        if !self.is_animated || time <= self.start_time {
+            point * self.start
+        } else if time >= self.end_time {
+            point * self.end
+        } else {
+            point * self.interpolate(time)
+        }
+    }
 }
 
 impl<T: Number> DerivativeTerm<T> {
     fn eval(&self, point: Point3<T>) -> T {
-        self.0 + point.to_vec().dot(Vector3::new(self.1, self.2, self.3))
+        self.0 + self.1 * point.x + self.2 * point.y + self.3 * point.z
     }
 }
 
@@ -193,7 +160,13 @@ impl<T: Copy, F: Number> Mul<AnimatedTransform<F>> for Ray<T, F> {
     type Output = Ray<T, F>;
 
     fn mul(self, rhs: AnimatedTransform<F>) -> Self::Output {
-        self * rhs.interpolate(self.time)
+        if !rhs.is_animated || self.time <= rhs.start_time {
+            self * rhs.start
+        } else if self.time >= rhs.end_time {
+            self * rhs.end
+        } else {
+            self * rhs.interpolate(self.time)
+        }
     }
 }
 
@@ -207,7 +180,13 @@ impl<F: Number, T: Copy> Mul<AnimatedTransform<F>> for RayDifferential<T, F> {
     type Output = RayDifferential<T, F>;
 
     fn mul(self, rhs: AnimatedTransform<F>) -> Self::Output {
-        self * rhs.interpolate(self.time)
+        if !rhs.is_animated || self.time <= rhs.start_time {
+            self * rhs.start
+        } else if self.time >= rhs.end_time {
+            self * rhs.end
+        } else {
+            self * rhs.interpolate(self.time)
+        }
     }
 }
 

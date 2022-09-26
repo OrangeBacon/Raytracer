@@ -1,10 +1,12 @@
-use crate::{AnimatedTransform, Bounds3f, Float, Point3f, Rng, Transform, Vector3f};
+use std::f32::consts::PI;
+
+use crate::{AnimatedTransform, Bounds3f, Float, Point2f, Point3f, Rng, Transform, Vector3f};
 
 #[test]
 fn random_transform_interpolation() {
     let mut rng = Rng::new(1);
 
-    for _ in 0..200 {
+    for i in 0..200 {
         // get random transform
         let t0 = random_transform(&mut rng);
         let t1 = random_transform(&mut rng);
@@ -23,8 +25,12 @@ fn random_transform_interpolation() {
                 let mut tb = bounds * tr;
 
                 // allow for floating point error
-                tb.min += 1.0e-4 * tb.diagonal();
-                tb.max -= 1.0e-4 * tb.diagonal();
+                tb.min += 1.0e-3 * tb.diagonal();
+                tb.max -= 1.0e-3 * tb.diagonal();
+
+                if i == 123 {
+                    dbg!(tb, motion);
+                }
 
                 // transformed bounds should be within motion bounds
                 assert!(tb.min.x >= motion.min.x);
@@ -42,18 +48,27 @@ fn random_transform_interpolation() {
     }
 }
 
+/// Convert an (x, y) pair into a uniform sample on a sphere
+pub fn uniform_sample_sphere(point: Point2f) -> Vector3f {
+    let z = 1.0 - 2.0 * point.x;
+    let r = 0.0f32.max(1.0 - z * z).sqrt();
+    let phi = 2.0 * PI * point.y;
+
+    Vector3f::new(r * phi.cos(), r * phi.sin(), z)
+}
+
+/// Generate a random transformation matrix
 fn random_transform(rng: &mut Rng) -> Transform<Float> {
     let mut r = || -10.0 + 20.0 * rng.uniform_float::<Float>();
     let mut transform = Transform::IDENTITY;
 
     for _ in 0..10 {
         match r() as i32 {
-            -10..=-4 => {
-                transform = transform * Transform::scale(Vector3f::new(r(), r(), r()).abs())
-            }
-            -3..=3 => transform = transform * Transform::translation(Vector3f::new(r(), r(), r())),
+            -10..=-4 => transform *= Transform::scale(Vector3f::new(r(), r(), r()).abs()),
+            -3..=3 => transform *= Transform::translation(Vector3f::new(r(), r(), r())),
             _ => {
-                // transform = transform * Transform::rotate(Vector3f::new(r(), r(), r()), r() * 20.0);
+                transform *=
+                    Transform::rotate(uniform_sample_sphere(Point2f::new(r(), r())), r() * 20.0);
             }
         }
     }

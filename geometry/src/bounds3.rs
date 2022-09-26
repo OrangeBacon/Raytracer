@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::ops::{Index, Range};
 
 use crate::{float::gamma, number::Number, ConstZero, Float, Point3, Ray, Vector3};
 
@@ -48,6 +48,14 @@ impl<T: Number> Bounds3<T> {
             self[(corner & 2) >> 1].y,
             self[(corner & 4) >> 2].z,
         )
+    }
+
+    /// Return an iterator over all the corners of the bounds
+    pub fn iter_corners(&self) -> impl Iterator<Item = Point3<T>> {
+        CornerIter {
+            bound: *self,
+            iter: 0..8,
+        }
     }
 
     /// create bounding box containing self and the provided point
@@ -240,5 +248,18 @@ impl<T: Number> Index<usize> for Bounds3<T> {
         } else {
             &self.max
         }
+    }
+}
+
+struct CornerIter<T: Number> {
+    bound: Bounds3<T>,
+    iter: Range<usize>,
+}
+
+impl<T: Number> Iterator for CornerIter<T> {
+    type Item = Point3<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.bound.corner(self.iter.next()?))
     }
 }
