@@ -148,11 +148,23 @@ pub fn log2u32(num: u32) -> u32 {
     31 - num.leading_zeros()
 }
 pub fn log2usize(num: usize) -> usize {
-    std::mem::size_of::<usize>() * 8 - num.leading_zeros() as usize
+    std::mem::size_of::<usize>() * 8 - 1 - num.leading_zeros() as usize
 }
 
 /// Round a number up to the nearest power of 2.  Returns the input if it is
 /// a power of two.
-pub fn round_up_pow_2(x: usize) -> usize {
-    1 << (std::mem::size_of::<usize>() * 8 - (x - 1).leading_zeros() as usize)
+pub fn round_up_pow_2(mut x: usize) -> usize {
+    x -= 1;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x |= x >> 32;
+    x + 1
+}
+
+/// Is the input number a power of two
+pub fn is_pow_2(x: usize) -> bool {
+    x != 0 && (x & (x - 1)) == 0
 }
