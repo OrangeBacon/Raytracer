@@ -7,7 +7,7 @@ use geometry::{
     offset_ray_origin, Applicable, Normal3, Number, Point2, Point3, Ray, Transform, Vector3,
 };
 
-use crate::Shape;
+use crate::{primitive::Primitive, Shape};
 
 /// interaction at a point on a surface
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
@@ -60,6 +60,7 @@ pub struct SurfaceInteraction<T, F: Number> {
     pub derivatives: PartialDerivatives<F>,
     pub shape: Option<Box<dyn Shape<F>>>,
     pub shading: Shading<F>,
+    pub primitive: Option<Box<dyn Primitive<F>>>,
 }
 
 impl<T: Default, F: Number> Interaction<T, F> {
@@ -176,6 +177,7 @@ impl<F: Number> SurfaceInteraction<(), F> {
                 normal,
                 derivatives,
             },
+            primitive: None,
         }
     }
 }
@@ -189,17 +191,19 @@ impl<T, F: Number> SurfaceInteraction<T, F> {
             derivatives: self.derivatives,
             shape: self.shape,
             shading: self.shading,
+            primitive: self.primitive,
         }
     }
 
     /// Associate a shape with this surface interaction
-    pub fn with_shape<S2: Shape<F> + 'static>(self, shape: S2) -> SurfaceInteraction<T, F> {
-        let mut this = SurfaceInteraction {
+    pub fn with_shape<S2: Shape<F> + 'static>(self, shape: S2) -> Self {
+        let mut this = Self {
             interaction: self.interaction,
             uv: self.uv,
             derivatives: self.derivatives,
             shape: Some(Box::new(shape)),
             shading: self.shading,
+            primitive: self.primitive,
         };
 
         if let Some(shape) = &this.shape {
@@ -210,6 +214,18 @@ impl<T, F: Number> SurfaceInteraction<T, F> {
         }
 
         this
+    }
+
+    /// Associate a primitive with the interaction
+    pub fn with_primitive<P2: Primitive<F> + 'static>(self, prim: P2) -> Self {
+        SurfaceInteraction {
+            interaction: self.interaction,
+            uv: self.uv,
+            derivatives: self.derivatives,
+            shape: self.shape,
+            shading: self.shading,
+            primitive: Some(Box::new(prim)),
+        }
     }
 
     fn remove_params(&self) -> SurfaceInteraction<(), F> {
@@ -226,6 +242,7 @@ impl<T, F: Number> SurfaceInteraction<T, F> {
             derivatives: self.derivatives,
             shape: None,
             shading: self.shading,
+            primitive: None,
         }
     }
 
@@ -279,6 +296,7 @@ impl<T, F: Number> Mul<Transform<F>> for SurfaceInteraction<T, F> {
                 dndv: self.derivatives.dndv * rhs,
             },
             shape: self.shape,
+            primitive: self.primitive,
             shading: Shading {
                 normal: (self.shading.normal * rhs).normalise(),
                 derivatives: PartialDerivatives {

@@ -1,3 +1,4 @@
+mod bvh;
 mod cone;
 mod curve;
 mod cylinder;
@@ -5,6 +6,7 @@ mod disk;
 mod hyperboloid;
 mod interaction;
 mod paraboloid;
+mod primitive;
 mod quadric;
 mod sphere;
 mod triangle;
@@ -12,6 +14,7 @@ mod triangle_mesh;
 
 use std::fmt::Debug;
 
+pub use bvh::*;
 pub use cone::Cone;
 pub use curve::Curve;
 pub use curve::CurveCommon;
