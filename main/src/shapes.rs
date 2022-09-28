@@ -1,6 +1,6 @@
 pub mod aa_rect;
-pub mod sphere;
 pub mod cube;
+pub mod sphere;
 pub mod transform;
 pub mod volume;
 
@@ -93,5 +93,3 @@ impl Hittable for HittableVec {
         result
     }
 }
-
-

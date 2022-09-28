@@ -1,4 +1,4 @@
-use crate::{Bounds2f, Bounds2i, Bounds3f, Point2f, Point2i, Point3f, ConstZero};
+use crate::{Bounds2f, Bounds2i, Bounds3f, ConstZero, Point2f, Point2i, Point3f};
 
 #[test]
 fn bound_iter() {

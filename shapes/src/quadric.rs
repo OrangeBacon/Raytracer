@@ -5,11 +5,7 @@ use crate::ShapeData;
 impl<T: Number> ShapeData<T> {
     /// Calculate t_shape_hit and t0 for the quadratic intersection between the given
     /// ray and description of quadric surface.
-    pub fn quadric_coefficients(
-        &self,
-        radius: T,
-        ray: Ray<T>,
-    ) -> Option<(EFloat<T>, EFloat<T>)> {
+    pub fn quadric_coefficients(&self, radius: T, ray: Ray<T>) -> Option<(EFloat<T>, EFloat<T>)> {
         let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
 
         let ox = EFloat::new_with_err(ray.origin.x, o_err.x);

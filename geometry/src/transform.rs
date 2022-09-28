@@ -562,8 +562,7 @@ impl<T: Number> ApplicableError<Ray<T>, (Vector3<T>, Vector3<T>), Ray<T>> for Tr
     }
 }
 
-impl<T: Number>
-    ApplicableError<(Ray<T>, Vector3<T>, Vector3<T>), (Vector3<T>, Vector3<T>), Ray<T>>
+impl<T: Number> ApplicableError<(Ray<T>, Vector3<T>, Vector3<T>), (Vector3<T>, Vector3<T>), Ray<T>>
     for Transform<T>
 {
     fn apply(

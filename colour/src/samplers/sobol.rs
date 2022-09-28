@@ -146,5 +146,6 @@ fn sobol_sample_f64(mut index: u64, dimension: usize, scramble: u64) -> f64 {
         }
     }
 
-    ((result as f64) * (1.0 / ((1i64 << data::sobol::MATRIX_SIZE) as f64))).min(f64::ONE_MINUS_EPSILON)
+    ((result as f64) * (1.0 / ((1i64 << data::sobol::MATRIX_SIZE) as f64)))
+        .min(f64::ONE_MINUS_EPSILON)
 }

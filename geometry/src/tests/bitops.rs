@@ -1,4 +1,4 @@
-use crate::{log2u32, log2usize, is_pow_2, round_up_pow_2};
+use crate::{is_pow_2, log2u32, log2usize, round_up_pow_2};
 
 #[test]
 fn log2() {

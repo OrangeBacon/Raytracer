@@ -1,7 +1,7 @@
 //! simple crate with no logic used so that the large amounts of data stored
 //! directly in the binary are not repeatedly re-compiled
 
-use proc::{radical_permutations, prime_sums};
+use proc::{prime_sums, radical_permutations};
 
 pub mod sobol;
 

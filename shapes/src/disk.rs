@@ -51,11 +51,7 @@ impl<T: Number> Shape<T> for Disk<T> {
         )
     }
 
-    fn intersect(
-        &self,
-        ray: Ray<T>,
-        _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<T>)> {
+    fn intersect(&self, ray: Ray<T>, _test_alpha: bool) -> Option<(T, SurfaceInteraction<T>)> {
         let (ray, _) = self.world_to_object.apply_err(ray);
 
         let t_shape_hit = (self.height - ray.origin.z) / ray.direction.z;

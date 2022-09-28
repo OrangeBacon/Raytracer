@@ -52,11 +52,7 @@ impl<T: Number> Shape<T> for Cylinder<T> {
         )
     }
 
-    fn intersect(
-        &self,
-        ray: Ray<T>,
-        _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<T>)> {
+    fn intersect(&self, ray: Ray<T>, _test_alpha: bool) -> Option<(T, SurfaceInteraction<T>)> {
         // ignore z-axis for the quadric hit test
         let ray = {
             let mut ray = ray;

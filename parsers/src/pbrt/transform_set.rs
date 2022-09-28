@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use geometry::{Float, Matrix4x4, Number, Point3f, Transform, Vector3, Vector3f, Point3};
+use geometry::{Float, Matrix4x4, Number, Point3, Point3f, Transform, Vector3, Vector3f};
 
 /// Set of transformations for multiple points in time
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]

@@ -1,4 +1,4 @@
-use geometry::{Number, Vector2, Point2};
+use geometry::{Number, Point2, Vector2};
 
 use crate::filters::Filter;
 

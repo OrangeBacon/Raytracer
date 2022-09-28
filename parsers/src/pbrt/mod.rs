@@ -6,7 +6,7 @@ mod transform_set;
 use std::{path::Path, str::Chars};
 
 use anyhow::Result;
-use geometry::{Number, Float};
+use geometry::{Float, Number};
 
 use crate::pbrt::transform_set::TransformSet;
 

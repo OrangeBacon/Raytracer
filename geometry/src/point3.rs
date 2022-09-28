@@ -1,6 +1,6 @@
 use std::{
     marker::PhantomData,
-    ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Sub, SubAssign, IndexMut},
+    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign},
 };
 
 use crate::{number::Number, ConstZero, Float, Point2, Vector3};

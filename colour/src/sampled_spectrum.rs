@@ -16,7 +16,7 @@ impl<T: Number> SampledSpectrum<T> {
     pub fn from_sampled(data: &[(T, T)]) -> Self {
         let mut data = data.to_vec();
         data.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        
+
         let mut spectrum = CoefficientSpectrum::new(T::ZERO);
         for idx in 0..Self::SAMPLE_COUNT {
             let lambda0 = lerp(

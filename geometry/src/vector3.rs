@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use crate::{number::Number, Float, Normal3, ConstZero};
+use crate::{number::Number, ConstZero, Float, Normal3};
 
 /// Three component numeric vector
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

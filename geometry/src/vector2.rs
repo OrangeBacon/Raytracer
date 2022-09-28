@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use crate::{number::Number, Float, ConstZero, Point2};
+use crate::{number::Number, ConstZero, Float, Point2};
 
 /// Two component numeric vector
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -22,7 +22,7 @@ impl<T: Number> Default for Vector2<T> {
     }
 }
 
-impl<T:Number> ConstZero for Vector2<T> {
+impl<T: Number> ConstZero for Vector2<T> {
     const ZERO: Self = Self {
         x: T::ZERO,
         y: T::ZERO,
