@@ -11,7 +11,9 @@ pub trait ConstZero {
 
 /// Any type that can be used as a number
 pub trait Number:
-    Debug
+    Send
+    + Sync
+    + Debug
     + Copy
     + Default
     + PartialEq

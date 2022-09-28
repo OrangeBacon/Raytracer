@@ -1,6 +1,7 @@
 use std::{ops::Range, sync::Arc};
 
-use geometry::{Bounds3, Number, Point3, Ray};
+use geometry::{Bounds3, Number, Point3, Ray, Vector3};
+use rayon::{prelude::ParallelIterator, slice::ParallelSlice};
 
 use crate::{primitive::Primitive, SurfaceInteraction};
 
@@ -61,6 +62,48 @@ struct BVHBuildNode<T: Number> {
     primitives: Range<usize>,
 }
 
+/// An index into the primitive array and the morton encoding of the primitive's centroid
+#[derive(Clone, Copy)]
+struct MortonPrimitive {
+    /// Index into the primitive array
+    primitive_index: usize,
+
+    /// The primitive's centroid, morton encoded
+    morton_code: u32,
+}
+
+struct LBVHTreelet<T: Number> {
+    primitives: Range<usize>,
+    node: Vec<BVHBuildNode<T>>,
+}
+
+/// Information about traversing the BVH after it has been constructed
+#[repr(align(32))]
+struct LinearBVHNode<T: Number> {
+    /// The bounds of all children within the BVH
+    bounds: Bounds3<T>,
+
+    /// If this is a leaf node, this is the index into the primitives array for
+    /// the children owned by this node.  If this is an interior node it has two
+    /// children, child one is directly after this node and the offset stored here
+    /// refers to the index of child two.
+    child_offset: u32,
+
+    /// The number of primitives referred to by this node.  If this number is 0,
+    /// then the node is an interior node, not a leaf node.
+    primitive_count: u16,
+
+    /// The axis that the BVH partitioned along
+    axis: u8,
+
+    /// Padding to ensure that LinearBVHNode will never straddle a cache line when
+    /// in a properly aligned array.
+    _padding: [u8; 1],
+}
+
+/// Assert that LinearBVHNode fits in power of two size for better cache line alignment
+const _: () = assert!(std::mem::size_of::<LinearBVHNode<f32>>() == 32);
+
 impl<T: Number> BVH<T> {
     /// Construct a BVH from a list of primitives
     pub fn new(
@@ -90,7 +133,7 @@ impl<T: Number> BVH<T> {
         let mut ordered_primitives = Vec::with_capacity(self.primitives.len());
 
         if self.split_method == SplitMethod::HLVBH {
-            self.hlbvh_build()
+            self.hlbvh_build(&primitive_info, &mut total_nodes, &mut ordered_primitives)
         } else {
             self.recursive_build(
                 &mut primitive_info,
@@ -102,9 +145,6 @@ impl<T: Number> BVH<T> {
 
         self.primitives = ordered_primitives;
     }
-
-    /// Build the BVH using [`SplitMethod::HLBVH`]
-    fn hlbvh_build(&mut self) {}
 
     /// Build the BVH using all split methods that are not HLVBH
     fn recursive_build(
@@ -119,7 +159,7 @@ impl<T: Number> BVH<T> {
             .iter()
             .fold(Bounds3::ZERO, |a, b| a.union_box(b.bounds));
 
-        if primitives.clone().len() == 1 {
+        if primitives.len() == 1 {
             return self.create_leaf_node(
                 primitive_info,
                 primitives,
@@ -188,6 +228,7 @@ impl<T: Number> BVH<T> {
             ordered_primitives,
         );
         let node = BVHBuildNode::interior(dimension, c0, c1);
+        *total_nodes += 1;
 
         Arc::new(node)
     }
@@ -276,7 +317,7 @@ impl<T: Number> BVH<T> {
             bounds: Bounds3::ZERO,
         }; BUCKET_COUNT];
 
-        for prim in &primitive_info[..] {
+        for prim in primitive_info.iter() {
             let mut b =
                 BUCKET_COUNT * (centroid_bounds.offset(prim.centroid)[dimension].i32() as usize);
             if b == BUCKET_COUNT {
@@ -288,28 +329,29 @@ impl<T: Number> BVH<T> {
 
         // compute bucket split costs
         let mut cost = [T::ZERO; BUCKET_COUNT];
-        for i in 0..BUCKET_COUNT - 1 {
+        for (i, cost) in cost.iter_mut().enumerate().take(BUCKET_COUNT - 1) {
             let mut bound_0 = Bounds3::ZERO;
             let mut bound_1 = Bounds3::ZERO;
             let mut count_0 = 0;
             let mut count_1 = 0;
 
-            for j in 0..=i {
-                bound_0 = bound_0.union_box(buckets[j].bounds);
-                count_0 += buckets[j].count;
+            for bucket in buckets.iter().take(i + 1) {
+                bound_0 = bound_0.union_box(bucket.bounds);
+                count_0 += bucket.count;
             }
 
-            for j in i + 1..BUCKET_COUNT {
-                bound_1 = bound_1.union_box(buckets[j].bounds);
-                count_1 = buckets[j].count;
+            for bucket in buckets.iter().take(BUCKET_COUNT).skip(i + 1) {
+                bound_1 = bound_1.union_box(bucket.bounds);
+                count_1 = bucket.count;
             }
 
-            cost[i] = T::cast(0.125)
+            *cost = T::cast(0.125)
                 + (T::cast(count_0 as i32) * bound_0.surface_area()
                     + T::cast(count_1 as i32) * bound_1.surface_area())
                     / bounds.surface_area();
         }
 
+        // find index of minimum cost bucket
         let mut min_cost = cost[0];
         let mut min_cost_idx = 0;
         for (idx, &cost) in cost.iter().enumerate() {
@@ -322,16 +364,76 @@ impl<T: Number> BVH<T> {
         if primitive_info.len() > self.primitives_in_node
             || (min_cost.i32() as usize) < primitive_info.len()
         {
-            return Some(partition(primitive_info, |prim| {
+            Some(partition(primitive_info, |prim| {
                 let mut b = BUCKET_COUNT
                     * (centroid_bounds.offset(prim.centroid)[dimension].i32() as usize);
                 if b == BUCKET_COUNT {
                     b -= 1;
                 }
                 b <= min_cost_idx
-            }));
+            }))
         } else {
-            None
+            None // Not worth partitioning, just create leaf node
+        }
+    }
+
+    /// Build the BVH using [`SplitMethod::HLBVH`]
+    fn hlbvh_build(
+        &mut self,
+        primitive_info: &[BVHPrimitiveInfo<T>],
+        total_nodes: &mut usize,
+        ordered_primitives: &mut [Arc<dyn Primitive<T>>],
+    ) {
+        // Bounds of the centroids of all primitives
+        let bounds = primitive_info
+            .iter()
+            .fold(Bounds3::ZERO, |a, b| a.union_point(b.centroid));
+
+        let mut morton_primitives: Vec<_> = primitive_info
+            .par_chunks(512)
+            .flat_map_iter(|prim| {
+                prim.iter().map(|prim| {
+                    let morton_bits = 10;
+                    let morton_scale = 1 << morton_bits;
+                    let centroid = bounds.offset(prim.centroid);
+                    MortonPrimitive {
+                        primitive_index: prim.primitive_number,
+                        morton_code: morton_encode3(centroid.cast() * morton_scale),
+                    }
+                })
+            })
+            .collect();
+
+        radix_sort(&mut morton_primitives);
+
+        // find primitive ranges for each lvbh treelet
+        let mut start = 0;
+        let mut end = 1;
+        let mut treelets_to_build = vec![];
+        loop {
+            let mask = 0b00111111111111000000000000000000;
+            if end == morton_primitives.len()
+                || ((morton_primitives[start].morton_code & mask)
+                    != (morton_primitives[end].morton_code & mask))
+            {
+                treelets_to_build.push(LBVHTreelet {
+                    primitives: start..end,
+                    node: vec![BVHBuildNode {
+                        bounds,
+                        children: None,
+                        split_axis: 1,
+                        primitives: 0..1,
+                    }],
+                });
+                start = end;
+            }
+
+            if end > morton_primitives.len() {
+                break;
+            }
+            end += 1;
+
+            todo!()
         }
     }
 }
@@ -416,5 +518,71 @@ fn partition<T>(array: &mut [T], f: impl Fn(&T) -> bool) -> usize {
             break left;
         }
         array.swap(left, right);
+    }
+}
+
+/// Decompose a number so that all of the bits are shifted 3 places apart.
+fn left_shift3(mut x: u32) -> u32 {
+    if x == 1 << 10 {
+        x -= 1;
+    }
+    x = (x | (x << 16)) & 0b00000011000000000000000011111111;
+    x = (x | (x << 8)) & 0b00000011000000001111000000001111;
+    x = (x | (x << 4)) & 0b00000011000011000011000011000011;
+    x = (x | (x << 2)) & 0b00001001001001001001001001001001;
+    x
+}
+
+/// Return the 3D morton encoding of a vector
+fn morton_encode3<T: Number>(v: Vector3<T>) -> u32 {
+    let vec = v.cast::<i32>();
+    let [x, y, z] = vec.to_array().map(|x| x as u32);
+    (left_shift3(z) << 2) | (left_shift3(y) << 1) | left_shift3(x)
+}
+
+/// Specialised sorting algorithm that is better for sorting the binary numbers
+/// in morton primitives.
+fn radix_sort(primitives: &mut Vec<MortonPrimitive>) {
+    let mut temp = Vec::with_capacity(primitives.len());
+    const BITS_PER_PASS: usize = 6;
+    const BIT_COUNT: usize = 30;
+    const PASS_COUNT: usize = BIT_COUNT / BITS_PER_PASS;
+
+    for pass in 0..PASS_COUNT {
+        let low_bit = pass * BITS_PER_PASS;
+
+        let (in_vec, out_vec) = if pass & 1 == 0 {
+            (primitives.as_mut_slice(), temp.as_mut_slice())
+        } else {
+            (temp.as_mut_slice(), primitives.as_mut_slice())
+        };
+
+        // count number of zero bits in array
+        const BUCKET_COUNT: usize = 1 << BITS_PER_PASS;
+        let mut buckets = [0; BUCKET_COUNT];
+        const BIT_MASK: usize = (1 << BITS_PER_PASS) - 1;
+
+        for prim in &mut in_vec[..] {
+            let bucket = ((prim.morton_code as usize) >> low_bit) & BIT_MASK;
+            buckets[bucket] += 1;
+        }
+
+        // compute starting index for each bucket
+        let mut out_index = [0; BUCKET_COUNT];
+        for i in 0..BUCKET_COUNT {
+            out_index[i] = out_index[i - 1] + buckets[i - 1];
+        }
+
+        // store sorted values in output array
+        for prim in in_vec {
+            let bucket = ((prim.morton_code as usize) >> low_bit) & BIT_MASK;
+            out_vec[out_index[bucket]] = *prim;
+            out_index[bucket] += 1;
+        }
+    }
+
+    // copy final result from temp if needed
+    if PASS_COUNT & 1 != 0 {
+        std::mem::swap(primitives, &mut temp);
     }
 }
