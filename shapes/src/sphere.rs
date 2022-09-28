@@ -63,11 +63,7 @@ impl<T: Number> Shape<T> for Sphere<T> {
         )
     }
 
-    fn intersect(
-        &self,
-        ray: Ray<(), T>,
-        _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<(), T>)> {
+    fn intersect(&self, ray: Ray<T>, _test_alpha: bool) -> Option<(T, SurfaceInteraction<T>)> {
         let (mut t_shape_hit, t1) = self.quadric_coefficients(self.radius, ray)?;
 
         // compute sphere hit position
@@ -160,7 +156,7 @@ impl<T: Number> Shape<T> for Sphere<T> {
         Some((t_shape_hit.value(), intersection))
     }
 
-    fn does_intersect(&self, ray: Ray<(), T>, _test_alpha: bool) -> bool {
+    fn does_intersect(&self, ray: Ray<T>, _test_alpha: bool) -> bool {
         // transform ray to object space
         let (mut t_shape_hit, t1) = match self.quadric_coefficients(self.radius, ray) {
             Some(a) => a,

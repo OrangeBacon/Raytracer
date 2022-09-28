@@ -48,11 +48,7 @@ impl<T: Number> Shape<T> for Cone<T> {
         )
     }
 
-    fn intersect(
-        &self,
-        ray: Ray<(), T>,
-        _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<(), T>)> {
+    fn intersect(&self, ray: Ray<T>, _test_alpha: bool) -> Option<(T, SurfaceInteraction<T>)> {
         let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
 
         let ox = EFloat::new_with_err(ray.origin.x, o_err.x);
@@ -151,7 +147,7 @@ impl<T: Number> Shape<T> for Cone<T> {
         Some((t_shape_hit.value(), intersection))
     }
 
-    fn does_intersect(&self, ray: Ray<(), T>, _test_alpha: bool) -> bool {
+    fn does_intersect(&self, ray: Ray<T>, _test_alpha: bool) -> bool {
         let (ray, (o_err, d_err)) = self.world_to_object.apply_err(ray);
 
         let ox = EFloat::new_with_err(ray.origin.x, o_err.x);

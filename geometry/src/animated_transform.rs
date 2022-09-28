@@ -156,10 +156,10 @@ impl<T: Number> DerivativeTerm<T> {
     }
 }
 
-impl<T: Copy, F: Number> Mul<AnimatedTransform<F>> for Ray<T, F> {
-    type Output = Ray<T, F>;
+impl<T: Number> Mul<AnimatedTransform<T>> for Ray<T> {
+    type Output = Ray<T>;
 
-    fn mul(self, rhs: AnimatedTransform<F>) -> Self::Output {
+    fn mul(self, rhs: AnimatedTransform<T>) -> Self::Output {
         if !rhs.is_animated || self.time <= rhs.start_time {
             self * rhs.start
         } else if self.time >= rhs.end_time {
@@ -170,16 +170,16 @@ impl<T: Copy, F: Number> Mul<AnimatedTransform<F>> for Ray<T, F> {
     }
 }
 
-impl<T: Copy, F: Number> MulAssign<AnimatedTransform<F>> for Ray<T, F> {
-    fn mul_assign(&mut self, rhs: AnimatedTransform<F>) {
+impl<T: Number> MulAssign<AnimatedTransform<T>> for Ray<T> {
+    fn mul_assign(&mut self, rhs: AnimatedTransform<T>) {
         *self = *self * rhs
     }
 }
 
-impl<F: Number, T: Copy> Mul<AnimatedTransform<F>> for RayDifferential<T, F> {
-    type Output = RayDifferential<T, F>;
+impl<T: Number> Mul<AnimatedTransform<T>> for RayDifferential<T> {
+    type Output = RayDifferential<T>;
 
-    fn mul(self, rhs: AnimatedTransform<F>) -> Self::Output {
+    fn mul(self, rhs: AnimatedTransform<T>) -> Self::Output {
         if !rhs.is_animated || self.time <= rhs.start_time {
             self * rhs.start
         } else if self.time >= rhs.end_time {
@@ -190,8 +190,8 @@ impl<F: Number, T: Copy> Mul<AnimatedTransform<F>> for RayDifferential<T, F> {
     }
 }
 
-impl<F: Number, T: Copy> MulAssign<AnimatedTransform<F>> for RayDifferential<T, F> {
-    fn mul_assign(&mut self, rhs: AnimatedTransform<F>) {
+impl<T: Number> MulAssign<AnimatedTransform<T>> for RayDifferential<T> {
+    fn mul_assign(&mut self, rhs: AnimatedTransform<T>) {
         *self = *self * rhs
     }
 }

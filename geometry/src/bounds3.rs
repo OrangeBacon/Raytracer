@@ -183,7 +183,7 @@ impl<T: Number> Bounds3<T> {
     }
 
     /// Calculate the intersection point between the bounds and a given ray
-    pub fn intersect_p<U>(&self, ray: Ray<U, T>) -> Option<(T, T)> {
+    pub fn intersect_p(&self, ray: Ray<T>) -> Option<(T, T)> {
         let mut t0 = T::ZERO;
         let mut t1 = ray.t_max;
 
@@ -209,7 +209,7 @@ impl<T: Number> Bounds3<T> {
 
     /// Calculate the intersection point between the bounds and a given ray
     /// given the inverse of the ray directions pre-computed
-    pub fn intersect_inv<U>(&self, ray: Ray<U, T>, inv: Vector3<T>, is_neg: [bool; 3]) -> bool {
+    pub fn intersect_inv(&self, ray: Ray<T>, inv: Vector3<T>, is_neg: [bool; 3]) -> bool {
         let mut t_min = (self[is_neg[0] as usize].x - ray.origin.x) * inv.x;
         let mut t_max = (self[1 - is_neg[0] as usize].x - ray.origin.x) * inv.x;
         let ty_min = (self[is_neg[1] as usize].y - ray.origin.y) * inv.y;

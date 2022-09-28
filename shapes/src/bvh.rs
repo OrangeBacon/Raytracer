@@ -374,11 +374,11 @@ impl<T: Number> Primitive<T> for BVH<T> {
         todo!()
     }
 
-    fn intersect(&self, ray: Ray<(), T>) -> Option<SurfaceInteraction<(), T>> {
+    fn intersect(&self, ray: Ray<T>) -> Option<SurfaceInteraction<T>> {
         todo!()
     }
 
-    fn does_intersect(&self, ray: Ray<(), T>) -> bool {
+    fn does_intersect(&self, ray: Ray<T>) -> bool {
         todo!()
     }
 

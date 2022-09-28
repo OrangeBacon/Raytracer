@@ -53,12 +53,12 @@ pub trait Shape<T: Number>: Debug {
     /// Find the intersection of self and a ray
     fn intersect(
         &self,
-        ray: Ray<(), T>,
+        ray: Ray<T>,
         test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<(), T>)>;
+    ) -> Option<(T, SurfaceInteraction<T>)>;
 
     /// Find whether self and a ray intersect
-    fn does_intersect(&self, ray: Ray<(), T>, test_alpha: bool) -> bool {
+    fn does_intersect(&self, ray: Ray<T>, test_alpha: bool) -> bool {
         self.intersect(ray, test_alpha).is_some()
     }
 
@@ -101,9 +101,9 @@ impl<T: Number, S: Shape<T> + ?Sized> Shape<T> for &mut S {
 
     fn intersect(
         &self,
-        ray: Ray<(), T>,
+        ray: Ray<T>,
         test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<(), T>)> {
+    ) -> Option<(T, SurfaceInteraction<T>)> {
         (**self).intersect(ray, test_alpha)
     }
 
@@ -115,7 +115,7 @@ impl<T: Number, S: Shape<T> + ?Sized> Shape<T> for &mut S {
         (**self).world_bound()
     }
 
-    fn does_intersect(&self, ray: Ray<(), T>, test_alpha: bool) -> bool {
+    fn does_intersect(&self, ray: Ray<T>, test_alpha: bool) -> bool {
         (**self).does_intersect(ray, test_alpha)
     }
 

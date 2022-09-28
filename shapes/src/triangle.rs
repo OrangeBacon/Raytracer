@@ -105,11 +105,7 @@ impl<F: Number, T: Debug + 'static> Shape<F> for Triangle<F, T> {
         Bounds3::new(p0, p1).union_point(p2)
     }
 
-    fn intersect(
-        &self,
-        ray: Ray<(), F>,
-        test_alpha: bool,
-    ) -> Option<(F, SurfaceInteraction<(), F>)> {
+    fn intersect(&self, ray: Ray<F>, test_alpha: bool) -> Option<(F, SurfaceInteraction<F>)> {
         let p0 = self.mesh.positions()[self.mesh.indices()[self.idx]];
         let p1 = self.mesh.positions()[self.mesh.indices()[self.idx + 1]];
         let p2 = self.mesh.positions()[self.mesh.indices()[self.idx + 2]];
@@ -351,7 +347,7 @@ impl<F: Number, T: Debug + 'static> Shape<F> for Triangle<F, T> {
         Some((t, isect))
     }
 
-    fn does_intersect(&self, ray: Ray<(), F>, test_alpha: bool) -> bool {
+    fn does_intersect(&self, ray: Ray<F>, test_alpha: bool) -> bool {
         let p0 = self.mesh.positions()[self.mesh.indices()[self.idx]];
         let p1 = self.mesh.positions()[self.mesh.indices()[self.idx + 1]];
         let p2 = self.mesh.positions()[self.mesh.indices()[self.idx + 2]];

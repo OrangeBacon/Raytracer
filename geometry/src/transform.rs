@@ -503,16 +503,16 @@ impl<T: Number> Applicable<Normal3<T>> for Transform<T> {
     }
 }
 
-impl<T, F: Number> Mul<Transform<F>> for Ray<T, F> {
+impl<T: Number> Mul<Transform<T>> for Ray<T> {
     type Output = Self;
 
-    fn mul(self, rhs: Transform<F>) -> Self::Output {
+    fn mul(self, rhs: Transform<T>) -> Self::Output {
         let (mut origin, o_err) = rhs.apply_err(self.origin);
         let direction = self.direction * rhs;
 
         let length_square = direction.length_square();
         let mut t_max = self.t_max;
-        if length_square > F::ZERO {
+        if length_square > T::ZERO {
             let dt = direction.abs().dot(o_err) / length_square;
             origin += direction * dt;
             t_max -= dt;
@@ -527,27 +527,25 @@ impl<T, F: Number> Mul<Transform<F>> for Ray<T, F> {
     }
 }
 
-impl<T, F: Number> MulAssign<Transform<F>> for Ray<T, F> {
-    fn mul_assign(&mut self, rhs: Transform<F>) {
+impl<T: Number> MulAssign<Transform<T>> for Ray<T> {
+    fn mul_assign(&mut self, rhs: Transform<T>) {
         self.origin *= rhs;
         self.direction *= rhs;
     }
 }
 
-impl<T, F: Number> Applicable<Ray<T, F>> for Transform<F> {
-    fn apply(&self, other: Ray<T, F>) -> Ray<T, F> {
+impl<T: Number> Applicable<Ray<T>> for Transform<T> {
+    fn apply(&self, other: Ray<T>) -> Ray<T> {
         other * *self
     }
 }
 
-impl<T, F: Number> ApplicableError<Ray<T, F>, (Vector3<F>, Vector3<F>), Ray<T, F>>
-    for Transform<F>
-{
-    fn apply(&self, other: Ray<T, F>) -> (Ray<T, F>, (Vector3<F>, Vector3<F>)) {
+impl<T: Number> ApplicableError<Ray<T>, (Vector3<T>, Vector3<T>), Ray<T>> for Transform<T> {
+    fn apply(&self, other: Ray<T>) -> (Ray<T>, (Vector3<T>, Vector3<T>)) {
         let (mut origin, origin_err) = self.apply_err(other.origin);
         let (dir, dir_err) = self.apply_err(other.direction);
         let len_sq = dir.length_square();
-        if len_sq > F::ZERO {
+        if len_sq > T::ZERO {
             let dt = dir.abs().dot(origin_err) / len_sq;
             origin += dir * dt;
         }
@@ -558,25 +556,24 @@ impl<T, F: Number> ApplicableError<Ray<T, F>, (Vector3<F>, Vector3<F>), Ray<T, F
                 direction: dir,
                 t_max: other.t_max,
                 time: other.time,
-                material: other.material,
             },
             (origin_err, dir_err),
         )
     }
 }
 
-impl<T, F: Number>
-    ApplicableError<(Ray<T, F>, Vector3<F>, Vector3<F>), (Vector3<F>, Vector3<F>), Ray<T, F>>
-    for Transform<F>
+impl<T: Number>
+    ApplicableError<(Ray<T>, Vector3<T>, Vector3<T>), (Vector3<T>, Vector3<T>), Ray<T>>
+    for Transform<T>
 {
     fn apply(
         &self,
-        (ray, origin_err, direction_err): (Ray<T, F>, Vector3<F>, Vector3<F>),
-    ) -> (Ray<T, F>, (Vector3<F>, Vector3<F>)) {
+        (ray, origin_err, direction_err): (Ray<T>, Vector3<T>, Vector3<T>),
+    ) -> (Ray<T>, (Vector3<T>, Vector3<T>)) {
         let (mut origin, origin_err) = self.apply_err((ray.origin, origin_err));
         let (dir, dir_err) = self.apply_err((ray.direction, direction_err));
         let len_sq = dir.length_square();
-        if len_sq > F::ZERO {
+        if len_sq > T::ZERO {
             let dt = dir.abs().dot(origin_err) / len_sq;
             origin += dir * dt;
         }
@@ -587,17 +584,16 @@ impl<T, F: Number>
                 direction: dir,
                 t_max: ray.t_max,
                 time: ray.time,
-                material: ray.material,
             },
             (origin_err, dir_err),
         )
     }
 }
 
-impl<F: Number, T> Mul<Transform<F>> for RayDifferential<T, F> {
+impl<T: Number> Mul<Transform<T>> for RayDifferential<T> {
     type Output = Self;
 
-    fn mul(self, rhs: Transform<F>) -> Self::Output {
+    fn mul(self, rhs: Transform<T>) -> Self::Output {
         let tr = self.main * rhs;
         RayDifferential {
             main: tr,
@@ -611,20 +607,14 @@ impl<F: Number, T> Mul<Transform<F>> for RayDifferential<T, F> {
     }
 }
 
-impl<F: Number, T> MulAssign<Transform<F>> for RayDifferential<T, F> {
-    fn mul_assign(&mut self, rhs: Transform<F>) {
-        self.main *= rhs;
-        self.differentials = self.differentials.map(|old| RayDifferentials {
-            rx_origin: old.rx_origin * rhs,
-            ry_origin: old.ry_origin * rhs,
-            rx_direction: old.rx_direction * rhs,
-            ry_direction: old.ry_direction * rhs,
-        })
+impl<T: Number> MulAssign<Transform<T>> for RayDifferential<T> {
+    fn mul_assign(&mut self, rhs: Transform<T>) {
+        *self = *self * rhs
     }
 }
 
-impl<F: Number, T> Applicable<RayDifferential<T, F>> for Transform<F> {
-    fn apply(&self, other: RayDifferential<T, F>) -> RayDifferential<T, F> {
+impl<T: Number> Applicable<RayDifferential<T>> for Transform<T> {
+    fn apply(&self, other: RayDifferential<T>) -> RayDifferential<T> {
         other * *self
     }
 }

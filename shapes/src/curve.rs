@@ -92,13 +92,13 @@ impl<T: Number> Curve<T> {
     /// Recursively subdivide the curve and try to approximate intersection
     fn recurse_intersect(
         &self,
-        ray: Ray<(), T>,
+        ray: Ray<T>,
         control_points: &[Point3<T>; 4],
         ray_to_object: Transform<T>,
         u0: T,
         u1: T,
         depth: i32,
-    ) -> Option<(T, SurfaceInteraction<(), T>)> {
+    ) -> Option<(T, SurfaceInteraction<T>)> {
         // compute bounding box of the curve segment
         let width = [
             lerp(u0, self.common.width[0], self.common.width[1]),
@@ -268,11 +268,7 @@ impl<T: Number> Shape<T> for Curve<T> {
         bound.expand(width[0].max(width[1]) * (T::HALF))
     }
 
-    fn intersect(
-        &self,
-        ray: Ray<(), T>,
-        _test_alpha: bool,
-    ) -> Option<(T, SurfaceInteraction<(), T>)> {
+    fn intersect(&self, ray: Ray<T>, _test_alpha: bool) -> Option<(T, SurfaceInteraction<T>)> {
         let ray = ray * self.object_to_world;
 
         let control = [

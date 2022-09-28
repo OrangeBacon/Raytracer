@@ -10,11 +10,11 @@ pub trait Primitive<T: Number>: Debug {
     fn world_bound(&self) -> Bounds3<T>;
 
     /// Get an intersection between the primitive and a given ray
-    fn intersect(&self, ray: Ray<(), T>) -> Option<SurfaceInteraction<(), T>>;
+    fn intersect(&self, ray: Ray<T>) -> Option<SurfaceInteraction<T>>;
 
     /// Does the ray intersect the given primitive, faster version of
     /// `Self::intersect(..).is_some()`
-    fn does_intersect(&self, ray: Ray<(), T>) -> bool;
+    fn does_intersect(&self, ray: Ray<T>) -> bool;
 
     /// Get the emissive properties of the primitive
     fn area_light(&self);

@@ -11,25 +11,21 @@ use crate::{primitive::Primitive, Shape};
 
 /// interaction at a point on a surface
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
-pub struct Interaction<T, F: Number> {
+pub struct Interaction<T: Number> {
     /// location of the interaction
-    pub point: Point3<F>,
+    pub point: Point3<T>,
 
     /// Time that the interaction occurred
-    pub time: F,
+    pub time: T,
 
     /// Error bound on calculations with this interaction
-    pub error: Vector3<F>,
+    pub error: Vector3<T>,
 
     /// the negative ray direction at the interaction
-    pub dir: Vector3<F>,
+    pub dir: Vector3<T>,
 
     /// The direction of the normal at the point this intersection occurred
-    pub normal: Option<Normal3<F>>,
-
-    /// Additional data at this interaction point (supposed to be a medium interface
-    /// but cargo does not like recursive dependencies between crates)
-    pub medium_interface: T,
+    pub normal: Option<Normal3<T>>,
 }
 
 /// Parametric partial derivatives of a point
@@ -54,23 +50,23 @@ pub struct Shading<T: Number> {
 
 /// Interaction between a ray and a generic point on a surface
 #[derive(Debug, Default)]
-pub struct SurfaceInteraction<T, F: Number> {
-    pub interaction: Interaction<T, F>,
-    pub uv: Point2<F>,
-    pub derivatives: PartialDerivatives<F>,
-    pub shape: Option<Box<dyn Shape<F>>>,
-    pub shading: Shading<F>,
-    pub primitive: Option<Box<dyn Primitive<F>>>,
+pub struct SurfaceInteraction<T: Number> {
+    pub interaction: Interaction<T>,
+    pub uv: Point2<T>,
+    pub derivatives: PartialDerivatives<T>,
+    pub shape: Option<Box<dyn Shape<T>>>,
+    pub shading: Shading<T>,
+    pub primitive: Option<Box<dyn Primitive<T>>>,
 }
 
-impl<T: Default, F: Number> Interaction<T, F> {
+impl<T: Number> Interaction<T> {
     /// Create a new record of an interaction at a point on a surface
     pub fn new(
-        point: Point3<F>,
-        normal: Normal3<F>,
-        error: Vector3<F>,
-        dir: Vector3<F>,
-        time: F,
+        point: Point3<T>,
+        normal: Normal3<T>,
+        error: Vector3<T>,
+        dir: Vector3<T>,
+        time: T,
     ) -> Self {
         Self {
             point,
@@ -78,21 +74,6 @@ impl<T: Default, F: Number> Interaction<T, F> {
             error,
             dir,
             normal: Some(normal),
-            medium_interface: Default::default(),
-        }
-    }
-}
-
-impl<T, F: Number> Interaction<T, F> {
-    /// Add a medium interface to this interaction
-    pub fn with_medium<U>(self, medium: U) -> Interaction<U, F> {
-        Interaction {
-            medium_interface: medium,
-            point: self.point,
-            time: self.time,
-            error: self.error,
-            dir: self.dir,
-            normal: self.normal,
         }
     }
 
@@ -102,7 +83,7 @@ impl<T, F: Number> Interaction<T, F> {
     }
 
     /// Spawn a ray at the intersection point
-    pub fn spawn_ray(&self, direction: Vector3<F>) -> Ray<(), F> {
+    pub fn spawn_ray(&self, direction: Vector3<T>) -> Ray<T> {
         let origin = offset_ray_origin(
             self.point,
             self.error,
@@ -112,14 +93,13 @@ impl<T, F: Number> Interaction<T, F> {
         Ray {
             origin,
             direction,
-            t_max: F::INFINITY,
+            t_max: T::INFINITY,
             time: self.time,
-            material: (),
         }
     }
 
     /// Spawn a ray ending just before a given point
-    pub fn spawn_ray_to(&self, point: Point3<F>) -> Ray<(), F> {
+    pub fn spawn_ray_to(&self, point: Point3<T>) -> Ray<T> {
         let origin = offset_ray_origin(
             self.point,
             self.error,
@@ -130,14 +110,13 @@ impl<T, F: Number> Interaction<T, F> {
         Ray {
             origin,
             direction: dir,
-            t_max: F::ONE - F::cast(0.0001),
+            t_max: T::ONE - T::cast(0.0001),
             time: self.time,
-            material: (),
         }
     }
 
     /// Spawn a ray ending just before a given surface interaction
-    pub fn spawn_ray_intersect<U>(&self, isect: Interaction<U, F>) -> Ray<(), F> {
+    pub fn spawn_ray_intersect(&self, isect: Interaction<T>) -> Ray<T> {
         let origin = offset_ray_origin(
             self.point,
             self.error,
@@ -148,22 +127,21 @@ impl<T, F: Number> Interaction<T, F> {
         Ray {
             origin,
             direction: dir,
-            t_max: F::ONE - F::cast(0.0001),
+            t_max: T::ONE - T::cast(0.0001),
             time: self.time,
-            material: (),
         }
     }
 }
 
-impl<F: Number> SurfaceInteraction<(), F> {
+impl<T: Number> SurfaceInteraction<T> {
     /// Create a new surface interaction
     pub fn new(
-        point: Point3<F>,
-        error: Vector3<F>,
-        uv: Point2<F>,
-        dir: Vector3<F>,
-        derivatives: PartialDerivatives<F>,
-        time: F,
+        point: Point3<T>,
+        error: Vector3<T>,
+        uv: Point2<T>,
+        dir: Vector3<T>,
+        derivatives: PartialDerivatives<T>,
+        time: T,
     ) -> Self {
         let normal = Normal3::from_vector(derivatives.dpdu.cross(derivatives.dpdv).normalise());
         let interaction = Interaction::new(point, normal, error, dir, time);
@@ -180,36 +158,18 @@ impl<F: Number> SurfaceInteraction<(), F> {
             primitive: None,
         }
     }
-}
-
-impl<T, F: Number> SurfaceInteraction<T, F> {
-    /// Associate a medium interface with this surface interaction
-    pub fn with_medium<U>(self, medium: U) -> SurfaceInteraction<U, F> {
-        SurfaceInteraction {
-            interaction: self.interaction.with_medium(medium),
-            uv: self.uv,
-            derivatives: self.derivatives,
-            shape: self.shape,
-            shading: self.shading,
-            primitive: self.primitive,
-        }
-    }
 
     /// Associate a shape with this surface interaction
-    pub fn with_shape<S2: Shape<F> + 'static>(self, shape: S2) -> Self {
+    pub fn with_shape<S2: Shape<T> + 'static>(self, shape: S2) -> Self {
         let mut this = Self {
-            interaction: self.interaction,
-            uv: self.uv,
-            derivatives: self.derivatives,
             shape: Some(Box::new(shape)),
-            shading: self.shading,
-            primitive: self.primitive,
+            ..self
         };
 
         if let Some(shape) = &this.shape {
             if shape.reverses_orientation() {
-                this.interaction.normal = Some(this.shading.normal * -F::ONE);
-                this.shading.normal *= -F::ONE;
+                this.interaction.normal = Some(this.shading.normal * -T::ONE);
+                this.shading.normal *= -T::ONE;
             }
         }
 
@@ -217,39 +177,17 @@ impl<T, F: Number> SurfaceInteraction<T, F> {
     }
 
     /// Associate a primitive with the interaction
-    pub fn with_primitive<P2: Primitive<F> + 'static>(self, prim: P2) -> Self {
+    pub fn with_primitive<P2: Primitive<T> + 'static>(self, prim: P2) -> Self {
         SurfaceInteraction {
-            interaction: self.interaction,
-            uv: self.uv,
-            derivatives: self.derivatives,
-            shape: self.shape,
-            shading: self.shading,
             primitive: Some(Box::new(prim)),
-        }
-    }
-
-    fn remove_params(&self) -> SurfaceInteraction<(), F> {
-        SurfaceInteraction {
-            interaction: Interaction {
-                point: self.interaction.point,
-                time: self.interaction.time,
-                error: self.interaction.error,
-                dir: self.interaction.dir,
-                normal: self.interaction.normal,
-                medium_interface: (),
-            },
-            uv: self.uv,
-            derivatives: self.derivatives,
-            shape: None,
-            shading: self.shading,
-            primitive: None,
+            ..self
         }
     }
 
     /// Change the shading parameters associated with an interaction
     pub fn set_shading_geometry(
         &mut self,
-        derivatives: PartialDerivatives<F>,
+        derivatives: PartialDerivatives<T>,
         orientation_is_authoritative: bool,
     ) {
         self.shading.normal =
@@ -273,59 +211,64 @@ impl<T, F: Number> SurfaceInteraction<T, F> {
     }
 }
 
-impl<T, F: Number> Mul<Transform<F>> for SurfaceInteraction<T, F> {
-    type Output = SurfaceInteraction<T, F>;
+impl<T: Number> Mul<Transform<T>> for PartialDerivatives<T> {
+    type Output = Self;
 
-    fn mul(self, rhs: Transform<F>) -> Self::Output {
-        let (point, error) = rhs.apply_err((self.interaction.point, self.interaction.error));
-
-        SurfaceInteraction {
-            interaction: Interaction {
-                point,
-                time: self.interaction.time,
-                error,
-                dir: self.interaction.dir * rhs,
-                normal: self.interaction.normal.map(|n| rhs.apply(n)),
-                medium_interface: self.interaction.medium_interface,
-            },
-            uv: self.uv,
-            derivatives: PartialDerivatives {
-                dpdu: self.derivatives.dpdu * rhs,
-                dpdv: self.derivatives.dpdv * rhs,
-                dndu: self.derivatives.dndu * rhs,
-                dndv: self.derivatives.dndv * rhs,
-            },
-            shape: self.shape,
-            primitive: self.primitive,
-            shading: Shading {
-                normal: (self.shading.normal * rhs).normalise(),
-                derivatives: PartialDerivatives {
-                    dpdu: self.shading.derivatives.dpdu * rhs,
-                    dpdv: self.shading.derivatives.dpdv * rhs,
-                    dndu: self.shading.derivatives.dndu * rhs,
-                    dndv: self.shading.derivatives.dndv * rhs,
-                },
-            },
+    fn mul(self, rhs: Transform<T>) -> Self::Output {
+        Self {
+            dpdu: self.dpdu * rhs,
+            dpdv: self.dpdv * rhs,
+            dndu: self.dndu * rhs,
+            dndv: self.dndv * rhs,
         }
     }
 }
 
-impl<T, F: Number> MulAssign<Transform<F>> for SurfaceInteraction<T, F> {
-    fn mul_assign(&mut self, rhs: Transform<F>) {
-        let res = self.remove_params() * rhs;
-        self.derivatives = res.derivatives;
-        self.interaction.dir = res.interaction.dir;
-        self.interaction.error = res.interaction.error;
-        self.interaction.normal = res.interaction.normal;
-        self.interaction.point = res.interaction.point;
-        self.interaction.time = res.interaction.time;
-        self.shading = res.shading;
-        self.uv = res.uv;
+impl<T: Number> Mul<Transform<T>> for Interaction<T> {
+    type Output = Self;
+
+    fn mul(self, rhs: Transform<T>) -> Self::Output {
+        let (point, error) = rhs.apply_err((self.point, self.error));
+
+        Interaction {
+            point,
+            time: self.time,
+            error,
+            dir: self.dir * rhs,
+            normal: self.normal.map(|n| rhs.apply(n)),
+        }
     }
 }
 
-impl<T, F: Number> Applicable<SurfaceInteraction<T, F>> for Transform<F> {
-    fn apply(&self, other: SurfaceInteraction<T, F>) -> SurfaceInteraction<T, F> {
+impl<T: Number> Mul<Transform<T>> for SurfaceInteraction<T> {
+    type Output = SurfaceInteraction<T>;
+
+    fn mul(self, rhs: Transform<T>) -> Self::Output {
+        SurfaceInteraction {
+            interaction: self.interaction * rhs,
+            derivatives: self.derivatives * rhs,
+            shading: Shading {
+                normal: (self.shading.normal * rhs).normalise(),
+                derivatives: self.derivatives * rhs,
+            },
+            ..self
+        }
+    }
+}
+
+impl<T: Number> MulAssign<Transform<T>> for SurfaceInteraction<T> {
+    fn mul_assign(&mut self, rhs: Transform<T>) {
+        self.shading = Shading {
+            normal: (self.shading.normal * rhs).normalise(),
+            derivatives: self.derivatives * rhs,
+        };
+        self.derivatives = self.derivatives * rhs;
+        self.interaction = self.interaction * rhs;
+    }
+}
+
+impl<T: Number> Applicable<SurfaceInteraction<T>> for Transform<T> {
+    fn apply(&self, other: SurfaceInteraction<T>) -> SurfaceInteraction<T> {
         other * *self
     }
 }
