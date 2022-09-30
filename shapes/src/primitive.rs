@@ -5,7 +5,7 @@ use geometry::{Bounds3, Number, Ray};
 use crate::SurfaceInteraction;
 
 /// Link between geometry and shading code
-pub trait Primitive<T: Number>: Debug {
+pub trait Primitive<T: Number>: Debug + Send + Sync {
     /// Bound for the primitive in world space
     fn world_bound(&self) -> Bounds3<T>;
 

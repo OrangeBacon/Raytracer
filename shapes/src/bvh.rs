@@ -33,6 +33,9 @@ pub struct BVH<T: Number> {
 
     /// A list of all primitives in the BVH
     primitives: Vec<Arc<dyn Primitive<T>>>,
+
+    /// The nodes in the BVH
+    nodes: Vec<LinearBVHNode<T>>,
 }
 
 /// Information about a single primitive in the BVH
@@ -72,13 +75,9 @@ struct MortonPrimitive {
     morton_code: u32,
 }
 
-struct LBVHTreelet<T: Number> {
-    primitives: Range<usize>,
-    node: Vec<BVHBuildNode<T>>,
-}
-
 /// Information about traversing the BVH after it has been constructed
 #[repr(align(32))]
+#[derive(Debug, Default)]
 struct LinearBVHNode<T: Number> {
     /// The bounds of all children within the BVH
     bounds: Bounds3<T>,
@@ -115,6 +114,7 @@ impl<T: Number> BVH<T> {
             primitives_in_node: primitives_in_node.min(255),
             split_method,
             primitives,
+            nodes: vec![],
         };
         this.construct();
         this
@@ -132,7 +132,7 @@ impl<T: Number> BVH<T> {
         let mut total_nodes = 0;
         let mut ordered_primitives = Vec::with_capacity(self.primitives.len());
 
-        if self.split_method == SplitMethod::HLVBH {
+        let root = if self.split_method == SplitMethod::HLVBH {
             self.hlbvh_build(&primitive_info, &mut total_nodes, &mut ordered_primitives)
         } else {
             self.recursive_build(
@@ -140,10 +140,14 @@ impl<T: Number> BVH<T> {
                 0..self.primitives.len(),
                 &mut total_nodes,
                 &mut ordered_primitives,
-            );
-        }
+            )
+        };
 
         self.primitives = ordered_primitives;
+
+        // compute depth first traversal of the BVH
+        self.nodes = Vec::with_capacity(total_nodes);
+        self.flatten_tree(root);
     }
 
     /// Build the BVH using all split methods that are not HLVBH
@@ -382,8 +386,8 @@ impl<T: Number> BVH<T> {
         &mut self,
         primitive_info: &[BVHPrimitiveInfo<T>],
         total_nodes: &mut usize,
-        ordered_primitives: &mut [Arc<dyn Primitive<T>>],
-    ) {
+        ordered_primitives: &mut Vec<Arc<dyn Primitive<T>>>,
+    ) -> Arc<BVHBuildNode<T>> {
         // Bounds of the centroids of all primitives
         let bounds = primitive_info
             .iter()
@@ -416,15 +420,7 @@ impl<T: Number> BVH<T> {
                 || ((morton_primitives[start].morton_code & mask)
                     != (morton_primitives[end].morton_code & mask))
             {
-                treelets_to_build.push(LBVHTreelet {
-                    primitives: start..end,
-                    node: vec![BVHBuildNode {
-                        bounds,
-                        children: None,
-                        split_axis: 1,
-                        primitives: 0..1,
-                    }],
-                });
+                treelets_to_build.push(start..end);
                 start = end;
             }
 
@@ -432,9 +428,262 @@ impl<T: Number> BVH<T> {
                 break;
             }
             end += 1;
-
-            todo!()
         }
+
+        let mut finished_treelets = Vec::with_capacity(treelets_to_build.len());
+
+        for treelet in treelets_to_build {
+            let first_bit_index = 29 - 12;
+            let node = self.emit_lvbh(
+                &primitive_info,
+                &morton_primitives[treelet],
+                total_nodes,
+                ordered_primitives,
+                first_bit_index,
+            );
+            finished_treelets.push(node);
+        }
+
+        self.build_upper_sah(&mut finished_treelets, total_nodes)
+    }
+
+    /// partition nodes within a hlbvh area
+    fn emit_lvbh(
+        &self,
+        primitive_info: &[BVHPrimitiveInfo<T>],
+        morton_primitives: &[MortonPrimitive],
+        total_nodes: &mut usize,
+        ordered_primitives: &mut Vec<Arc<dyn Primitive<T>>>,
+        bit_index: i32,
+    ) -> Arc<BVHBuildNode<T>> {
+        assert!(morton_primitives.len() > 0);
+
+        if bit_index == -1 || morton_primitives.len() < self.primitives_in_node {
+            // create leaf node of lbvh treelet
+            *total_nodes += 1;
+            let mut bounds = Bounds3::default();
+            let first_prim_offset = ordered_primitives.len();
+            for prim in morton_primitives {
+                let index = prim.primitive_index;
+                ordered_primitives.push(Arc::clone(&self.primitives[index]));
+                bounds = bounds.union_box(primitive_info[index].bounds);
+            }
+            Arc::new(BVHBuildNode::leaf(
+                first_prim_offset..(first_prim_offset + morton_primitives.len()),
+                bounds,
+            ))
+        } else {
+            let mask = 1 << bit_index;
+
+            // advance to next sub tree if this bit does not have an lvbh split
+            if (morton_primitives[0].morton_code & mask)
+                == (morton_primitives[morton_primitives.len() - 1].morton_code & mask)
+            {
+                return self.emit_lvbh(
+                    primitive_info,
+                    morton_primitives,
+                    total_nodes,
+                    ordered_primitives,
+                    bit_index - 1,
+                );
+            }
+
+            // find lvbh split point
+            let mut start = 0;
+            let mut end = morton_primitives.len() - 1;
+            while start + 1 != end {
+                assert_ne!(start, end);
+                let mid = (start + end) / 2;
+                if (morton_primitives[start].morton_code & mask)
+                    == (morton_primitives[mid].morton_code & mask)
+                {
+                    start = mid
+                } else {
+                    assert_eq!(
+                        (morton_primitives[mid].morton_code & mask),
+                        (morton_primitives[end].morton_code & mask)
+                    );
+                    end = mid;
+                }
+            }
+
+            let offset = end;
+            assert!(offset < morton_primitives.len() - 1);
+            assert_ne!(
+                morton_primitives[offset - 1].morton_code & mask,
+                morton_primitives[offset].morton_code & mask
+            );
+
+            // create the interior lbvh node
+            *total_nodes += 1;
+            let c0 = self.emit_lvbh(
+                primitive_info,
+                &morton_primitives[0..offset],
+                total_nodes,
+                ordered_primitives,
+                bit_index - 1,
+            );
+            let c1 = self.emit_lvbh(
+                primitive_info,
+                &morton_primitives[offset..],
+                total_nodes,
+                ordered_primitives,
+                bit_index - 1,
+            );
+            let axis = bit_index as usize % 3;
+
+            Arc::new(BVHBuildNode::interior(axis, c0, c1))
+        }
+    }
+
+    /// Create an sah BVH from LBVH treelets
+    fn build_upper_sah(
+        &mut self,
+        treelet_roots: &mut [Arc<BVHBuildNode<T>>],
+        total_nodes: &mut usize,
+    ) -> Arc<BVHBuildNode<T>> {
+        assert!(treelet_roots.len() != 0);
+
+        if treelet_roots.len() == 1 {
+            return Arc::clone(&treelet_roots[0]);
+        }
+
+        *total_nodes += 1;
+
+        // compute bound of all included nodes
+        let mut bounds = Bounds3::default();
+        for root in treelet_roots.iter() {
+            bounds = bounds.union_box(root.bounds);
+        }
+
+        // compute bound of all node centroids
+        let mut centroid_bounds = Bounds3::default();
+        for root in treelet_roots.iter() {
+            let centroid = (root.bounds.min + root.bounds.max) * T::HALF;
+            centroid_bounds = centroid_bounds.union_point(centroid);
+        }
+        let dim = centroid_bounds.maximum_extent();
+
+        // pbrt lists a fix me, for what should happen when/if this assert hits
+        // could continue, but the sah split would do nothing
+        assert_ne!(centroid_bounds.max[dim], centroid_bounds.min[dim]);
+
+        // initialise sah buckets
+        #[derive(Clone, Copy)]
+        struct BucketInfo<T: Number> {
+            count: usize,
+            bounds: Bounds3<T>,
+        }
+
+        const BUCKET_COUNT: usize = 12;
+
+        let mut buckets = [BucketInfo {
+            count: 0,
+            bounds: Bounds3::ZERO,
+        }; BUCKET_COUNT];
+
+        for root in treelet_roots.iter() {
+            let centroid = (root.bounds.min[dim] + root.bounds.max[dim]) * T::HALF;
+            let mut b = BUCKET_COUNT
+                * ((centroid - centroid_bounds.min[dim])
+                    / (centroid_bounds.max[dim] - centroid_bounds.min[dim]))
+                    .i32() as usize;
+            if b == BUCKET_COUNT {
+                b = BUCKET_COUNT - 1;
+            }
+
+            assert!(b < BUCKET_COUNT);
+            buckets[b].count += 1;
+            buckets[b].bounds = buckets[b].bounds.union_box(root.bounds);
+        }
+
+        // compute bucket split costs
+        let mut cost = [T::ZERO; BUCKET_COUNT];
+        for (i, cost) in cost.iter_mut().enumerate().take(BUCKET_COUNT - 1) {
+            let mut bound_0 = Bounds3::ZERO;
+            let mut bound_1 = Bounds3::ZERO;
+            let mut count_0 = 0;
+            let mut count_1 = 0;
+
+            for bucket in buckets.iter().take(i + 1) {
+                bound_0 = bound_0.union_box(bucket.bounds);
+                count_0 += bucket.count;
+            }
+
+            for bucket in buckets.iter().take(BUCKET_COUNT).skip(i + 1) {
+                bound_1 = bound_1.union_box(bucket.bounds);
+                count_1 = bucket.count;
+            }
+
+            *cost = T::cast(0.125)
+                + (T::cast(count_0 as i32) * bound_0.surface_area()
+                    + T::cast(count_1 as i32) * bound_1.surface_area())
+                    / bounds.surface_area();
+        }
+
+        // find index of minimum cost bucket
+        let mut min_cost = cost[0];
+        let mut min_cost_idx = 0;
+        for (idx, &cost) in cost.iter().enumerate() {
+            if cost < min_cost {
+                min_cost = cost;
+                min_cost_idx = idx;
+            }
+        }
+
+        let mid = partition(treelet_roots, |node| {
+            let centroid = (node.bounds.min[dim] + node.bounds.max[dim]) * T::HALF;
+
+            let mut b = BUCKET_COUNT
+                * ((centroid - centroid_bounds.min[dim])
+                    / (centroid_bounds.max[dim] - centroid_bounds.min[dim]))
+                    .i32() as usize;
+            if b == BUCKET_COUNT {
+                b = BUCKET_COUNT - 1;
+            }
+
+            assert!(b < BUCKET_COUNT);
+
+            b <= min_cost_idx
+        });
+
+        assert!(mid < treelet_roots.len());
+
+        Arc::new(BVHBuildNode::interior(
+            dim,
+            self.build_upper_sah(&mut treelet_roots[..mid], total_nodes),
+            self.build_upper_sah(&mut treelet_roots[mid..], total_nodes),
+        ))
+    }
+
+    /// Convert a bvh into a more efficient representation
+    fn flatten_tree(&mut self, node: Arc<BVHBuildNode<T>>) -> usize {
+        let mut linear_node = LinearBVHNode::default();
+        linear_node.bounds = node.bounds;
+        let idx = self.nodes.len();
+        if let Some(children) = &node.children {
+            // axis will only ever be 0, 1 or 2, so this will never fail
+            linear_node.axis = node.split_axis.try_into().unwrap();
+            linear_node.primitive_count = 0;
+            self.nodes.push(linear_node);
+            self.flatten_tree(Arc::clone(&children[0]));
+            let second_idx = self.flatten_tree(Arc::clone(&children[1]));
+            self.nodes[idx].child_offset = second_idx
+                .try_into()
+                .expect("Error: More than u32::MAX bvh nodes attempted to be constructed");
+        } else {
+            linear_node.child_offset = node
+                .primitives
+                .start
+                .try_into()
+                .expect("Error: More than u32::MAX bvh nodes attempted to be constructed");
+
+            // max primitives per node is clamped at maximum 255, so this will never fail
+            linear_node.primitive_count = node.primitives.len().try_into().unwrap();
+            self.nodes.push(linear_node);
+        }
+
+        idx
     }
 }
 
@@ -473,15 +722,140 @@ impl<T: Number> BVHBuildNode<T> {
 
 impl<T: Number> Primitive<T> for BVH<T> {
     fn world_bound(&self) -> Bounds3<T> {
-        todo!()
+        if let Some(node) = self.nodes.first() {
+            node.bounds
+        } else {
+            Bounds3::default()
+        }
     }
 
     fn intersect(&self, ray: Ray<T>) -> Option<SurfaceInteraction<T>> {
-        todo!()
+        if self.nodes.is_empty() {
+            return None;
+        }
+        let mut hit = None;
+        let inv_dir = Vector3::new(
+            T::ONE / ray.direction.x,
+            T::ONE / ray.direction.y,
+            T::ONE / ray.direction.z,
+        );
+        let is_dir_negative = [
+            inv_dir.x < T::ZERO,
+            inv_dir.y < T::ZERO,
+            inv_dir.z < T::ZERO,
+        ];
+
+        // stack of nodes to visit in the BVH
+        let mut nodes_to_visit = [0; 64];
+        // index of next free element in the stack
+        let mut nodes_to_visit_idx = 0;
+        // index of the node currently being checked
+        let mut current_node_index = 0;
+
+        loop {
+            let node = &self.nodes[current_node_index];
+
+            if node.bounds.intersect_inv(ray, inv_dir, is_dir_negative) {
+                if node.primitive_count > 0 {
+                    // intersect ray with primitives in leaf node
+                    let start = node.child_offset as usize;
+                    let range = start..(start + node.primitive_count as usize);
+                    for prim in &self.primitives[range] {
+                        if let Some(isect) = prim.intersect(ray) {
+                            hit = Some(isect);
+                        }
+                    }
+                    if nodes_to_visit_idx == 0 {
+                        break;
+                    }
+                    nodes_to_visit_idx -= 1;
+                    current_node_index = nodes_to_visit[nodes_to_visit_idx];
+                } else {
+                    // put far node on the stack
+                    if is_dir_negative[node.axis as usize] {
+                        nodes_to_visit[nodes_to_visit_idx] = current_node_index + 1;
+                        nodes_to_visit_idx += 1;
+                        current_node_index = node.child_offset as _;
+                    } else {
+                        nodes_to_visit[nodes_to_visit_idx] = node.child_offset as _;
+                        nodes_to_visit_idx += 1;
+                        current_node_index = current_node_index + 1;
+                    }
+                }
+            } else {
+                if nodes_to_visit_idx == 0 {
+                    break;
+                }
+                nodes_to_visit_idx -= 1;
+                current_node_index = nodes_to_visit[nodes_to_visit_idx];
+            }
+        }
+
+        hit
     }
 
     fn does_intersect(&self, ray: Ray<T>) -> bool {
-        todo!()
+        if self.nodes.is_empty() {
+            return false;
+        }
+        let inv_dir = Vector3::new(
+            T::ONE / ray.direction.x,
+            T::ONE / ray.direction.y,
+            T::ONE / ray.direction.z,
+        );
+        let is_dir_negative = [
+            inv_dir.x < T::ZERO,
+            inv_dir.y < T::ZERO,
+            inv_dir.z < T::ZERO,
+        ];
+
+        // stack of nodes to visit in the BVH
+        let mut nodes_to_visit = [0; 64];
+        // index of next free element in the stack
+        let mut nodes_to_visit_idx = 0;
+        // index of the node currently being checked
+        let mut current_node_index = 0;
+
+        loop {
+            let node = &self.nodes[current_node_index];
+
+            if node.bounds.intersect_inv(ray, inv_dir, is_dir_negative) {
+                if node.primitive_count > 0 {
+                    // intersect ray with primitives in leaf node
+                    let start = node.child_offset as usize;
+                    let range = start..(start + node.primitive_count as usize);
+                    for prim in &self.primitives[range] {
+                        if prim.does_intersect(ray) {
+                            return true;
+                        }
+                    }
+                    if nodes_to_visit_idx == 0 {
+                        break;
+                    }
+                    nodes_to_visit_idx -= 1;
+                    current_node_index = nodes_to_visit[nodes_to_visit_idx];
+                } else {
+                    // put far node on the stack
+                    if is_dir_negative[node.axis as usize] {
+                        nodes_to_visit[nodes_to_visit_idx] = current_node_index + 1;
+                        nodes_to_visit_idx += 1;
+                        current_node_index = node.child_offset as _;
+                    } else {
+                        nodes_to_visit[nodes_to_visit_idx] = node.child_offset as _;
+                        nodes_to_visit_idx += 1;
+                        current_node_index = current_node_index + 1;
+                    }
+                }
+            } else {
+                if nodes_to_visit_idx == 0 {
+                    break;
+                }
+                nodes_to_visit_idx -= 1;
+                current_node_index = nodes_to_visit[nodes_to_visit_idx];
+            }
+        }
+
+        false
     }
 
     fn area_light(&self) {
