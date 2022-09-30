@@ -30,7 +30,7 @@ pub trait Number:
     + 'static
 {
     /// The Bit representation of the type
-    type Bits;
+    type Bits: Number;
 
     /// The Zero value for the type
     const ZERO: Self;
@@ -101,6 +101,9 @@ pub trait Number:
     /// Cast to integer
     fn i32(&self) -> i32;
 
+    /// Cast to 64 bit integer
+    fn i64(&self) -> i64;
+
     /// Clamp the value between two other values
     fn clamp(&self, min: Self, max: Self) -> Self;
 
@@ -148,8 +151,11 @@ pub trait Number:
     /// Round to the nearest integer
     fn round(&self) -> Self;
 
-    /// Add a value to the [`Self::Bits`] type
-    fn bit_add(lhs: Self::Bits, rhs: i32) -> Self::Bits;
+    /// Convert a value to its [`Self::Bits`] type
+    fn to_bits(&self) -> Self::Bits;
+
+    /// Convert a value from its bits to self
+    fn from_bits(bits: Self::Bits) -> Self;
 
     /// Convert a number in degrees to radians
     fn to_radians(&self) -> Self;
@@ -224,13 +230,23 @@ macro_rules! NumberFloat {
             }
 
             #[inline]
+            fn i64(&self) -> i64 {
+                *self as _
+            }
+
+            #[inline]
             fn clamp(&self, min: Self, max: Self) -> Self {
                 <$type>::clamp(*self, min, max)
             }
 
             #[inline]
-            fn bit_add(lhs: Self::Bits, rhs: i32) -> Self::Bits {
-                lhs + rhs as Self::Bits
+            fn to_bits(&self) -> Self::Bits {
+                <$type>::to_bits(*self) as _
+            }
+
+            #[inline]
+            fn from_bits(bits: Self::Bits) -> Self {
+                <$type>::from_bits(bits as _)
             }
 
             #[inline]
@@ -264,7 +280,7 @@ macro_rules! NumberFloat {
     }
 }
 
-NumberFloat!((f32, f32, u32), (f64, f64, u32));
+NumberFloat!((f32, f32, i32), (f64, f64, i64));
 
 macro_rules! NumberInteger {
     (($type:ty, $name:ident)) => {
@@ -340,13 +356,27 @@ macro_rules! NumberInteger {
             }
 
             #[inline]
+            fn i64(&self) -> i64 {
+                *self as _
+            }
+
+            #[inline]
             fn clamp(&self, min: Self, max: Self) -> Self {
                 <$type as Ord>::clamp(*self, min, max)
             }
 
             #[inline]
-            fn bit_add(lhs: Self::Bits, rhs: i32) -> Self::Bits {
-                lhs + rhs as Self::Bits
+            fn to_bits(&self) -> Self::Bits {
+                // SAFETY: by definition, all numbers are valid bit patterns for
+                // other numbers
+                unsafe { std::mem::transmute(*self) }
+            }
+
+            #[inline]
+            fn from_bits(bits: Self::Bits) -> Self {
+                // SAFETY: by definition, all numbers are valid bit patterns for
+                // other numbers
+                unsafe { std::mem::transmute(bits) }
             }
 
             #[inline]
@@ -391,4 +421,4 @@ macro_rules! NumberInteger {
     }
 }
 
-NumberInteger!((i32, i32));
+NumberInteger!((i32, i32), (i64, i64));

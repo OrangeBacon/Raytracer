@@ -4,24 +4,6 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use crate::Number;
 
-/// Convert a floating point value into its bit representation.
-/// # Safety
-/// Assumes that the bit representation of the input is a valid value
-/// of the output type.
-#[inline]
-pub unsafe fn float_to_bits<T: Number>(f: T) -> T::Bits {
-    std::mem::transmute_copy(&f)
-}
-
-/// Convert the bits of a float into a float.
-/// # Safety
-/// Assumes that the bit representation of the input is a valid value
-/// of the output type.
-#[inline]
-pub unsafe fn bits_to_float<T: Number>(f: T::Bits) -> T {
-    std::mem::transmute_copy(&f)
-}
-
 /// Calculate the next float after the input
 pub fn next_float_up<T: Number>(v: T) -> T {
     if !v.is_finite() && v > T::ZERO {
@@ -31,13 +13,13 @@ pub fn next_float_up<T: Number>(v: T) -> T {
         return T::ZERO;
     }
 
-    let mut bits = unsafe { float_to_bits(v) };
+    let mut bits = v.to_bits();
     if v >= T::ZERO {
-        bits = T::bit_add(bits, 1);
+        bits += <T as Number>::Bits::ONE;
     } else {
-        bits = T::bit_add(bits, -1);
+        bits -= <T as Number>::Bits::ONE;
     }
-    unsafe { bits_to_float(bits) }
+    T::from_bits(bits)
 }
 
 /// Calculate the next float before the input
@@ -49,13 +31,13 @@ pub fn next_float_down<T: Number>(v: T) -> T {
         return -T::ZERO;
     }
 
-    let mut bits = unsafe { float_to_bits(v) };
+    let mut bits = v.to_bits();
     if v > T::ZERO {
-        bits = T::bit_add(bits, -1);
+        bits += <T as Number>::Bits::ONE;
     } else {
-        bits = T::bit_add(bits, 1);
+        bits -= <T as Number>::Bits::ONE;
     }
-    unsafe { bits_to_float(bits) }
+    T::from_bits(bits)
 }
 
 /// Gamma floating point error bound
