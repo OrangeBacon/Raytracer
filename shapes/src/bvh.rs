@@ -432,6 +432,7 @@ impl<T: Number> BVH<T> {
 
         let mut finished_treelets = Vec::with_capacity(treelets_to_build.len());
 
+        // TODO: Parallelise this
         for treelet in treelets_to_build {
             let first_bit_index = 29 - 12;
             let node = self.emit_lvbh(
