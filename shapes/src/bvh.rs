@@ -436,7 +436,7 @@ impl<T: Number> BVH<T> {
         for treelet in treelets_to_build {
             let first_bit_index = 29 - 12;
             let node = self.emit_lvbh(
-                &primitive_info,
+                primitive_info,
                 &morton_primitives[treelet],
                 total_nodes,
                 ordered_primitives,
@@ -457,7 +457,7 @@ impl<T: Number> BVH<T> {
         ordered_primitives: &mut Vec<Arc<dyn Primitive<T>>>,
         bit_index: i32,
     ) -> Arc<BVHBuildNode<T>> {
-        assert!(morton_primitives.len() > 0);
+        assert!(!morton_primitives.is_empty());
 
         if bit_index == -1 || morton_primitives.len() < self.primitives_in_node {
             // create leaf node of lbvh treelet
@@ -543,7 +543,7 @@ impl<T: Number> BVH<T> {
         treelet_roots: &mut [Arc<BVHBuildNode<T>>],
         total_nodes: &mut usize,
     ) -> Arc<BVHBuildNode<T>> {
-        assert!(treelet_roots.len() != 0);
+        assert!(!treelet_roots.is_empty());
 
         if treelet_roots.len() == 1 {
             return Arc::clone(&treelet_roots[0]);
@@ -659,8 +659,11 @@ impl<T: Number> BVH<T> {
 
     /// Convert a bvh into a more efficient representation
     fn flatten_tree(&mut self, node: Arc<BVHBuildNode<T>>) -> usize {
-        let mut linear_node = LinearBVHNode::default();
-        linear_node.bounds = node.bounds;
+        let mut linear_node = LinearBVHNode {
+            bounds: node.bounds,
+            ..Default::default()
+        };
+
         let idx = self.nodes.len();
         if let Some(children) = &node.children {
             // axis will only ever be 0, 1 or 2, so this will never fail
@@ -780,7 +783,7 @@ impl<T: Number> Primitive<T> for BVH<T> {
                     } else {
                         nodes_to_visit[nodes_to_visit_idx] = node.child_offset as _;
                         nodes_to_visit_idx += 1;
-                        current_node_index = current_node_index + 1;
+                        current_node_index += 1;
                     }
                 }
             } else {
@@ -844,7 +847,7 @@ impl<T: Number> Primitive<T> for BVH<T> {
                     } else {
                         nodes_to_visit[nodes_to_visit_idx] = node.child_offset as _;
                         nodes_to_visit_idx += 1;
-                        current_node_index = current_node_index + 1;
+                        current_node_index += 1;
                     }
                 }
             } else {

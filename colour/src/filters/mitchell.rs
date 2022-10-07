@@ -4,6 +4,7 @@ use crate::filters::Filter;
 
 /// Mitchell-Netravali filter (similar to gaussian, but becomes slightly negative in places
 /// reducing the blurriness caused by the gaussian filter)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Mitchell<T: Number> {
     inv_radius: Vector2<T>,
     b: T,

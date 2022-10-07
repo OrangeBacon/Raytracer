@@ -94,7 +94,7 @@ impl<T: Number> KDTree<T> {
 
     /// Build the KD tree (part of the constructor)
     fn build(&mut self, mut max_depth: usize) {
-        if max_depth <= 0 {
+        if max_depth == 0 {
             max_depth = (8.0 + 1.3 * (log2usize(self.primitives.len()) as f64)).round() as usize;
         }
 

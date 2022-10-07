@@ -107,7 +107,7 @@ impl<T: Number> GlobalSamplerImpl<T> for Halton {
     }
 
     fn clone_seed(&mut self, _: u64) -> Self {
-        self.clone()
+        *self
     }
 }
 

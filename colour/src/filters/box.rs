@@ -4,6 +4,7 @@ use crate::filters::Filter;
 
 /// Simple filter applying weights equally to all samples
 /// Very easy to compute, but will introduce aliasing
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Box {}
 
 impl Box {

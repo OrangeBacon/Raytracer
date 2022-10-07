@@ -87,7 +87,7 @@ impl<T: Number> GlobalSamplerImpl<T> for Sobol {
 
         if dimension == 0 || dimension == 1 {
             s = s * T::cast(self.resolution as i32) + T::cast(self.bounds.min[dimension]);
-            s = s - T::cast(data.current_pixel[dimension]);
+            s -= T::cast(data.current_pixel[dimension]);
             s = s.clamp(T::ZERO, T::ONE_MINUS_EPSILON);
         }
 

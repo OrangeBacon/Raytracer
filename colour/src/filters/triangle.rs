@@ -2,6 +2,7 @@ use geometry::{Number, Vector2};
 
 use crate::filters::Filter;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Triangle<T: Number> {
     radius: Vector2<T>,
 }

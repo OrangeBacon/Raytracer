@@ -122,7 +122,7 @@ impl<T: Number> Interval<T> {
                 if f_newton == T::ZERO || f_prime_newton == T::ZERO {
                     break;
                 }
-                t_newton = t_newton - f_newton / f_prime_newton;
+                t_newton -= f_newton / f_prime_newton;
             }
             if t_newton >= self.low - T::cast(1e-3) && t_newton < self.high + T::cast(1e-3) {
                 zeros[*zero_count] = t_newton;

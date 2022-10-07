@@ -2,6 +2,7 @@ use geometry::{Number, Point2, Vector2};
 
 use crate::filters::Filter;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Gaussian<T: Number> {
     alpha: T,
     exp_x: T,
