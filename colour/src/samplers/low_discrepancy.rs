@@ -43,7 +43,7 @@ pub fn inverse_radical_inverse<const BASE: u64>(mut inverse: u64, n_digits: usiz
 /// Works for any base that can be provided at compile time.
 pub fn scrambled_radical_inverse_base<const BASE: u64, T: Number>(
     mut num: u64,
-    permutation: &[usize],
+    permutation: &[u64],
 ) -> T {
     let inv = T::ONE / T::cast(BASE as f64);
     let mut digits = 0;
@@ -65,10 +65,6 @@ pub fn scrambled_radical_inverse_base<const BASE: u64, T: Number>(
 
 /// Compute the scrambled base n radical inverse of a given number.
 /// Will panic if the base index is greater than 1023.
-pub fn scrambled_radical_inverse<T: Number>(
-    base_index: usize,
-    num: u64,
-    permutation: &[usize],
-) -> T {
+pub fn scrambled_radical_inverse<T: Number>(base_index: usize, num: u64, permutation: &[u64]) -> T {
     scrambled_radical_inverse!(scrambled_radical_inverse_base, base_index, num, permutation)
 }

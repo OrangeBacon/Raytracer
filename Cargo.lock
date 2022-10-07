@@ -207,6 +207,8 @@ dependencies = [
 name = "data"
 version = "0.1.0"
 dependencies = [
+ "geometry",
+ "once_cell",
  "proc",
 ]
 
@@ -527,9 +529,9 @@ checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
 
 [[package]]
 name = "once_cell"
-version = "1.13.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
+checksum = "e82dad04139b71a90c080c8463fe0dc7902db5192d939bd0950f074d014339e1"
 
 [[package]]
 name = "os_str_bytes"
@@ -586,9 +588,6 @@ checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 [[package]]
 name = "proc"
 version = "0.1.0"
-dependencies = [
- "geometry",
-]
 
 [[package]]
 name = "proc-macro-error"

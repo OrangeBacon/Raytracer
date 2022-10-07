@@ -11,3 +11,5 @@ doctest = false
 
 [dependencies]
 proc = { path = "../proc" }
+geometry = { path = "../geometry" }
+once_cell = "1.15.0"

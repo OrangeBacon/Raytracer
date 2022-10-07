@@ -1,4 +1,3 @@
-use geometry::Rng;
 use proc_macro::TokenStream;
 
 /// Calculate the radical inverse of a number.  Should be used through
@@ -90,37 +89,6 @@ pub fn scrambled_radical_inverse(item: TokenStream) -> TokenStream {
     let lines = lines.join("");
 
     lines.parse().unwrap()
-}
-
-/// Get a compile-time array of radical inverse permutations.
-#[proc_macro]
-pub fn radical_permutations(_item: TokenStream) -> TokenStream {
-    format!("{:?}", radical_inverse_permutations(&mut Rng::default()))
-        .parse()
-        .unwrap()
-}
-
-/// Compute the radical inverse permutation tables
-fn radical_inverse_permutations(rng: &mut Rng) -> Vec<usize> {
-    let primes = n_primes(1000);
-
-    let mut size = 0;
-    for prime in &primes {
-        size += prime;
-    }
-
-    let mut index = 0;
-    let mut permutations = vec![0; size];
-    for i in 0..primes.len() {
-        for j in 0..primes[i] {
-            permutations[index + j] = j;
-        }
-        rng.shuffle_dims(&mut permutations[index..index + primes[i]], 1);
-
-        index += primes[i];
-    }
-
-    permutations
 }
 
 /// Generate a list of the sums of all prime numbers below each prime number.
