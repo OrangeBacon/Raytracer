@@ -2,6 +2,7 @@
 //! directly in the binary are not repeatedly re-compiled
 
 pub mod sobol;
+pub mod cie;
 
 use geometry::Rng;
 use once_cell::sync::Lazy;

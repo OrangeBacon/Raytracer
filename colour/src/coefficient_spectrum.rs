@@ -7,7 +7,7 @@ use geometry::Number;
 /// Base implementation of a colour spectrum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CoefficientSpectrum<const N: usize, T: Number> {
-    samples: [T; N],
+    pub samples: [T; N],
 }
 
 impl<const N: usize, T: Number> CoefficientSpectrum<N, T> {
@@ -35,7 +35,8 @@ impl<const N: usize, T: Number> CoefficientSpectrum<N, T> {
     /// Raise the current spectrum to the power of a given value
     pub fn pow(mut self, num: T) -> Self {
         for lhs in &mut self.samples {
-            *lhs = lhs.pow(num);
+            // only bothering to qualify this due to rust-analyser being weird
+            *lhs = Number::pow(&lhs, num);
         }
         assert!(!self.has_nan());
         self
@@ -58,14 +59,23 @@ impl<const N: usize, T: Number> CoefficientSpectrum<N, T> {
     /// Clamp the values in the spectrum between two values
     pub fn clamp(mut self, low: T, high: T) -> Self {
         for lhs in &mut self.samples {
-            *lhs = lhs.clamp(low, high);
+            // only bothering to qualify this due to rust-analyser being weird
+            *lhs = Number::clamp(&lhs, low, high);
         }
         self
     }
 
     /// Are any of the values stored NaN?
     pub fn has_nan(&self) -> bool {
-        self.samples.iter().any(Number::is_nan)
+        self.samples.iter().any(|a| a.is_nan())
+    }
+}
+
+impl<const N: usize, T: Number> Default for CoefficientSpectrum<N, T> {
+    fn default() -> Self {
+        Self {
+            samples: [T::ZERO; N],
+        }
     }
 }
 

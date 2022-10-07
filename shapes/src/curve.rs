@@ -292,7 +292,7 @@ impl<T: Number> Shape<T> for Curve<T> {
         }
         let eps = self.common.width[0].max(self.common.width[1]) * T::cast(0.05);
         let fr0 = (T::SQRT_2 * T::cast(12) * l0 / (T::cast(8) * eps)).log(T::cast(4));
-        let max_depth = fr0.round().i32().clamp(0, 10);
+        let max_depth = fr0.round().clamp(T::ZERO, T::cast(10)).i32();
 
         self.recurse_intersect(
             ray,

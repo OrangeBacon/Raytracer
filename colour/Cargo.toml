@@ -9,3 +9,4 @@ edition = "2021"
 geometry = { path = "../geometry" }
 proc = { path = "../proc" }
 data = { path = "../data" }
+once_cell = "1.15.0"
