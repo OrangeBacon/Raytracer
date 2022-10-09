@@ -3,6 +3,7 @@
 
 pub mod sobol;
 pub mod cie;
+pub mod rgb_spectra;
 
 use geometry::Rng;
 use once_cell::sync::Lazy;

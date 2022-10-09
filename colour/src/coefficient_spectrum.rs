@@ -69,6 +69,38 @@ impl<const N: usize, T: Number> CoefficientSpectrum<N, T> {
     pub fn has_nan(&self) -> bool {
         self.samples.iter().any(|a| a.is_nan())
     }
+
+    /// Cast all the numbers in the spectrum to another number type
+    pub fn cast<U: Number>(&self) -> CoefficientSpectrum<N, U> {
+        CoefficientSpectrum {
+            samples: self.samples.map(|x|U::cast(x))
+        }
+    }
+}
+
+/// How is the light from this spectrum generated
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SpectrumType {
+    Reflectance,
+    Illuminant,
+}
+
+/// Convert an XYZ colour to an RGB colour
+pub fn xyz_to_rgb<T: Number>([x, y, z]: [T; 3]) -> [T; 3] {
+    [
+        T::cast(3.240479_f64) * x - T::cast(1.537150_f64) * y - T::cast(0.498535_f64) * z,
+        T::cast(-0.969256_f64) * x + T::cast(1.875991_f64) * y + T::cast(0.041556_f64) * z,
+        T::cast(0.055648_f64) * x - T::cast(0.204043_f64) * y + T::cast(1.057311_f64) * z,
+    ]
+}
+
+/// Convert an RGB colour to an XYZ colour
+pub fn rgb_to_xyz<T: Number>([r, g, b]: [T; 3]) -> [T; 3] {
+    [
+        T::cast(0.412453_f64) * r + T::cast(0.357580_f64) * g + T::cast(0.180423_f64) * b,
+        T::cast(0.212671_f64) * r + T::cast(0.715160_f64) * g + T::cast(0.072169_f64) * b,
+        T::cast(0.019334_f64) * r + T::cast(0.119193_f64) * g + T::cast(0.950227_f64) * b,
+    ]
 }
 
 impl<const N: usize, T: Number> Default for CoefficientSpectrum<N, T> {
