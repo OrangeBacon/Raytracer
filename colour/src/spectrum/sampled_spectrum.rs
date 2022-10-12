@@ -2,10 +2,7 @@ use data::{cie::*, rgb_spectra::*};
 use geometry::{lerp, Number};
 use once_cell::sync::Lazy;
 
-use crate::{
-    coefficient_spectrum::{xyz_to_rgb, SpectrumType},
-    CoefficientSpectrum,
-};
+use super::{coefficient_spectrum::xyz_to_rgb, CoefficientSpectrum, RGBSpectrum, SpectrumType};
 
 /// uniformly sampled spectrum
 pub type SampledSpectrum<T> = CoefficientSpectrum<60, T>;
@@ -155,7 +152,7 @@ impl<T: Number> SampledSpectrum<T> {
         }
 
         let scale = T::cast((Self::END - Self::START) as i64)
-            / (T::cast(106.856895) * T::cast(Self::SAMPLE_COUNT as i64));
+            / (T::cast(CIE_Y_INTEGRAL) * T::cast(Self::SAMPLE_COUNT as i64));
 
         result.map(|a| a * scale)
     }
@@ -173,6 +170,12 @@ impl<T: Number> SampledSpectrum<T> {
     /// Convert this spectrum into an RGB colour
     pub fn to_rgb(&self) -> [T; 3] {
         xyz_to_rgb(self.to_xyz())
+    }
+
+    /// Convert this spectrum into an RGB spectrum
+    pub fn to_rgb_spectrum(&self) -> RGBSpectrum<T> {
+        let rgb = self.to_rgb();
+        RGBSpectrum::from_rgb(rgb, SpectrumType::Reflectance)
     }
 }
 

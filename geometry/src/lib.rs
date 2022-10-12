@@ -168,3 +168,22 @@ pub fn round_up_pow_2(mut x: usize) -> usize {
 pub fn is_pow_2(x: usize) -> bool {
     x != 0 && (x & (x - 1)) == 0
 }
+
+/// Find the number that causes the function f to change its return value
+/// assuming that number is between 0 and count;
+pub fn find_interval(count: usize, f: impl Fn(usize) -> bool) -> usize {
+    let mut first = 0;
+    let mut len = count;
+    while len > 0 {
+        let half = len >> 1;
+        let middle = first + half;
+        if f(middle) {
+            first = middle + 1;
+            len -= half + 1;
+        } else {
+            len = half;
+        }
+    }
+
+    (first - 1).clamp(0, count - 2)
+}

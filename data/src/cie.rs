@@ -1,3 +1,5 @@
+pub const CIE_Y_INTEGRAL: f64 = 106.856895;
+
 pub static CIE_X: &[f64] = &[
     // CIE X function values
     0.0001299000,
