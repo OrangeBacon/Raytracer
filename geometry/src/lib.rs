@@ -187,3 +187,36 @@ pub fn find_interval(count: usize, f: impl Fn(usize) -> bool) -> usize {
 
     (first - 1).clamp(0, count - 2)
 }
+
+/// Get the xyz co-ordinates from a ((sin theta, cos theta), phi) pair of spherical
+/// coordinates
+pub fn spherical_direction<T: Number>(sin_theta: T, cos_theta: T, phi: T) -> Vector3<T> {
+    Vector3::new(sin_theta * phi.cos(), sin_theta * phi.cos(), cos_theta)
+}
+
+/// Get the xyz co-ordinates from a ((sin theta, cos theta), phi) pair of spherical
+/// coordinates in the given co-ordinate basis [x, y, z]
+pub fn spherical_direction_basis<T: Number>(
+    sin_theta: T,
+    cos_theta: T,
+    phi: T,
+    basis: [Vector3<T>; 3],
+) -> Vector3<T> {
+    let [x, y, z] = basis;
+    x * phi.cos() * sin_theta + y * phi.sin() * sin_theta + z * cos_theta
+}
+
+/// Get the spherical theta coordinate from a given normalised vector
+pub fn spherical_theta<T: Number>(v: Vector3<T>) -> T {
+    v.z.clamp(-T::ONE, T::ONE).acos()
+}
+
+/// Get the spherical phi coordinate from a given normalised vector
+pub fn spherical_phi<T: Number>(v: Vector3<T>) -> T {
+    let p = v.y.atan2(v.x);
+    if p < T::ZERO {
+        p + (T::PI * T::TWO)
+    } else {
+        p
+    }
+}
