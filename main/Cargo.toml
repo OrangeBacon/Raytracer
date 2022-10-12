@@ -9,12 +9,4 @@ edition = "2018"
 [dependencies]
 anyhow = "1"
 clap = { version = "3.2.14", features = ["derive"] }
-image = "0.24.3"
-rayon = "1.5.3"
-indicatif = { version = "0.16.2", features = ["rayon"] }
-glam = { version = "0.21.2", features = ["serde", "approx"] }
-rand = "0.8.5"
-toml = "0.5.9"
-serde = { version = "1.0.140", features = ["derive"] }
-approx = "0.5.1"
 parsers = { path = "../parsers" }
