@@ -52,6 +52,7 @@ pub use normal3::Normal3i;
 
 pub use ray::Ray;
 pub use ray::RayDifferential;
+pub use ray::RayDifferentials;
 
 pub use bounds3::Bounds3;
 pub use bounds3::Bounds3f;

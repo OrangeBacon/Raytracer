@@ -1,9 +1,13 @@
+mod camera;
+
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
 
 use parsers::parse_pbrt;
+
+pub use camera::*;
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]

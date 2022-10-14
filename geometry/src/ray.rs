@@ -70,6 +70,12 @@ pub struct RayDifferential<T: Number> {
     pub differentials: Option<RayDifferentials<T>>,
 }
 
+impl<T: Number> Default for RayDifferential<T> {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
 impl<T: Number> RayDifferential<T> {
     /// Ray::Zero, differentials = None
     pub const ZERO: Self = Self {
