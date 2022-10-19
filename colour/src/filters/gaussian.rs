@@ -7,6 +7,7 @@ pub struct Gaussian<T: Number> {
     alpha: T,
     exp_x: T,
     exp_y: T,
+    radius: Vector2<T>,
 }
 
 impl<T: Number> Gaussian<T> {
@@ -16,6 +17,7 @@ impl<T: Number> Gaussian<T> {
             alpha,
             exp_x: (-alpha * radius.x * radius.x).exp(),
             exp_y: (-alpha * radius.y * radius.y).exp(),
+            radius,
         }
     }
 
@@ -28,5 +30,9 @@ impl<T: Number> Gaussian<T> {
 impl<T: Number> Filter<T> for Gaussian<T> {
     fn eval(&self, point: Point2<T>) -> T {
         self.gaussian(point.x, self.exp_x) * self.gaussian(point.y, self.exp_y)
+    }
+
+    fn radius(&self) -> Vector2<T> {
+        self.radius
     }
 }

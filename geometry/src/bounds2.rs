@@ -44,6 +44,11 @@ impl<T: Number> Bounds2<T> {
         }
     }
 
+    /// Cast the bounds to another numeric type
+    pub fn cast<U: Number>(&self) -> Bounds2<U> {
+        Bounds2::new(self.min.cast(), self.max.cast())
+    }
+
     /// Get the coordinates of one corner of the bounds
     pub fn corner(&self, corner: usize) -> Point2<T> {
         Point2::new(self[corner & 1].x, self[(corner & 2) >> 1].y)

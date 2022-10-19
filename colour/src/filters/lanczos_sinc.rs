@@ -38,4 +38,8 @@ impl<T: Number> Filter<T> for LanczosSinc<T> {
     fn eval(&self, point: Point2<T>) -> T {
         self.windowed_sinc(point.x, self.radius.x) * self.windowed_sinc(point.y, self.radius.y)
     }
+
+    fn radius(&self) -> Vector2<T> {
+        self.radius
+    }
 }

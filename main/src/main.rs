@@ -1,4 +1,5 @@
 mod camera;
+mod film;
 
 use std::path::PathBuf;
 

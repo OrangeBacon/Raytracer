@@ -6,6 +6,7 @@ use crate::filters::Filter;
 /// reducing the blurriness caused by the gaussian filter)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Mitchell<T: Number> {
+    radius: Vector2<T>,
     inv_radius: Vector2<T>,
     b: T,
     c: T,
@@ -17,6 +18,7 @@ impl<T: Number> Mitchell<T> {
     /// can be used.
     pub fn new(radius: Vector2<T>, b: T, c: T) -> Mitchell<T> {
         Mitchell {
+            radius,
             inv_radius: Vector2::new(T::ONE / radius.x, T::ONE / radius.y),
             b,
             c,
@@ -48,5 +50,9 @@ impl<T: Number> Mitchell<T> {
 impl<T: Number> Filter<T> for Mitchell<T> {
     fn eval(&self, point: Point2<T>) -> T {
         self.mitchell(point.x * self.inv_radius.x) * self.mitchell(point.y * self.inv_radius.y)
+    }
+
+    fn radius(&self) -> Vector2<T> {
+        self.radius
     }
 }

@@ -11,3 +11,4 @@ anyhow = "1"
 clap = { version = "3.2.14", features = ["derive"] }
 parsers = { path = "../parsers" }
 geometry = { path = "../geometry" }
+colour = { path = "../colour" }

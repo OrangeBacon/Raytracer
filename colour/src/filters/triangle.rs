@@ -18,4 +18,8 @@ impl<T: Number> Filter<T> for Triangle<T> {
     fn eval(&self, point: geometry::Point2<T>) -> T {
         T::ZERO.max(self.radius.x - point.x.abs()) * T::ZERO.max(self.radius.y - point.y.abs())
     }
+
+    fn radius(&self) -> Vector2<T> {
+        self.radius
+    }
 }
