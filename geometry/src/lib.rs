@@ -15,6 +15,7 @@ mod transform;
 mod vector2;
 mod vector3;
 
+mod parallel;
 #[cfg(test)]
 mod tests;
 
@@ -27,6 +28,8 @@ pub type Float = f32;
 pub use number::ConstZero;
 pub use number::Integer;
 pub use number::Number;
+
+pub use parallel::AtomicNumber;
 
 pub use float::*;
 

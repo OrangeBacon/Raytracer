@@ -1,9 +1,11 @@
 //! simple crate with no logic used so that the large amounts of data stored
 //! directly in the binary are not repeatedly re-compiled
 
-pub mod sobol;
+#![allow(clippy::excessive_precision)]
+
 pub mod cie;
 pub mod rgb_spectra;
+pub mod sobol;
 
 use geometry::Rng;
 use once_cell::sync::Lazy;

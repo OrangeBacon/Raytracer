@@ -2,7 +2,10 @@ use std::{
     cmp::Ordering,
     fmt::Debug,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    sync::atomic::{AtomicI32, AtomicI64},
 };
+
+use crate::parallel::{AtomicF32, AtomicF64, AtomicNumber};
 
 /// any type that has a const default value
 pub trait ConstZero {
@@ -31,6 +34,9 @@ pub trait Number:
 {
     /// The Bit representation of the type
     type Bits: Number;
+
+    /// The atomic version of this type
+    type Atomic: AtomicNumber<Self>;
 
     /// The Zero value for the type
     const ZERO: Self;
@@ -178,9 +184,10 @@ impl<T: Number> ConstZero for T {
 }
 
 macro_rules! NumberFloat {
-    (($type:ty, $name:ident, $bits:ty)) => {
+    (($type:ty, $name:ident, $bits:ty, $atomic:ty)) => {
         impl Number for $type {
             type Bits = $bits;
+            type Atomic = $atomic;
             const ZERO: Self = 0.0;
             const ONE: Self = 1.0;
             const TWO: Self = 2.0;
@@ -267,8 +274,8 @@ macro_rules! NumberFloat {
             NumberFloat! { @fns($type) sin, cos, acos, ceil, floor, sqrt, abs, to_radians, log2, log10, ln, round, exp }
         }
     };
-    (($type:ty, $name:ident, $bits:ty), $(($other_type:ty, $other_name:ident, $other_bits:ty)),+ $(,)?) => {
-        NumberFloat!(($type, $name, $bits)); $(NumberFloat!(($other_type, $other_name, $other_bits));)+
+    (($type:ty, $name:ident, $bits:ty, $atomic:ty), $(($other_type:ty, $other_name:ident, $other_bits:ty, $other_atomic:ty)),+ $(,)?) => {
+        NumberFloat!(($type, $name, $bits, $atomic)); $(NumberFloat!(($other_type, $other_name, $other_bits, $other_atomic));)+
     };
     (@fns($type:ty) $($name:ident),+ $(,)?) => {
         $(
@@ -280,13 +287,14 @@ macro_rules! NumberFloat {
     }
 }
 
-NumberFloat!((f32, f32, i32), (f64, f64, i64));
+NumberFloat!((f32, f32, i32, AtomicF32), (f64, f64, i64, AtomicF64));
 
 macro_rules! NumberInteger {
-    (($type:ty, $name:ident)) => {
+    (($type:ty, $name:ident, $atomic:ty)) => {
         impl Integer for $type {}
         impl Number for $type {
             type Bits = Self;
+            type Atomic = $atomic;
             const ZERO: Self = 0;
             const ONE: Self = 1;
             const TWO: Self = 2;
@@ -406,8 +414,8 @@ macro_rules! NumberInteger {
             NumberInteger! { @fns($type) sqrt, sin, cos, acos, to_radians, log2, log10, ln, exp }
         }
     };
-    (($type:ty, $name:ident), $(($other_type:ty, $other_name:ident)),+ $(,)?) => {
-        NumberInteger!(($type, $name)); $(NumberInteger!(($other_type, $other_name));)+
+    (($type:ty, $name:ident, $atomic:ty), $(($other_type:ty, $other_name:ident, $other_atomic:ty)),+ $(,)?) => {
+        NumberInteger!(($type, $name, $atomic)); $(NumberInteger!(($other_type, $other_name, $other_atomic));)+
     };
     (@fns($type:ty) $($name:ident),+ $(,)?) => {
         $(
@@ -421,4 +429,4 @@ macro_rules! NumberInteger {
     }
 }
 
-NumberInteger!((i32, i32), (i64, i64));
+NumberInteger!((i32, i32, AtomicI32), (i64, i64, AtomicI64));

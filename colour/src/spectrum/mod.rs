@@ -2,8 +2,7 @@ mod coefficient_spectrum;
 mod rgb_spectrum;
 mod sampled_spectrum;
 
-pub use coefficient_spectrum::CoefficientSpectrum;
-pub use coefficient_spectrum::SpectrumType;
+pub use coefficient_spectrum::*;
 
 pub use rgb_spectrum::RGBSpectrum;
 
