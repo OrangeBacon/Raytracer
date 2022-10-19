@@ -375,16 +375,12 @@ macro_rules! NumberInteger {
 
             #[inline]
             fn to_bits(&self) -> Self::Bits {
-                // SAFETY: by definition, all numbers are valid bit patterns for
-                // other numbers
-                unsafe { std::mem::transmute(*self) }
+                *self
             }
 
             #[inline]
             fn from_bits(bits: Self::Bits) -> Self {
-                // SAFETY: by definition, all numbers are valid bit patterns for
-                // other numbers
-                unsafe { std::mem::transmute(bits) }
+                bits
             }
 
             #[inline]

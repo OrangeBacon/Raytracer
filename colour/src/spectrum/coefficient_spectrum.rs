@@ -36,7 +36,7 @@ impl<const N: usize, T: Number> CoefficientSpectrum<N, T> {
     pub fn pow(mut self, num: T) -> Self {
         for lhs in &mut self.samples {
             // only bothering to qualify this due to rust-analyser being weird
-            *lhs = Number::pow(&lhs, num);
+            *lhs = Number::pow(lhs, num);
         }
         assert!(!self.has_nan());
         self
@@ -60,7 +60,7 @@ impl<const N: usize, T: Number> CoefficientSpectrum<N, T> {
     pub fn clamp(mut self, low: T, high: T) -> Self {
         for lhs in &mut self.samples {
             // only bothering to qualify this due to rust-analyser being weird
-            *lhs = Number::clamp(&lhs, low, high);
+            *lhs = Number::clamp(lhs, low, high);
         }
         self
     }

@@ -12,7 +12,7 @@ pub type RGBSpectrum<T> = CoefficientSpectrum<3, T>;
 impl<T: Number> RGBSpectrum<T> {
     pub fn from_sampled(lambda: &[T], value: &[T]) -> Self {
         let mut data: Vec<_> = lambda.iter().copied().zip(value.iter().copied()).collect();
-        data.sort_unstable_by(|a, b| a.partial_cmp(&b).unwrap());
+        data.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
         let (lambda, value): (Vec<_>, Vec<_>) = data.into_iter().unzip();
 
         let mut xyz = [T::ZERO; 3];

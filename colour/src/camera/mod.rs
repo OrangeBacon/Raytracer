@@ -54,5 +54,5 @@ pub trait Camera<T: Number> {
 
     fn camera_data(&self) -> &CameraData<T>;
 
-    fn camera_data_mut(&self) -> &mut CameraData<T>;
+    fn camera_data_mut(&mut self) -> &mut CameraData<T>;
 }
