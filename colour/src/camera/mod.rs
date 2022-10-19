@@ -6,21 +6,24 @@ pub use projective::Projective;
 
 use geometry::{AnimatedTransform, Number, Point2, Ray, RayDifferential, RayDifferentials};
 
+use crate::film::Film;
+
 /// Data that every camera should store
-pub struct CameraData<T: Number> {
+pub struct CameraData<'a, T: Number> {
     pub camera_to_world: AnimatedTransform<T>,
     pub shutter_open: T,
     pub shutter_close: T,
+    pub film: &'a Film<T>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct CameraSample<T: Number> {
-    film: Point2<T>,
+    pub film: Point2<T>,
     pub lens: Point2<T>,
     pub time: T,
 }
 
-pub trait Camera<T: Number> {
+pub trait Camera<'a, T: Number> {
     /// Generate a ray for a given sample.  Must return normalised ray.
     fn generate_ray(&self, sample: CameraSample<T>) -> (T, Ray<T>);
 
@@ -52,7 +55,7 @@ pub trait Camera<T: Number> {
         (wt, diff)
     }
 
-    fn camera_data(&self) -> &CameraData<T>;
+    fn camera_data(&self) -> &'a CameraData<T>;
 
-    fn camera_data_mut(&mut self) -> &mut CameraData<T>;
+    fn camera_data_mut(&mut self) -> &'a mut CameraData<T>;
 }

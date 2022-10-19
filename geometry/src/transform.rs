@@ -265,6 +265,12 @@ impl<T: Number> Transform<T> {
         det < T::ZERO
     }
 
+    /// Compute an orthographic projection matrix
+    pub fn orthographic(z_near: T, z_far: T) -> Self {
+        Self::scale(Vector3::new(T::ONE, T::ONE, T::ONE / (z_far - z_near)))
+            * Self::translation(Vector3::new(T::ZERO, T::ZERO, -z_near))
+    }
+
     /// Apply this transformation to an object.  Equivalent to other * self
     pub fn apply<U>(&self, other: U) -> U
     where
