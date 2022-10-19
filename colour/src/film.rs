@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use colour::{
+use crate::{
     filters::Filter,
     spectrum::{xyz_to_rgb, RGBSpectrum},
 };
@@ -127,7 +127,7 @@ impl<T: Number> Film<T> {
     }
 
     /// Set all pixels in the image to the value stored in spectrum
-    fn set_image(&mut self, spectrum: RGBSpectrum<T>) {
+    pub fn set_image(&mut self, spectrum: RGBSpectrum<T>) {
         let mut pixels = self.pixels.lock().unwrap();
 
         for pixel in pixels.iter_mut() {
@@ -254,7 +254,11 @@ impl<T: Number> Film<T> {
             image.extend_from_slice(&rgb);
         }
 
-        todo!("Write image data to file: {:?}", image);
+        todo!(
+            "Write image data to file: {:?}, {:?}",
+            image,
+            self.file_name
+        );
     }
 }
 
