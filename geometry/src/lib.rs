@@ -6,16 +6,17 @@ mod interval;
 mod matrix4x4;
 mod normal3;
 mod number;
+mod parallel;
 mod point2;
 mod point3;
 mod quaternion;
 mod ray;
 mod rng;
+mod sampling;
 mod transform;
 mod vector2;
 mod vector3;
 
-mod parallel;
 #[cfg(test)]
 mod tests;
 
@@ -77,6 +78,8 @@ pub use animated_transform::AnimatedTransform;
 pub use interval::Interval;
 
 pub use rng::Rng;
+
+pub use sampling::*;
 
 /// Linearly interpolate between two floats
 pub fn lerp<T: Number>(t: T, a: T, b: T) -> T {

@@ -1,4 +1,7 @@
-use geometry::{lerp, AnimatedTransform, Bounds2, Number, Point3, Ray, Transform, Vector3, RayDifferential, RayDifferentials};
+use geometry::{
+    concentric_sample_disk, lerp, AnimatedTransform, Bounds2, ConstZero, Number, Point3, Ray,
+    RayDifferential, RayDifferentials, Transform, Vector3,
+};
 
 use crate::film::Film;
 
@@ -51,6 +54,19 @@ impl<'a, T: Number> Camera<'a, T> for Orthographic<'a, T> {
         let film = Point3::new(sample.film.x, sample.film.y, T::ZERO);
         let camera = self.projective.raster_to_camera.apply(film);
         let mut ray = Ray::new(camera, Vector3::Z);
+
+        // Modify ray for depth of field effect
+        if self.projective.lens_radius > T::ZERO {
+            let lens = concentric_sample_disk(sample.lens) * self.projective.lens_radius;
+
+            // compute point on plane of focus
+            let ft = self.projective.focal_distance / ray.direction.z;
+            let focus = ray.at(ft);
+
+            ray.origin = Point3::new(lens.x, lens.y, T::ZERO);
+            ray.direction = (focus - ray.origin).normalise()
+        }
+
         ray.time = lerp(
             sample.time,
             self.projective.camera_data.shutter_open,
@@ -68,12 +84,43 @@ impl<'a, T: Number> Camera<'a, T> for Orthographic<'a, T> {
         let camera = self.projective.raster_to_camera.apply(film);
         let mut ray = RayDifferential::new(camera, Vector3::Z);
 
-        ray.differentials = Some(RayDifferentials {
-            rx_origin: ray.origin + self.dx_camera,
-            ry_origin: ray.origin + self.dy_camera,
-            rx_direction: ray.direction,
-            ry_direction: ray.direction,
-        });
+        // Modify ray for depth of field effect
+        if self.projective.lens_radius > T::ZERO {
+            let lens = concentric_sample_disk(sample.lens) * self.projective.lens_radius;
+
+            // compute point on plane of focus
+            let ft = self.projective.focal_distance / ray.direction.z;
+            let focus = ray.at(ft);
+
+            ray.main.origin = Point3::new(lens.x, lens.y, T::ZERO);
+            ray.main.direction = (focus - ray.origin).normalise();
+
+            let dx = (camera + self.dx_camera).to_vec().normalise();
+            let ft = self.projective.focal_distance / dx.z;
+            let focus = Point3::ZERO + (dx * ft);
+            let rx_origin = Point3::new(lens.x, lens.y, T::ZERO);
+            let rx_direction = (focus - rx_origin).normalise();
+
+            let dy = (camera + self.dy_camera).to_vec().normalise();
+            let ft = self.projective.focal_distance / dy.z;
+            let focus = Point3::ZERO + (dy * ft);
+            let ry_origin = Point3::new(lens.x, lens.y, T::ZERO);
+            let ry_direction = (focus - ry_origin).normalise();
+
+            ray.differentials = Some(RayDifferentials {
+                rx_origin,
+                ry_origin,
+                rx_direction,
+                ry_direction,
+            });
+        } else {
+            ray.differentials = Some(RayDifferentials {
+                rx_origin: ray.origin + self.dx_camera,
+                ry_origin: ray.origin + self.dy_camera,
+                rx_direction: ray.direction,
+                ry_direction: ray.direction,
+            });
+        }
 
         ray.main.time = lerp(
             sample.time,
