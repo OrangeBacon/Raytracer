@@ -25,17 +25,19 @@ impl<'a, T: Number> Projective<'a, T> {
         focal_distance: T,
         film: &'a Film<T>,
     ) -> Self {
-        let screen_to_raster = Transform::scale(Vector3::new(T::ONE, T::ONE, T::ONE))
-            * Transform::scale(Vector3::new(
-                T::ONE / (screen_window.max.x - screen_window.min.x),
-                T::ONE / (screen_window.min.y - screen_window.max.y),
-                T::ONE,
-            ))
-            * Transform::translation(Vector3::new(
-                -screen_window.min.x,
-                -screen_window.max.y,
-                T::ZERO,
-            ));
+        let film_resolution = film.full_resolution().cast();
+        let screen_to_raster =
+            Transform::scale(Vector3::new(film_resolution.x, film_resolution.y, T::ONE))
+                * Transform::scale(Vector3::new(
+                    T::ONE / (screen_window.max.x - screen_window.min.x),
+                    T::ONE / (screen_window.min.y - screen_window.max.y),
+                    T::ONE,
+                ))
+                * Transform::translation(Vector3::new(
+                    -screen_window.min.x,
+                    -screen_window.max.y,
+                    T::ZERO,
+                ));
         Self {
             camera_data: CameraData {
                 camera_to_world,

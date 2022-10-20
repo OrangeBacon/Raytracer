@@ -38,16 +38,6 @@ impl<T: Number> Ray<T> {
         }
     }
 
-    /// Create a new ray with a given origin and direction
-    pub fn new_with(origin: Point3<T>, direction: Vector3<T>) -> Self {
-        Self {
-            origin,
-            direction,
-            t_max: T::INFINITY,
-            time: T::ZERO,
-        }
-    }
-
     /// Calculate a point at t distance along the ray
     pub fn at(&self, t: T) -> Point3<T> {
         self.origin + self.direction * t

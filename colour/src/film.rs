@@ -126,6 +126,10 @@ impl<T: Number> Film<T> {
         }
     }
 
+    pub fn full_resolution(&self) -> Point2<i32> {
+        self.full_resolution
+    }
+
     /// Set all pixels in the image to the value stored in spectrum
     pub fn set_image(&mut self, spectrum: RGBSpectrum<T>) {
         let mut pixels = self.pixels.lock().unwrap();

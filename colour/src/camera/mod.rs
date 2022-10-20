@@ -1,7 +1,9 @@
+mod environment;
 mod orthographic;
 mod perspective;
 mod projective;
 
+pub use environment::Environment;
 pub use orthographic::Orthographic;
 pub use perspective::Perspective;
 pub use projective::Projective;
