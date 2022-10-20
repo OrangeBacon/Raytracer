@@ -139,6 +139,9 @@ pub trait Number:
     /// Cos of the number (radians)
     fn cos(&self) -> Self;
 
+    /// Tan of the number (radians)
+    fn tan(&self) -> Self;
+
     /// Inverse cos of the number (radians)
     fn acos(&self) -> Self;
 
@@ -271,7 +274,11 @@ macro_rules! NumberFloat {
                 <$type>::log(*self, base)
             }
 
-            NumberFloat! { @fns($type) sin, cos, acos, ceil, floor, sqrt, abs, to_radians, log2, log10, ln, round, exp }
+            NumberFloat! {@fns($type)
+                sin, cos, tan, acos,
+                ceil, floor, sqrt, abs, to_radians,
+                log2, log10, ln, round, exp
+            }
         }
     };
     (($type:ty, $name:ident, $bits:ty, $atomic:ty), $(($other_type:ty, $other_name:ident, $other_bits:ty, $other_atomic:ty)),+ $(,)?) => {
@@ -407,7 +414,10 @@ macro_rules! NumberInteger {
                 (*self as f64).log(base as f64) as Self
             }
 
-            NumberInteger! { @fns($type) sqrt, sin, cos, acos, to_radians, log2, log10, ln, exp }
+            NumberInteger! { @fns($type)
+                sqrt, sin, cos, tan, acos,
+                to_radians, log2, log10, ln, exp
+            }
         }
     };
     (($type:ty, $name:ident, $atomic:ty), $(($other_type:ty, $other_name:ident, $other_atomic:ty)),+ $(,)?) => {

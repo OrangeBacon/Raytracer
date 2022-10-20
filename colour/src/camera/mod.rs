@@ -1,7 +1,9 @@
 mod orthographic;
+mod perspective;
 mod projective;
 
 pub use orthographic::Orthographic;
+pub use perspective::Perspective;
 pub use projective::Projective;
 
 use geometry::{AnimatedTransform, Number, Point2, Ray, RayDifferential, RayDifferentials};

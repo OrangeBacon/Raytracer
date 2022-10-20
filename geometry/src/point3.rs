@@ -33,6 +33,25 @@ impl<T: Number> ConstZero for Point3<T> {
 }
 
 impl<T: Number> Point3<T> {
+    pub const X: Self = Self {
+        x: T::ONE,
+        y: T::ZERO,
+        z: T::ZERO,
+        _remove_constructors: PhantomData,
+    };
+    pub const Y: Self = Self {
+        x: T::ZERO,
+        y: T::ONE,
+        z: T::ZERO,
+        _remove_constructors: PhantomData,
+    };
+    pub const Z: Self = Self {
+        x: T::ZERO,
+        y: T::ZERO,
+        z: T::ONE,
+        _remove_constructors: PhantomData,
+    };
+
     /// Smallest possible point
     pub const MIN: Self = Self {
         x: T::MIN,

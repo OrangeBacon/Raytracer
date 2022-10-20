@@ -271,6 +271,24 @@ impl<T: Number> Transform<T> {
             * Self::translation(Vector3::new(T::ZERO, T::ZERO, -z_near))
     }
 
+    /// Compute a perspective projection matrix
+    pub fn perspective(fov: T, near: T, far: T) -> Self {
+        let perspective = Matrix4x4::new(&[
+            [T::ONE, T::ZERO, T::ZERO, T::ZERO],
+            [T::ZERO, T::ONE, T::ZERO, T::ZERO],
+            [
+                T::ZERO,
+                T::ZERO,
+                far / (far - near),
+                -far * near / (far - near),
+            ],
+            [T::ZERO, T::ZERO, T::ONE, T::ZERO],
+        ]);
+
+        let inv = (fov.to_radians() / T::TWO).tan();
+        Self::scale(Vector3::new(inv, inv, T::ONE)) * Transform::from_mat(&perspective).unwrap()
+    }
+
     /// Apply this transformation to an object.  Equivalent to other * self
     pub fn apply<U>(&self, other: U) -> U
     where
