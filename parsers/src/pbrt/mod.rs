@@ -1,21 +1,59 @@
 #![allow(unused)]
 
+mod ast;
 mod options;
 mod transform_set;
 
-use std::{path::Path, str::Chars};
+pub use ast::*;
 
-use anyhow::Result;
+use std::{fmt::Display, path::Path, str::Chars};
+
 use geometry::{Float, Number};
 
-use crate::pbrt::transform_set::TransformSet;
+use self::transform_set::TransformSet;
 
-pub fn parse_pbrt(file_name: impl AsRef<Path>) -> Result<Vec<()>> {
-    let mut files = vec![std::fs::read_to_string(file_name)?];
+/// Error messages encountered while parsing a pbrt file
+#[derive(Debug)]
+pub enum PbrtError {
+    IOError(std::io::Error),
+    NonTerminatedString,
+}
 
-    let mut parser = Parser::<Float>::new(&mut files);
+impl From<std::io::Error> for PbrtError {
+    fn from(err: std::io::Error) -> Self {
+        Self::IOError(err)
+    }
+}
 
-    parser.parse()
+impl Display for PbrtError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PbrtError::IOError(err) => {
+                f.write_fmt(format_args!("IO Error while parsing pbrt file: {}", err))
+            }
+            PbrtError::NonTerminatedString => f.write_str("Non-terminated string"),
+        }
+    }
+}
+
+impl std::error::Error for PbrtError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            PbrtError::IOError(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
+impl<T: Number> PbrtFile<T> {
+    /// Parse a pbrt file
+    pub fn parse(file_name: impl AsRef<Path>) -> Result<PbrtFile<T>, PbrtError> {
+        let mut files = vec![std::fs::read_to_string(file_name)?];
+
+        let mut parser = Parser::new(&mut files);
+
+        parser.parse()
+    }
 }
 
 struct Tokeniser<'a> {
@@ -31,7 +69,7 @@ impl<'a> Tokeniser<'a> {
         }
     }
 
-    fn next(&mut self) -> Option<&str> {
+    fn next(&mut self) -> Option<Result<&str, PbrtError>> {
         loop {
             let tok = self.chars.as_str();
             let next = self.chars.next()?;
@@ -51,7 +89,7 @@ impl<'a> Tokeniser<'a> {
                         len += ch.len_utf8();
 
                         if ch == '"' {
-                            return Some(&tok[0..=len]);
+                            return Some(Ok(&tok[0..=len]));
                         }
                         if ch == '\\' {
                             break;
@@ -83,13 +121,13 @@ impl<'a> Tokeniser<'a> {
                         }
 
                         if ch == '"' {
-                            return Some(&self.escaped_strings);
+                            return Some(Ok(&self.escaped_strings));
                         }
                     }
                     panic!("Non-terminated string");
                 }
                 '[' | ']' => {
-                    return Some(&tok[0..1]);
+                    return Some(Ok(&tok[0..1]));
                 }
                 _ => {
                     let mut len = next.len_utf8();
@@ -100,7 +138,7 @@ impl<'a> Tokeniser<'a> {
                         len += ch.len_utf8();
                         self.chars.next();
                     }
-                    return Some(&tok[0..len]);
+                    return Some(Ok(&tok[0..len]));
                 }
             }
         }
@@ -120,7 +158,7 @@ impl<'a, T: Number> Parser<'a, T> {
         }
     }
 
-    fn parse(&mut self) -> Result<Vec<()>> {
-        Ok(vec![])
+    fn parse(&mut self) -> Result<PbrtFile<T>, PbrtError> {
+        Ok(PbrtFile::default())
     }
 }

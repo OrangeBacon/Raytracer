@@ -1,3 +1,1 @@
-mod pbrt;
-
-pub use pbrt::*;
+pub mod pbrt;

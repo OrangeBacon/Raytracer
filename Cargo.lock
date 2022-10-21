@@ -3,12 +3,6 @@
 version = 3
 
 [[package]]
-name = "anyhow"
-version = "1.0.61"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "508b352bb5c066aac251f6daf6b36eccd03e8a88e8081cd44959ea277a3af9a8"
-
-[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -222,7 +216,6 @@ checksum = "9ff7415e9ae3fff1225851df9e0d9e4e5479f947619774677a63572e55e80eff"
 name = "parsers"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "geometry",
 ]
 
@@ -300,7 +293,6 @@ dependencies = [
 name = "raytracing"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "clap",
  "colour",
  "geometry",
