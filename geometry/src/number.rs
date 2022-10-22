@@ -1,7 +1,8 @@
 use std::{
     cmp::Ordering,
     fmt::Debug,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
+    str::FromStr,
     sync::atomic::{AtomicI32, AtomicI64},
 };
 
@@ -25,11 +26,14 @@ pub trait Number:
     + Sub<Output = Self>
     + Mul<Output = Self>
     + Div<Output = Self>
+    + Rem<Output = Self>
     + Neg<Output = Self>
     + AddAssign<Self>
     + SubAssign<Self>
     + MulAssign<Self>
     + DivAssign<Self>
+    + RemAssign<Self>
+    + FromStr
     + 'static
 {
     /// The Bit representation of the type

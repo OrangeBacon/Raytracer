@@ -1,22 +1,36 @@
 #![allow(unused)]
 
 mod ast;
-mod options;
-mod transform_set;
 
 pub use ast::*;
 
-use std::{fmt::Display, path::Path, str::Chars};
+use std::{
+    array,
+    collections::HashSet,
+    fmt::Display,
+    marker::PhantomData,
+    ops::Range,
+    path::{Path, PathBuf},
+    str::{Chars, FromStr},
+};
 
-use geometry::{Float, Number};
-
-use self::transform_set::TransformSet;
+use geometry::{Bounds2, Float, Number, Point2};
 
 /// Error messages encountered while parsing a pbrt file
 #[derive(Debug)]
 pub enum PbrtError {
     IOError(std::io::Error),
     NonTerminatedString,
+    UnexpectedEscapeSequence,
+    EofInsideEscapeSequence,
+    InvalidNumericConstant,
+    InvalidBooleanConstant,
+    UnexpectedToken(String),
+    UnknownDirectives(Vec<String>),
+    EofInsideDirective,
+    InvalidKind(&'static str, String),
+    InvalidParameter(String, String),
+    ExpectedParameter(String),
 }
 
 impl From<std::io::Error> for PbrtError {
@@ -25,13 +39,42 @@ impl From<std::io::Error> for PbrtError {
     }
 }
 
+impl<'a, T: Number> From<Token<'a, T>> for PbrtError {
+    fn from(tok: Token<'a, T>) -> Self {
+        Self::UnexpectedToken(format!("{:?}", tok))
+    }
+}
+
 impl Display for PbrtError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PbrtError::IOError(err) => {
-                f.write_fmt(format_args!("IO Error while parsing pbrt file: {}", err))
+                write!(f, "IO Error while parsing pbrt file: {err}")
             }
             PbrtError::NonTerminatedString => f.write_str("Non-terminated string"),
+            PbrtError::UnexpectedEscapeSequence => f.write_str("Unexpected escape sequence"),
+            PbrtError::EofInsideEscapeSequence => {
+                f.write_str("Unexpected end of file inside escape sequence")
+            }
+            PbrtError::InvalidNumericConstant => f.write_str("Unable to parse number"),
+            PbrtError::InvalidBooleanConstant => f.write_str("Unable to parse bool"),
+            PbrtError::UnexpectedToken(s) => write!(f, "Unexpected token {s:?}"),
+            PbrtError::UnknownDirectives(dir) => {
+                f.write_str("Unknown directives: ")?;
+                let mut set = f.debug_set();
+                for dir in dir {
+                    set.entry(dir);
+                }
+                set.finish()
+            }
+            PbrtError::EofInsideDirective => f.write_str("Unexpected end of file inside directive"),
+            PbrtError::InvalidKind(s, k) => write!(f, "{k} is not a recognised kind of {s}"),
+            PbrtError::InvalidParameter(ty, name) => {
+                write!(f, "parameter {name} of type {ty} unexpected")
+            }
+            PbrtError::ExpectedParameter(s) => {
+                write!(f, "Expected string of \"type name\", got {s:?}")
+            }
         }
     }
 }
@@ -48,31 +91,95 @@ impl std::error::Error for PbrtError {
 impl<T: Number> PbrtFile<T> {
     /// Parse a pbrt file
     pub fn parse(file_name: impl AsRef<Path>) -> Result<PbrtFile<T>, PbrtError> {
-        let mut files = vec![std::fs::read_to_string(file_name)?];
+        let mut data = std::fs::read_to_string(file_name)?;
 
-        let mut parser = Parser::new(&mut files);
+        let mut parser = Parser::new(&data);
 
         parser.parse()
     }
 }
 
-struct Tokeniser<'a> {
+/// State for getting tokens from a string
+struct Tokeniser<'a, T: Number> {
+    /// The input string char iterator
     chars: Chars<'a>,
-    escaped_strings: String,
+
+    /// Stored data e.g. identifiers, decoded strings, ...
+    string: String,
+
+    /// The token that was peeked
+    data: Option<TokeniserState<T>>,
 }
 
-impl<'a> Tokeniser<'a> {
+#[derive(Clone, Copy)]
+enum TokeniserState<T: Number> {
+    String,
+    Identifier,
+    Number(T),
+    OpenSquareBracket,
+    CloseSquareBracket,
+}
+
+#[derive(Debug)]
+enum Token<'a, T: Number> {
+    String(&'a str),
+    Number(T),
+    Identifier(&'a str),
+    OpenSquareBracket,
+    CloseSquareBracket,
+}
+
+impl<'a, T: Number> Tokeniser<'a, T> {
+    /// Create a new tokeniser for the given string
     fn new(data: &'a str) -> Self {
         Self {
             chars: data.chars(),
-            escaped_strings: String::new(),
+            string: String::new(),
+            data: None,
         }
     }
 
-    fn next(&mut self) -> Option<Result<&str, PbrtError>> {
+    /// Try to get the next token in the stream but don't consume it
+    fn peek(&mut self) -> Result<Option<Token<T>>, PbrtError> {
+        Ok(match self.data {
+            Some(data) => Some(self.data_to_token(data)),
+            None => {
+                self.token()?;
+                self.data.map(|data| self.data_to_token(data))
+            }
+        })
+    }
+
+    /// Return and consume the next token in the stream
+    fn next(&mut self) -> Result<Option<Token<T>>, PbrtError> {
+        Ok(match self.data.take() {
+            Some(data) => Some(self.data_to_token(data)),
+            None => {
+                self.token()?;
+                self.data.take().map(|data| self.data_to_token(data))
+            }
+        })
+    }
+
+    /// Convert the internal state into an actual token
+    fn data_to_token(&'a self, data: TokeniserState<T>) -> Token<'a, T> {
+        match data {
+            TokeniserState::String => Token::String(&self.string),
+            TokeniserState::Identifier => Token::Identifier(&self.string),
+            TokeniserState::Number(n) => Token::Number(n),
+            TokeniserState::OpenSquareBracket => Token::OpenSquareBracket,
+            TokeniserState::CloseSquareBracket => Token::CloseSquareBracket,
+        }
+    }
+
+    /// replace the stored token data with new data
+    fn token(&mut self) -> Result<(), PbrtError> {
         loop {
             let tok = self.chars.as_str();
-            let next = self.chars.next()?;
+            let next = match self.chars.next() {
+                Some(c) => c,
+                None => return Ok(()),
+            };
 
             match next {
                 ' ' | '\n' | '\t' | '\r' => {}
@@ -84,81 +191,478 @@ impl<'a> Tokeniser<'a> {
                     }
                 }
                 '"' => {
-                    let mut len = 0;
-                    for ch in self.chars.by_ref() {
-                        len += ch.len_utf8();
-
+                    self.string.clear();
+                    for ch in &mut self.chars {
                         if ch == '"' {
-                            return Some(Ok(&tok[0..=len]));
+                            self.data = Some(TokeniserState::String);
+                            return Ok(());
                         }
                         if ch == '\\' {
                             break;
                         }
+                        self.string.push(ch);
                     }
-                    if tok.len() <= len {
-                        panic!("Non-terminated string");
-                    }
-                    self.escaped_strings.clear();
-                    self.escaped_strings.push_str(&tok[0..len]);
+
                     while let Some(ch) = self.chars.next() {
-                        if ch == '\\' {
-                            let ch = match self.chars.next() {
-                                Some('b') => '\x08',
-                                Some('f') => '\x0C',
-                                Some('n') => '\n',
-                                Some('r') => '\r',
-                                Some('t') => '\t',
-                                Some('\\') => '\\',
-                                Some('\'') => '\'',
-                                Some('\"') => '\"',
-                                Some(_) => panic!("Unexpected escape sequence"),
-                                None => panic!("Unexpected end of file inside string escape"),
-                            };
+                        match ch {
+                            '\\' => {
+                                let ch = match self.chars.next() {
+                                    Some('b') => '\x08',
+                                    Some('f') => '\x0C',
+                                    Some('n') => '\n',
+                                    Some('r') => '\r',
+                                    Some('t') => '\t',
+                                    Some('\\') => '\\',
+                                    Some('\'') => '\'',
+                                    Some('\"') => '\"',
+                                    Some(_) => return Err(PbrtError::UnexpectedEscapeSequence),
+                                    None => return Err(PbrtError::EofInsideEscapeSequence),
+                                };
 
-                            self.escaped_strings.push(ch);
-                        } else {
-                            self.escaped_strings.push(ch);
-                        }
-
-                        if ch == '"' {
-                            return Some(Ok(&self.escaped_strings));
+                                self.string.push(ch);
+                            }
+                            '"' => {
+                                self.data = Some(TokeniserState::String);
+                                return Ok(());
+                            }
+                            _ => self.string.push(ch),
                         }
                     }
-                    panic!("Non-terminated string");
+                    return Err(PbrtError::NonTerminatedString);
                 }
-                '[' | ']' => {
-                    return Some(Ok(&tok[0..1]));
+                '[' => {
+                    self.data = Some(TokeniserState::OpenSquareBracket);
+                    return Ok(());
+                }
+                ']' => {
+                    self.data = Some(TokeniserState::CloseSquareBracket);
+                    return Ok(());
                 }
                 _ => {
-                    let mut len = next.len_utf8();
+                    self.string.clear();
+                    self.string.push(next);
                     for ch in self.chars.clone() {
                         if " \n\t\r\"[]".contains(ch) {
                             break;
                         }
-                        len += ch.len_utf8();
                         self.chars.next();
+                        self.string.push(ch);
                     }
-                    return Some(Ok(&tok[0..len]));
+
+                    if "0123456789.-".contains(next) {
+                        let num = self
+                            .string
+                            .parse()
+                            .map_err(|_| PbrtError::InvalidNumericConstant)?;
+                        self.data = Some(TokeniserState::Number(num));
+                        return Ok(());
+                    }
+
+                    self.data = Some(TokeniserState::Identifier);
+                    return Ok(());
                 }
             }
         }
     }
 }
 
+macro_rules! expect {
+    ($tokeniser:expr, $matcher:ident) => {
+        match $tokeniser.next()? {
+            Some(Token::$matcher) => (),
+            Some(tok) => return Err(PbrtError::UnexpectedToken(format!("{:?}", tok))),
+            None => return Err(PbrtError::EofInsideDirective),
+        }
+    };
+    ($tokeniser:expr, $matcher:ident()) => {
+        match $tokeniser.next()? {
+            Some(Token::$matcher(val)) => val,
+            Some(tok) => return Err(PbrtError::UnexpectedToken(format!("{:?}", tok))),
+            None => return Err(PbrtError::EofInsideDirective),
+        }
+    };
+}
+
+/// Macro to make it easier to match directive parameters to their fields in ast
+macro_rules! directive {
+    (match $tokeniser:expr => $(
+        $pattern:pat => $(@$modifier:ident)? $path:expr
+    ),* $(,)?) => {
+        while let Some(peek) = $tokeniser.peek()? {
+            // break if there is an identifier because it probably starts a new directive
+            let ident = match peek {
+                Token::String(s) => s,
+                Token::Identifier(_) => break,
+                _ => return Err(PbrtError::UnexpectedToken(format!("{peek:?}"))),
+            };
+
+            // this should always succeed due to checking the peeked value
+            let ident = match $tokeniser.next()? {
+                Some(Token::String(s)) => s,
+                Some(tok) => return Err(PbrtError::UnexpectedToken(format!("{tok:?}"))),
+                None => return Err(PbrtError::EofInsideDirective),
+            };
+            match ident.split_once(' ') {
+                $(
+                    Some($pattern) => directive!(@set $tokeniser => $(@$modifier)? $path),
+                )*
+
+                Some((ty, name)) => {
+                    return Err(PbrtError::InvalidParameter(
+                        ty.to_string(),
+                        name.to_string(),
+                    ))
+                }
+                None => return Err(PbrtError::ExpectedParameter(ident.to_string())),
+            }
+        }
+    };
+    (@set $tokeniser:expr => $path:expr) => {
+        $path = <_>::parse(&mut $tokeniser)?
+    };
+    (@set $tokeniser:expr => @num $path:expr) => {
+        $path = <NumberWrapper<_>>::parse(&mut $tokeniser)?.0
+    };
+    (@set $tokeniser:expr => @optnum $path:expr) => {
+        $path = <Option<NumberWrapper<_>>>::parse(&mut $tokeniser)?.map(|d| d.0)
+    };
+}
+
 struct Parser<'a, T: Number> {
-    files: &'a mut [String],
-    transforms: TransformSet<T>,
+    tokeniser: Tokeniser<'a, T>,
+    result_file: PbrtFile<T>,
 }
 
 impl<'a, T: Number> Parser<'a, T> {
-    fn new(files: &'a mut [String]) -> Self {
+    fn new(data: &'a str) -> Self {
         Self {
-            files,
-            transforms: TransformSet::new(),
+            tokeniser: Tokeniser::new(data),
+            result_file: PbrtFile::default(),
         }
     }
 
     fn parse(&mut self) -> Result<PbrtFile<T>, PbrtError> {
-        Ok(PbrtFile::default())
+        let mut result = PbrtFile::default();
+        let mut unknown_directives = HashSet::new();
+        let mut skip_unknown = false;
+
+        while let Some(tok) = self.tokeniser.next()? {
+            match tok {
+                Token::Identifier("WorldBegin") => break, // only looking at global options atm
+                Token::Identifier(ident) => {
+                    skip_unknown = false;
+                    let directive = ident.parse();
+                    let directive = match directive {
+                        Ok(dir) => dir,
+                        Err(PbrtError::UnknownDirectives(dir)) => {
+                            for dir in dir {
+                                unknown_directives.insert(dir);
+                            }
+                            skip_unknown = true;
+                            continue;
+                        }
+                        Err(err) => return Err(err),
+                    };
+                    self.parse_directive(directive)?;
+                }
+                tok => {
+                    if skip_unknown {
+                        continue;
+                    }
+                    return Err(tok.into());
+                }
+            }
+        }
+
+        println!("{:#?}", self.result_file);
+
+        if !unknown_directives.is_empty() {
+            return Err(PbrtError::UnknownDirectives(
+                unknown_directives.into_iter().collect(),
+            ));
+        }
+
+        Ok(result)
+    }
+
+    fn parse_directive(&mut self, directive: Directives) -> Result<(), PbrtError> {
+        match directive {
+            Directives::Camera => match expect!(self.tokeniser, String()) {
+                "environment" => {
+                    let mut cam = CameraEnvironment::default();
+                    directive! { match self.tokeniser =>
+                        ("float", "shutteropen") => @num self.result_file.camera.shutter_open,
+                        ("float", "shutterclose") => @num self.result_file.camera.shutter_close,
+                        ("float", "screenwindow") => cam.screen_window,
+                        ("float", "frameaspectratio") => @optnum cam.frame_aspect_ratio,
+                    }
+                    self.result_file.camera.kind = CameraKind::Environment(cam);
+                }
+                "orthographic" => {
+                    let mut cam = CameraOrthographic::default();
+                    directive! { match self.tokeniser =>
+                        ("float", "shutteropen") => @num self.result_file.camera.shutter_open,
+                        ("float", "shutterclose") => @num self.result_file.camera.shutter_close,
+                        ("float", "screenwindow") => cam.screen_window,
+                        ("float", "frameaspectratio") => @optnum cam.frame_aspect_ratio,
+                        ("float", "lensradius") => @num cam.lens_radius,
+                        ("float", "focaldistance") => @num cam.focal_distance,
+                    }
+                    self.result_file.camera.kind = CameraKind::Orthographic(cam);
+                }
+                "perspective" => {
+                    let mut cam = CameraPerspective::default();
+                    directive! { match self.tokeniser =>
+                        ("float", "shutteropen") => @num self.result_file.camera.shutter_open,
+                        ("float", "shutterclose") => @num self.result_file.camera.shutter_close,
+                        ("float", "screenwindow") => cam.screen_window,
+                        ("float", "frameaspectratio") => @optnum cam.frame_aspect_ratio,
+                        ("float", "lensradius") => @num cam.lens_radius,
+                        ("float", "focaldistance") => @num cam.focal_distance,
+                        ("float", "fov") => @num cam.fov,
+                        ("float", "halffov") => @optnum cam.half_fov,
+                    }
+                    self.result_file.camera.kind = CameraKind::Perspective(cam);
+                }
+                "realistic" => {
+                    let mut cam = CameraRealistic::default();
+                    directive! { match self.tokeniser =>
+                        ("float", "shutteropen") => @num self.result_file.camera.shutter_open,
+                        ("float", "shutterclose") => @num self.result_file.camera.shutter_close,
+                        ("string", "lensfile") => cam.lens_file,
+                        ("float", "aperturediameter") => @num cam.aperture_diameter,
+                        ("float", "focusdistance") => @num cam.focus_distance,
+                        ("bool", "simpleweighting") => cam.simple_weighting
+                    }
+                    self.result_file.camera.kind = CameraKind::Realistic(cam);
+                }
+                str => return Err(PbrtError::InvalidKind("Camera", str.to_string())),
+            },
+            Directives::Sampler => match expect!(self.tokeniser, String()) {
+                "stratified" => {
+                    let mut sampler = SamplerStratified::default();
+                    directive! { match self.tokeniser =>
+                        ("bool", "jitter") => sampler.jitter,
+                        ("integer", "xsamples") => sampler.x_samples,
+                        ("integer", "ysamples") => sampler.y_samples,
+                    }
+                    self.result_file.sampler = Sampler::Stratified(sampler);
+                }
+                str => {
+                    if let Ok(kind) = str.parse() {
+                        let mut sampler = SamplerPixel {
+                            kind,
+                            ..Default::default()
+                        };
+                        directive! { match self.tokeniser =>
+                            ("integer", "pixelsamples") => sampler.pixel_samples,
+                        }
+                        self.result_file.sampler = Sampler::Pixel(sampler);
+                    } else {
+                        return Err(PbrtError::InvalidKind("Sampler", str.to_string()));
+                    }
+                }
+            },
+            Directives::Film => match expect!(self.tokeniser, String()) {
+                "image" => {
+                    self.result_file.film = Default::default();
+                    directive! { match self.tokeniser =>
+                        ("integer", "xresolution") => self.result_file.film.x_resolution,
+                        ("integer", "yresolution") => self.result_file.film.y_resolution,
+                        ("float", "cropwindow") => self.result_file.film.crop_window,
+                        ("float", "scale") => @num self.result_file.film.scale,
+                        ("float", "maxsampleluminance") => @num self.result_file.film.max_sample_luminance,
+                        ("float", "diagonal") => @num self.result_file.film.diagonal,
+                        ("string", "filename") => self.result_file.film.file_name,
+                    }
+                }
+                str => return Err(PbrtError::InvalidKind("Film", str.to_string())),
+            },
+            Directives::Filter => match expect!(self.tokeniser, String()) {
+                "box" => {
+                    let mut filter = FilterBox::default();
+                    directive! { match self.tokeniser =>
+                        ("float", "xwidth") => @num filter.x_width,
+                        ("float", "ywidth") => @num filter.y_width,
+                    }
+                    self.result_file.filter = Filter::Box(filter);
+                }
+                "gaussian" => {
+                    let mut filter = FilterGaussian::default();
+                    directive! { match self.tokeniser =>
+                        ("float", "xwidth") => @num filter.x_width,
+                        ("float", "ywidth") => @num filter.y_width,
+                        ("float", "alpha") => @num filter.alpha,
+                    }
+                    self.result_file.filter = Filter::Gaussian(filter);
+                }
+                "mitchell" => {
+                    let mut filter = FilterMitchell::default();
+                    directive! { match self.tokeniser =>
+                        ("float", "xwidth") => @num filter.x_width,
+                        ("float", "ywidth") => @num filter.y_width,
+                        ("float", "B") => @num filter.b,
+                        ("float", "C") => @num filter.c,
+                    }
+                    self.result_file.filter = Filter::Mitchell(filter);
+                }
+                "sinc" => {
+                    let mut filter = FilterSinc::default();
+                    directive! { match self.tokeniser =>
+                        ("float", "xwidth") => @num filter.x_width,
+                        ("float", "ywidth") => @num filter.y_width,
+                        ("float", "tau") => @num filter.tau,
+                    }
+                    self.result_file.filter = Filter::Sinc(filter);
+                }
+                "triangle" => {
+                    let mut filter = FilterTriangle::default();
+                    directive! { match self.tokeniser =>
+                        ("float", "xwidth") => @num filter.x_width,
+                        ("float", "ywidth") => @num filter.y_width,
+                    }
+                    self.result_file.filter = Filter::Triangle(filter);
+                }
+                str => return Err(PbrtError::InvalidKind("Filter", str.to_string())),
+            },
+        }
+        Ok(())
+    }
+}
+
+/// All supported directives
+enum Directives {
+    Camera,
+    Sampler,
+    Film,
+    Filter,
+}
+
+impl FromStr for Directives {
+    type Err = PbrtError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use Directives::*;
+        Ok(match s {
+            "Camera" => Camera,
+            "Film" => Film,
+            "Sampler" => Sampler,
+            _ => return Err(PbrtError::UnknownDirectives(vec![s.into()])),
+        })
+    }
+}
+
+impl FromStr for SamplerPixelKind {
+    type Err = PbrtError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use SamplerPixelKind::*;
+        Ok(match s {
+            "02sequence" | "lowdiscrepancy" => ZeroTwoSequence,
+            "halton" => Halton,
+            "maxmindist" => MaxMinDist,
+            "random" => Random,
+            "sobol" => Sobol,
+            _ => return Err(PbrtError::InvalidKind("Sampler", s.to_string())),
+        })
+    }
+}
+
+/// Any value that can be parsed as a parameter value from a token stream
+trait ParseValue<T: Number>
+where
+    Self: Sized,
+{
+    fn parse(tokeniser: &mut Tokeniser<T>) -> Result<Self, PbrtError>;
+}
+
+impl<T: Number, U: ParseValue<T>> ParseValue<T> for Option<U> {
+    fn parse(tokeniser: &mut Tokeniser<T>) -> Result<Self, PbrtError> {
+        Ok(Some(U::parse(tokeniser)?))
+    }
+}
+
+/// Wrapper required due to orphan rules not letting there be a blanket impl for
+/// `T: Number`.  This therefore makes it require the special cases in the
+/// `directive!` macro.
+struct NumberWrapper<T: Number>(T);
+impl<T: Number> ParseValue<T> for NumberWrapper<T> {
+    fn parse(tokeniser: &mut Tokeniser<T>) -> Result<Self, PbrtError> {
+        let must_close = match tokeniser.peek()? {
+            Some(Token::OpenSquareBracket) => {
+                tokeniser.next()?;
+                true
+            }
+            _ => false,
+        };
+
+        let num = expect!(tokeniser, Number());
+
+        if must_close {
+            expect!(tokeniser, CloseSquareBracket);
+        }
+
+        Ok(NumberWrapper(num))
+    }
+}
+
+impl<T: Number> ParseValue<T> for Bounds2<T> {
+    fn parse(tokeniser: &mut Tokeniser<T>) -> Result<Self, PbrtError> {
+        expect!(tokeniser, OpenSquareBracket);
+
+        let mut vals = [T::ZERO; 4];
+        for val in &mut vals {
+            *val = expect!(tokeniser, Number());
+        }
+
+        expect!(tokeniser, CloseSquareBracket);
+
+        Ok(Bounds2::new(
+            Point2::new(vals[0], vals[1]),
+            Point2::new(vals[2], vals[3]),
+        ))
+    }
+}
+
+impl<T: Number> ParseValue<T> for PathBuf {
+    fn parse(tokeniser: &mut Tokeniser<T>) -> Result<Self, PbrtError> {
+        let path = expect!(tokeniser, String());
+
+        Ok(path.into())
+    }
+}
+
+impl<T: Number> ParseValue<T> for bool {
+    fn parse(tokeniser: &mut Tokeniser<T>) -> Result<Self, PbrtError> {
+        let bool = expect!(tokeniser, String());
+
+        match bool {
+            "true" => Ok(true),
+            "false" => Ok(false),
+            _ => Err(PbrtError::InvalidBooleanConstant),
+        }
+    }
+}
+
+impl<T: Number> ParseValue<T> for u32 {
+    fn parse(tokeniser: &mut Tokeniser<T>) -> Result<Self, PbrtError> {
+        let must_close = match tokeniser.peek()? {
+            Some(Token::OpenSquareBracket) => {
+                tokeniser.next()?;
+                true
+            }
+            _ => false,
+        };
+        let num = expect!(tokeniser, Number());
+
+        if num % T::ONE != T::ZERO {
+            return Err(PbrtError::InvalidNumericConstant);
+        }
+
+        if must_close {
+            expect!(tokeniser, CloseSquareBracket);
+        }
+
+        Ok(num.i32() as _)
     }
 }

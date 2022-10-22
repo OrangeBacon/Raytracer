@@ -1,4 +1,4 @@
 /target
 out.png
 /.vscode
-*.pbrt
+/test_pbrt

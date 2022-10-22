@@ -24,14 +24,16 @@ struct Args {
     scene: PathBuf,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+fn main() -> Result {
     let args = Args::parse();
 
     if args.scene.extension().map(|s| s == "pbrt").unwrap_or(false) {
         if args.use_double {
-            run_pbrt(&args, PbrtFile::<f64>::parse(&args.scene)?);
+            run_pbrt::<f64>(&args)?;
         } else {
-            run_pbrt(&args, PbrtFile::<f32>::parse(&args.scene)?);
+            run_pbrt::<f32>(&args)?;
         }
     } else {
         panic!("Unknown file type")
@@ -40,8 +42,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn run_pbrt<T: Number>(args: &Args, file: PbrtFile<T>) {
+fn run_pbrt<T: Number>(args: &Args) -> Result {
+    let file: PbrtFile<T> = PbrtFile::parse(&args.scene)?;
+
     if args.print_files {
         println!("{:#?}", file)
     }
+
+    Ok(())
 }
