@@ -88,6 +88,11 @@ impl<T: Number> Point3<T> {
         [self.x, self.y, self.z]
     }
 
+    /// Construct a point from its (x,y,z) components
+    pub fn from_array(data: [T; 3]) -> Self {
+        Self::new(data[0], data[1], data[2])
+    }
+
     /// Are any of the coordinates of this point NaN
     pub fn has_nan(&self) -> bool {
         self.x.is_nan() || self.y.is_nan() || self.z.is_nan()

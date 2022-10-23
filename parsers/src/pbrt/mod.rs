@@ -1,20 +1,18 @@
-#![allow(unused)]
-
 mod ast;
+mod transform_set;
 
 pub use ast::*;
 
 use std::{
-    array,
     collections::HashSet,
     fmt::Display,
-    marker::PhantomData,
-    ops::Range,
     path::{Path, PathBuf},
     str::{Chars, FromStr},
 };
 
-use geometry::{Bounds2, Float, Number, Point2};
+use geometry::{Bounds2, Number, Point2, Point3, Vector3};
+
+use self::transform_set::TransformManager;
 
 /// Error messages encountered while parsing a pbrt file
 #[derive(Debug)]
@@ -31,6 +29,7 @@ pub enum PbrtError {
     InvalidKind(&'static str, String),
     InvalidParameter(String, String),
     ExpectedParameter(String),
+    UnknownCoordinateSystem(String),
 }
 
 impl From<std::io::Error> for PbrtError {
@@ -75,6 +74,7 @@ impl Display for PbrtError {
             PbrtError::ExpectedParameter(s) => {
                 write!(f, "Expected string of \"type name\", got {s:?}")
             }
+            PbrtError::UnknownCoordinateSystem(s) => write!(f, "Coordinate system {s:?} unknown"),
         }
     }
 }
@@ -91,9 +91,9 @@ impl std::error::Error for PbrtError {
 impl<T: Number> PbrtFile<T> {
     /// Parse a pbrt file
     pub fn parse(file_name: impl AsRef<Path>) -> Result<PbrtFile<T>, PbrtError> {
-        let mut data = std::fs::read_to_string(file_name)?;
+        let data = std::fs::read_to_string(file_name)?;
 
-        let mut parser = Parser::new(&data);
+        let parser = Parser::new(&data);
 
         parser.parse()
     }
@@ -175,7 +175,6 @@ impl<'a, T: Number> Tokeniser<'a, T> {
     /// replace the stored token data with new data
     fn token(&mut self) -> Result<(), PbrtError> {
         loop {
-            let tok = self.chars.as_str();
             let next = match self.chars.next() {
                 Some(c) => c,
                 None => return Ok(()),
@@ -290,11 +289,11 @@ macro_rules! directive {
     ),* $(,)?) => {
         while let Some(peek) = $tokeniser.peek()? {
             // break if there is an identifier because it probably starts a new directive
-            let ident = match peek {
-                Token::String(s) => s,
+            match peek {
+                Token::String(_) => (),
                 Token::Identifier(_) => break,
                 _ => return Err(PbrtError::UnexpectedToken(format!("{peek:?}"))),
-            };
+            }
 
             // this should always succeed due to checking the peeked value
             let ident = match $tokeniser.next()? {
@@ -331,6 +330,7 @@ macro_rules! directive {
 struct Parser<'a, T: Number> {
     tokeniser: Tokeniser<'a, T>,
     result_file: PbrtFile<T>,
+    transform: TransformManager<T>,
 }
 
 impl<'a, T: Number> Parser<'a, T> {
@@ -338,11 +338,11 @@ impl<'a, T: Number> Parser<'a, T> {
         Self {
             tokeniser: Tokeniser::new(data),
             result_file: PbrtFile::default(),
+            transform: TransformManager::default(),
         }
     }
 
-    fn parse(&mut self) -> Result<PbrtFile<T>, PbrtError> {
-        let mut result = PbrtFile::default();
+    fn parse(mut self) -> Result<PbrtFile<T>, PbrtError> {
         let mut unknown_directives = HashSet::new();
         let mut skip_unknown = false;
 
@@ -382,11 +382,53 @@ impl<'a, T: Number> Parser<'a, T> {
             ));
         }
 
-        Ok(result)
+        Ok(self.result_file)
     }
 
     fn parse_directive(&mut self, directive: Directives) -> Result<(), PbrtError> {
         match directive {
+            // TRANSFORMS
+            Directives::Identity => self.transform.identity(),
+            Directives::Translate => {
+                let [dx, dy, dz] = self.float_list()?;
+                self.transform.translate(dx, dy, dz);
+            }
+            Directives::Scale => {
+                let [sx, sy, sz] = self.float_list()?;
+                self.transform.scale(sx, sy, sz);
+            }
+            Directives::Rotate => {
+                let [angle, ax, ay, az] = self.float_list()?;
+                self.transform.rotate(angle, ax, ay, az);
+            }
+            Directives::LookAt => {
+                let pos = Point3::from_array(self.float_list()?);
+                let look = Point3::from_array(self.float_list()?);
+                let up = Vector3::from_array(self.float_list()?);
+                self.transform.look_at(pos, look, up);
+            }
+            Directives::CoordinateSystem => {
+                let name = expect!(self.tokeniser, String());
+                self.transform.insert(name);
+            }
+            Directives::CoordSysTransform => {
+                let name = expect!(self.tokeniser, String());
+                let trans = match self.transform.get(name) {
+                    Some(t) => t,
+                    None => return Err(PbrtError::UnknownCoordinateSystem(name.to_string())),
+                };
+                self.transform.set(trans);
+            }
+            Directives::Transform => {
+                let transform = self.float_list()?;
+                self.transform.set_transform(transform);
+            }
+            Directives::ConcatTransform => {
+                let transform = self.float_list()?;
+                self.transform.concat(transform);
+            }
+
+            // GLOBAL SETTINGS
             Directives::Camera => match expect!(self.tokeniser, String()) {
                 "environment" => {
                     let mut cam = CameraEnvironment::default();
@@ -397,6 +439,7 @@ impl<'a, T: Number> Parser<'a, T> {
                         ("float", "frameaspectratio") => @optnum cam.frame_aspect_ratio,
                     }
                     self.result_file.camera.kind = CameraKind::Environment(cam);
+                    self.result_file.camera.transform = self.transform.insert("camera");
                 }
                 "orthographic" => {
                     let mut cam = CameraOrthographic::default();
@@ -409,6 +452,7 @@ impl<'a, T: Number> Parser<'a, T> {
                         ("float", "focaldistance") => @num cam.focal_distance,
                     }
                     self.result_file.camera.kind = CameraKind::Orthographic(cam);
+                    self.result_file.camera.transform = self.transform.insert("camera");
                 }
                 "perspective" => {
                     let mut cam = CameraPerspective::default();
@@ -423,6 +467,7 @@ impl<'a, T: Number> Parser<'a, T> {
                         ("float", "halffov") => @optnum cam.half_fov,
                     }
                     self.result_file.camera.kind = CameraKind::Perspective(cam);
+                    self.result_file.camera.transform = self.transform.insert("camera");
                 }
                 "realistic" => {
                     let mut cam = CameraRealistic::default();
@@ -435,6 +480,7 @@ impl<'a, T: Number> Parser<'a, T> {
                         ("bool", "simpleweighting") => cam.simple_weighting
                     }
                     self.result_file.camera.kind = CameraKind::Realistic(cam);
+                    self.result_file.camera.transform = self.transform.insert("camera");
                 }
                 str => return Err(PbrtError::InvalidKind("Camera", str.to_string())),
             },
@@ -478,7 +524,7 @@ impl<'a, T: Number> Parser<'a, T> {
                 }
                 str => return Err(PbrtError::InvalidKind("Film", str.to_string())),
             },
-            Directives::Filter => match expect!(self.tokeniser, String()) {
+            Directives::PixelFilter => match expect!(self.tokeniser, String()) {
                 "box" => {
                     let mut filter = FilterBox::default();
                     directive! { match self.tokeniser =>
@@ -525,17 +571,66 @@ impl<'a, T: Number> Parser<'a, T> {
                 }
                 str => return Err(PbrtError::InvalidKind("Filter", str.to_string())),
             },
+
+            tok => return Err(PbrtError::UnknownDirectives(vec![format!("{tok:?}")])),
         }
         Ok(())
+    }
+
+    /// Get exactly N floats
+    fn float_list<const N: usize>(&mut self) -> Result<[T; N], PbrtError> {
+        let mut result = [T::ZERO; N];
+
+        for elem in &mut result {
+            *elem = expect!(self.tokeniser, Number());
+        }
+
+        Ok(result)
     }
 }
 
 /// All supported directives
+#[derive(Debug)]
 enum Directives {
+    // transforms
+    Identity,
+    Translate,
+    Scale,
+    Rotate,
+    LookAt,
+    CoordinateSystem,
+    CoordSysTransform,
+    Transform,
+    ConcatTransform,
+
+    // setup
     Camera,
     Sampler,
     Film,
-    Filter,
+    PixelFilter,
+    Accelerator,
+    Integrator,
+    TransformTimes,
+
+    // both
+    MakeNamedMedium, // warn animated
+    MediumInterface,
+
+    // world description
+    AttributeBegin,
+    AttributeEnd,
+    ActiveTransform,
+    AreaLightSource,
+    LightSource,       // warn animated
+    MakeNamedMaterial, // warn animated
+    NamedMaterial,
+    ObjectBegin,
+    ObjectInstance,
+    ReverseOrientation,
+    Shape,
+    TransformBegin,
+    TransformEnd,
+    Texture, // warn animated
 }
 
 impl FromStr for Directives {
@@ -544,9 +639,38 @@ impl FromStr for Directives {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use Directives::*;
         Ok(match s {
+            "Identity" => Identity,
+            "Translate" => Translate,
+            "Scale" => Scale,
+            "Rotate" => Rotate,
+            "LookAt" => LookAt,
+            "CoordinateSystem" => CoordinateSystem,
+            "CoordSysTransform" => CoordSysTransform,
+            "Transform" => Transform,
+            "ConcatTransform" => ConcatTransform,
             "Camera" => Camera,
             "Film" => Film,
             "Sampler" => Sampler,
+            "PixelFilter" => PixelFilter,
+            "Accelerator" => Accelerator,
+            "Integrator" => Integrator,
+            "TransformTimes" => TransformTimes,
+            "MakeNamedMedium" => MakeNamedMedium,
+            "MediumInterface" => MediumInterface,
+            "AttributeBegin" => AttributeBegin,
+            "AttributeEnd" => AttributeEnd,
+            "ActiveTransform" => ActiveTransform,
+            "AreaLightSource" => AreaLightSource,
+            "LightSource" => LightSource,
+            "MakeNamedMaterial" => MakeNamedMaterial,
+            "NamedMaterial" => NamedMaterial,
+            "ObjectBegin" => ObjectBegin,
+            "ObjectInstance" => ObjectInstance,
+            "ReverseOrientation" => ReverseOrientation,
+            "Shape" => Shape,
+            "TransformBegin" => TransformBegin,
+            "TransformEnd" => TransformEnd,
+            "Texture" => Texture,
             _ => return Err(PbrtError::UnknownDirectives(vec![s.into()])),
         })
     }

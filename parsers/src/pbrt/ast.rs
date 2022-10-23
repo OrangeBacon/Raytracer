@@ -5,7 +5,9 @@
 
 use std::path::PathBuf;
 
-use geometry::{Bounds2, Bounds2i, ConstZero, Number, Point2};
+use geometry::{Bounds2, ConstZero, Number, Point2};
+
+use super::transform_set::TransformSet;
 
 /// Overall description of a pbrt file.  Describes the file at a given float
 /// bit width.
@@ -35,6 +37,9 @@ pub struct Camera<T: Number> {
 
     /// The time at which the virtual camera shutter closes.
     pub shutter_close: T,
+
+    /// The transforms to use when creating the camera
+    pub transform: TransformSet<T>,
 }
 
 impl<T: Number> Default for Camera<T> {
@@ -43,6 +48,7 @@ impl<T: Number> Default for Camera<T> {
             kind: Default::default(),
             shutter_open: T::ZERO,
             shutter_close: T::ONE,
+            transform: Default::default(),
         }
     }
 }
