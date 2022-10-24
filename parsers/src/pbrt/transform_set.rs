@@ -6,7 +6,7 @@ use std::{
 use geometry::{Matrix4x4, Number, Point3, Transform, Vector3};
 
 /// Set of transformations for multiple points in time
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TransformSet<T: Number> {
     transforms: [Transform<T>; 2],
     active_transforms: usize,
@@ -125,6 +125,12 @@ impl<T: Number> TransformSet<T> {
     /// Set only the end transform to be active
     pub fn end(&mut self) {
         self.active_transforms = Self::END_TRANSFORM;
+    }
+}
+
+impl<T: Number> Default for TransformSet<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

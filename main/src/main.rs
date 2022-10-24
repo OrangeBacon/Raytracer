@@ -11,9 +11,9 @@ struct Args {
     #[clap(short = 'd', long = "double", value_parser, default_value = "false")]
     use_double: bool,
 
-    /// Print the internal representation of all parsed input files.
-    #[clap(short, long, value_parser, default_value = "false")]
-    print_files: bool,
+    /// Print the internal representation from all specified components
+    #[clap(short, long, value_parser, value_delimiter = ',')]
+    print: Vec<String>,
 
     /// File name to write the image to.
     #[clap(short, long, value_parser, default_value = "out.png")]
@@ -45,7 +45,7 @@ fn main() -> Result {
 fn run_pbrt<T: Number>(args: &Args) -> Result {
     let file: PbrtFile<T> = PbrtFile::parse(&args.scene)?;
 
-    if args.print_files {
+    if args.print.iter().any(|x| x == "pbrt_ast") {
         println!("{:#?}", file)
     }
 

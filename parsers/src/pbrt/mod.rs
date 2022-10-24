@@ -363,7 +363,17 @@ impl<'a, T: Number> Parser<'a, T> {
                         }
                         Err(err) => return Err(err),
                     };
-                    self.parse_directive(directive)?;
+                    match self.parse_directive(directive) {
+                        Ok(()) => (),
+                        Err(PbrtError::UnknownDirectives(dir)) => {
+                            for dir in dir {
+                                unknown_directives.insert(dir);
+                            }
+                            skip_unknown = true;
+                            continue;
+                        }
+                        Err(err) => return Err(err),
+                    };
                 }
                 tok => {
                     if skip_unknown {
@@ -374,12 +384,8 @@ impl<'a, T: Number> Parser<'a, T> {
             }
         }
 
-        println!("{:#?}", self.result_file);
-
         if !unknown_directives.is_empty() {
-            return Err(PbrtError::UnknownDirectives(
-                unknown_directives.into_iter().collect(),
-            ));
+            println!("Warning: Skipping unknown directives: {unknown_directives:?}",);
         }
 
         Ok(self.result_file)
