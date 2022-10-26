@@ -1,8 +1,11 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, vec};
 
 use clap::Parser;
 use geometry::Number;
-use parsers::pbrt::PbrtFile;
+use parsers::{
+    pbrt::PbrtFile,
+    png::{Png, PngCreateInfo},
+};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -48,6 +51,19 @@ fn run_pbrt<T: Number>(args: &Args) -> Result {
     if args.print.iter().any(|x| x == "pbrt_ast") {
         println!("{:#?}", file)
     }
+
+    let image = vec![128; file.film.x_resolution as usize * file.film.y_resolution as usize * 3];
+    let image = Png::new(PngCreateInfo {
+        image_data: image,
+        width: file.film.x_resolution as usize,
+        height: file.film.y_resolution as usize,
+        colour_type: parsers::png::InputColourType::RGB,
+        u16: false,
+    })?;
+
+    let mut name = file.film.file_name;
+    name.set_extension("png");
+    std::fs::write(name, image.write())?;
 
     Ok(())
 }
