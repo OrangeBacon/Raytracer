@@ -1,7 +1,7 @@
-use std::{path::PathBuf, vec};
+use std::{iter::FromIterator, path::PathBuf};
 
 use clap::Parser;
-use geometry::Number;
+use geometry::{Number, Rng};
 use parsers::{
     pbrt::PbrtFile,
     png::{Png, PngCreateInfo},
@@ -52,7 +52,12 @@ fn run_pbrt<T: Number>(args: &Args) -> Result {
         println!("{:#?}", file)
     }
 
-    let image = vec![128; file.film.x_resolution as usize * file.film.y_resolution as usize * 3];
+    // generate some random noise because haven't finished implementing the raytracer
+    let mut rng = Rng::new(0);
+    let image = Vec::from_iter(
+        std::iter::from_fn(|| Some(rng.uniform_u32_limit(256) as _))
+            .take(file.film.x_resolution as usize * file.film.y_resolution as usize * 3),
+    );
     let image = Png::new(PngCreateInfo {
         image_data: image,
         width: file.film.x_resolution as usize,
@@ -61,6 +66,7 @@ fn run_pbrt<T: Number>(args: &Args) -> Result {
         u16: false,
     })?;
 
+    // write the noise out as png
     let mut name = file.film.file_name;
     name.set_extension("png");
     std::fs::write(name, image.write())?;

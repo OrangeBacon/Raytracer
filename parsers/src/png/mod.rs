@@ -3,6 +3,7 @@ use std::fmt::Display;
 use once_cell::sync::Lazy;
 
 mod zlib;
+mod lzss;
 
 /// A single png image
 pub struct Png<T: AsRef<[u8]>> {
@@ -141,7 +142,7 @@ impl<T: AsRef<[u8]>> Png<T> {
         }
         debug_assert_eq!(filtered_data.len(), data.len() + self.height as usize);
 
-        let compressed_data = zlib::zlib(filtered_data);
+        let compressed_data = zlib::zlib(&filtered_data);
 
         let mut output = vec![137, 80, 78, 71, 13, 10, 26, 10];
         write_chunk(b"IHDR", &mut output, |vec| {
@@ -158,7 +159,7 @@ impl<T: AsRef<[u8]>> Png<T> {
         // IEND chunk is always empty
         write_chunk(b"IEND", &mut output, |_| {});
 
-        println!("{:x?}", zlib::deflate(b"abc"));
+        println!("{:?}", zlib::deflate(b"a"));
 
         output
     }
